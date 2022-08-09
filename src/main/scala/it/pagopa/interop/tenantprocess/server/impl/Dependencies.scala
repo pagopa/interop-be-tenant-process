@@ -13,8 +13,6 @@ import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVe
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors
-import it.pagopa.interop.commons.utils.service._
-import it.pagopa.interop.commons.utils.service.impl._
 import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.tenantprocess.api.impl.{
   HealthApiMarshallerImpl,
@@ -31,9 +29,6 @@ import it.pagopa.interop.tenantprocess.service.impl._
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 trait Dependencies {
-
-  val uuidSupplier: UUIDSupplier               = new UUIDSupplierImpl()
-  val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplierImpl
 
   def jwtValidator(): Future[JWTReader] = JWTConfiguration.jwtReader
     .loadKeyset()
@@ -67,7 +62,7 @@ trait Dependencies {
     ec: ExecutionContext
   ): TenantApi =
     new TenantApi(
-      TenantApiServiceImpl(tenantManagement(blockingEc), uuidSupplier, dateTimeSupplier),
+      TenantApiServiceImpl(tenantManagement(blockingEc)),
       TenantApiMarshallerImpl,
       jwtReader.OAuth2JWTValidatorAsContexts
     )
@@ -77,9 +72,8 @@ trait Dependencies {
   ): TenantManagementInvoker =
     TenantManagementInvoker(blockingEc)(actorSystem.classicSystem)
 
-  private final val tenantManagementApi: TenantManagementApi = TenantManagementApi(
-    ApplicationConfiguration.tenantManagementURL
-  )
+  private final val tenantManagementApi: TenantManagementApi =
+    TenantManagementApi(ApplicationConfiguration.tenantManagementURL)
 
   def tenantManagement(
     blockingEc: ExecutionContextExecutor

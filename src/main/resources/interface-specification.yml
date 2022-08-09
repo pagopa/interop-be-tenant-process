@@ -43,8 +43,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tenant'
-        '400':
-          description: Bad Request
+        '409':
+          description: Tenant already exists
           content:
             application/problem+json:
               schema:
@@ -78,14 +78,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tenant'
-        '400':
-          description: Bad Request
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
         '404':
-          description: tenant Not Found
+          description: Tenant Not Found
           content:
             application/problem+json:
               schema:

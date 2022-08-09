@@ -10,7 +10,6 @@ import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLo
 import it.pagopa.interop.commons.utils.AkkaUtils.getUidFuture
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{GenericError, OperationForbidden}
-import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError => TenantApiError}
 import it.pagopa.interop.tenantmanagement.client.model.{Problem => TenantProblem}
 import it.pagopa.interop.tenantprocess.api.TenantApiService
@@ -22,11 +21,7 @@ import it.pagopa.interop.tenantprocess.service._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-final case class TenantApiServiceImpl(
-  tenantManagementService: TenantManagementService,
-  uuidSupplier: UUIDSupplier,
-  dateTimeSupplier: OffsetDateTimeSupplier
-)(implicit ec: ExecutionContext)
+final case class TenantApiServiceImpl(tenantManagementService: TenantManagementService)(implicit ec: ExecutionContext)
     extends TenantApiService {
 
   private val logger = Logger.takingImplicit[ContextFieldsToLog](this.getClass)
