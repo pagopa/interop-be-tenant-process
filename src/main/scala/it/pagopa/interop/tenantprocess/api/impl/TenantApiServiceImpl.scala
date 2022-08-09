@@ -5,9 +5,10 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import com.typesafe.scalalogging.Logger
-import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, authorizeInterop, hasPermissions}
+import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils.getUidFuture
+import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{GenericError, OperationForbidden}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError => TenantApiError}
@@ -42,7 +43,7 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route =
-    authorize(ADMIN_ROLE) {
+    authorize(ADMIN_ROLE, API_ROLE, M2M_ROLE, SECURITY_ROLE) {
       logger.info(s"Creating tenant with external id ${seed.externalId}")
       val result: Future[Tenant] = for {
         _      <- getUidFuture(contexts)
@@ -64,29 +65,23 @@ final case class TenantApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
-  ): Route = ???
-//  authorize(ADMIN_ROLE, M2M_ROLE) {
-//    logger.info("Retrieving tenant {}", id)
-//    val result: Future[tenant] = for {
-//      userId   <- getUidFuture(contexts)
-//      userUUID <- userId.toFutureUUID
-//      uuid     <- id.toFutureUUID
-//      tenant   <- tenantManagementService.gettenant(uuid)
-//      userType <- userType(userUUID, tenant.eserviceId, tenant.consumerId)
-//      result   <- enhancetenant(tenant, userType)
-//    } yield result
-//
-//    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GettenantBadRequest(id))
-//    onComplete(result) {
-//      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
-//        case Success(tenant) =>
-//          gettenant200(tenant)
-//        case Failure(ex)     =>
-//          logger.error(s"Error while retrieving tenant $id", ex)
-//          gettenant400(defaultProblem)
-//      }
-//    }
-//  }
+  ): Route = authorize(ADMIN_ROLE, API_ROLE, M2M_ROLE, SECURITY_ROLE) {
+    logger.info(s"Retrieving tenant $id")
+    val result: Future[Tenant] = for {
+      uuid   <- id.toFutureUUID
+      tenant <- tenantManagementService.getTenant(uuid)
+    } yield tenant.toApi
+
+    onComplete(result) {
+      handleApiError() orElse {
+        case Success(tenant) =>
+          getTenant200(tenant)
+        case Failure(ex)     =>
+          logger.error(s"Error while retrieving tenant $id", ex)
+          internalServerError()
+      }
+    }
+  }
 
   def handleApiError()(implicit
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],

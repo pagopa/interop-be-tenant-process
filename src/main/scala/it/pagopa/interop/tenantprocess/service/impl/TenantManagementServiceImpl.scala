@@ -8,6 +8,7 @@ import it.pagopa.interop.tenantmanagement.client.invoker.BearerToken
 import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.service.{TenantManagementApi, TenantManagementInvoker, TenantManagementService}
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 final case class TenantManagementServiceImpl(invoker: TenantManagementInvoker, api: TenantManagementApi)(implicit
@@ -24,6 +25,14 @@ final case class TenantManagementServiceImpl(invoker: TenantManagementInvoker, a
       request,
       s"Creating tenant for Origin ${seed.externalId.origin} and Value ${seed.externalId.value}"
     )
+  } yield result
+
+  override def getTenant(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[Tenant] = for {
+    (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+    request = api.getTenant(xCorrelationId = correlationId, tenantId = tenantId, xForwardedFor = ip)(
+      BearerToken(bearerToken)
+    )
+    result <- invoker.invoke(request, s"Retrieving tenant with id $tenantId")
   } yield result
 
 }
