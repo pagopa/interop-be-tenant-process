@@ -8,14 +8,13 @@ import com.typesafe.scalalogging.Logger
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, authorizeInterop, hasPermissions}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils.getUidFuture
-import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.OperationForbidden
+import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{GenericError, OperationForbidden}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError => TenantApiError}
 import it.pagopa.interop.tenantmanagement.client.model.{Problem => TenantProblem}
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.TenantManagementAdapters._
-import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.CreateTenantBadRequest
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
 
@@ -44,20 +43,19 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route =
     authorize(ADMIN_ROLE) {
-      logger.info("Creating tenant {}", seed)
+      logger.info(s"Creating tenant with external id ${seed.externalId}")
       val result: Future[Tenant] = for {
         _      <- getUidFuture(contexts)
         tenant <- tenantManagementService.createTenant(seed.toDependency)
       } yield tenant.toApi
 
-      val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreateTenantBadRequest)
       onComplete(result) {
-        handleApiError(defaultProblem) orElse {
+        handleApiError() orElse {
           case Success(tenant) =>
             createTenant201(tenant)
           case Failure(ex)     =>
-            logger.error(s"Error creating tenant $seed ", ex)
-            createTenant400(defaultProblem)
+            logger.error(s"Error creating tenant with external id ${seed.externalId}", ex)
+            internalServerError()
         }
       }
     }
@@ -90,14 +88,21 @@ final case class TenantApiServiceImpl(
 //    }
 //  }
 
-  def handleApiError(defaultProblem: Problem)(implicit
+  def handleApiError()(implicit
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     contexts: Seq[(String, String)]
   ): PartialFunction[Try[_], StandardRoute] = { case Failure(err: TenantApiError[_]) =>
     logger.error("Error received from tenant Management - {}", err.responseContent)
-    val problem = err.responseContent match {
-      case Some(body: String) => TenantProblem.fromString(body).getOrElse(defaultProblem)
-      case _                  => defaultProblem
+
+    err.responseContent match {
+      case Some(body: String) =>
+        TenantProblem.fromString(body).fold(_ => internalServerError(), problem => complete(problem.status, problem))
+      case _                  => internalServerError()
     }
+  }
+
+  def internalServerError()(implicit toEntityMarshallerProblem: ToEntityMarshaller[Problem]): StandardRoute = {
+    val problem = problemOf(StatusCodes.InternalServerError, GenericError("Error while executing the request"))
     complete(problem.status, problem)
   }
 }
