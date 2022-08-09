@@ -82,7 +82,7 @@ final case class TenantApiServiceImpl(tenantManagementService: TenantManagementS
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     contexts: Seq[(String, String)]
   ): PartialFunction[Try[_], StandardRoute] = { case Failure(err: TenantApiError[_]) =>
-    logger.error("Error received from tenant Management - {}", err.responseContent)
+    logger.error(s"Error received from tenant Management - ${err.responseContent}")
 
     err.responseContent match {
       case Some(body: String) =>
