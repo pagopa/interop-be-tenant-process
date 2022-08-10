@@ -27,24 +27,33 @@ tags:
       description: Find out more
       url: 'http://swagger.io'
 paths:
-  /tenants:
+  /internal/tenants:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
       - $ref: '#/components/parameters/IpAddress'
     post:
       tags:
         - tenant
-      operationId: createTenant
-      description: Creates the Tenant
+      operationId: internalUpsertTenant
+      description: |
+        Creates the Tenant if it does not exist. Otherwise, update the existing Tenant.
+        Used when the attribute origin is known
       responses:
+#        TODO Is this required?
+#        '200':
+#          description: Tenant updated
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/Tenant'
         '201':
           description: Tenant created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tenant'
-        '409':
-          description: Tenant already exists
+        '400':
+          description: Bad request
           content:
             application/problem+json:
               schema:
@@ -53,7 +62,81 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TenantSeed'
+              $ref: '#/components/schemas/InternalTenantSeed'
+        required: true
+  /m2m/tenants:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    post:
+      tags:
+        - tenant
+      operationId: m2mUpsertTenant
+      description:  |
+        Creates the Tenant if it does not exist. Otherwise, update the existing Tenant.
+        Used when the attribute origin is deducted from requester
+      responses:
+        #        TODO Is this required?
+#        '200':
+#          description: Tenant updated
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/Tenant'
+        '201':
+          description: Tenant created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2MTenantSeed'
+        required: true
+  /selfcare/tenants:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    post:
+      tags:
+        - tenant
+      operationId: selfcareUpsertTenant
+      description:  |
+        Creates the Tenant if it does not exist. Otherwise, update the existing Tenant.
+        Used when the request source is SelfCare
+      responses:
+#        TODO Is this required?
+#        '200':
+#          description: Tenant updated
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/Tenant'
+        '201':
+          description: Tenant created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelfcareTenantSeed'
         required: true
   /tenants/{id}:
     parameters:
@@ -122,37 +205,23 @@ components:
       required:
         - origin
         - value
-    TenantAttribute:
+    InternalAttributeSeed:
       type: object
       properties:
-        id:
+        origin:
           type: string
-          format: uuid
-        kind:
+        code:
           type: string
-          $ref: '#/components/schemas/TenantAttributeKind'
-        assignmentTimestamp:
-          type: string
-          format: date-time
-        revocationTimestamp:
-          type: string
-          format: date-time
-        extensionTimestamp:
-          type: string
-          format: date-time
-        expirationTimestamp:
-          type: string
-          format: date-time
       required:
-        - id
-        - kind
-        - assignmentTimestamp
-    TenantAttributeKind:
-      type: string
-      enum:
-        - CERTIFIED
-        - DECLARED
-        - VERIFIED
+        - origin
+        - code
+    M2MAttributeSeed:
+      type: object
+      properties:
+        code:
+          type: string
+      required:
+        - code
     Tenant:
       type: object
       properties:
@@ -162,29 +231,43 @@ components:
       required:
         - id
       description: Representation of a Tenant
-    TenantSeed:
+    InternalTenantSeed:
       description: Tenant Seed model
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-        selfcareId:
-          type: string
         externalId:
           $ref: '#/components/schemas/ExternalId'
-        kind:
-          type: boolean
-          default: false
         attributes:
           type: array
           items:
-            $ref: '#/components/schemas/TenantAttribute'
+            $ref: '#/components/schemas/InternalAttributeSeed'
       required:
-        - selfcareId
         - externalId
-        - kind
         - attributes
+    M2MTenantSeed:
+      description: Tenant Seed model
+      type: object
+      properties:
+        externalId:
+          $ref: '#/components/schemas/ExternalId'
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/M2MAttributeSeed'
+      required:
+        - externalId
+        - attributes
+    SelfcareTenantSeed:
+      description: Tenant Seed model
+      type: object
+      properties:
+        externalId:
+          $ref: '#/components/schemas/ExternalId'
+        selfcareId:
+          type: string
+      required:
+        - externalId
+        - selfcareId
     Problem:
       properties:
         type:

@@ -6,7 +6,12 @@ import it.pagopa.interop.commons.utils.TypeConversions.EitherOps
 import it.pagopa.interop.commons.utils.extractHeaders
 import it.pagopa.interop.tenantmanagement.client.invoker.BearerToken
 import it.pagopa.interop.tenantmanagement.client.model._
-import it.pagopa.interop.tenantprocess.service.{TenantManagementApi, TenantManagementInvoker, TenantManagementService}
+import it.pagopa.interop.tenantprocess.service.{
+  TenantAttributeSeed,
+  TenantManagementApi,
+  TenantManagementInvoker,
+  TenantManagementService
+}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,4 +40,14 @@ final case class TenantManagementServiceImpl(invoker: TenantManagementInvoker, a
     result <- invoker.invoke(request, s"Retrieving tenant with id $tenantId")
   } yield result
 
+  override def linkSelfcareIdToTenant(externalId: ExternalId, selfcareId: String)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Tenant] = ???
+
+  override def addTenantAttribute(tenantId: UUID, seed: TenantAttributeSeed)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Tenant] = ???
+
+  override def getTenantByExternalId(externalId: ExternalId)(implicit contexts: Seq[(String, String)]): Future[Tenant] =
+    ???
 }
