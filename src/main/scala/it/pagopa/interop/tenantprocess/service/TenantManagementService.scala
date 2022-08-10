@@ -7,10 +7,11 @@ import scala.concurrent.Future
 
 // TODO Mock, remove once ready
 case class TenantAttributeSeed(id: String)
+case class TenantUpdatePayload(selfcareId: String)
 
 trait TenantManagementService {
   def createTenant(seed: TenantSeed)(implicit contexts: Seq[(String, String)]): Future[Tenant]
-  def linkSelfcareIdToTenant(externalId: ExternalId, selfcareId: String)(implicit
+  def updateTenant(tenantId: UUID, payload: TenantUpdatePayload)(implicit
     contexts: Seq[(String, String)]
   ): Future[Tenant]
 

@@ -10,7 +10,8 @@ import it.pagopa.interop.tenantprocess.service.{
   TenantAttributeSeed,
   TenantManagementApi,
   TenantManagementInvoker,
-  TenantManagementService
+  TenantManagementService,
+  TenantUpdatePayload
 }
 
 import java.util.UUID
@@ -40,7 +41,7 @@ final case class TenantManagementServiceImpl(invoker: TenantManagementInvoker, a
     result <- invoker.invoke(request, s"Retrieving tenant with id $tenantId")
   } yield result
 
-  override def linkSelfcareIdToTenant(externalId: ExternalId, selfcareId: String)(implicit
+  override def updateTenant(tenantId: UUID, payload: TenantUpdatePayload)(implicit
     contexts: Seq[(String, String)]
   ): Future[Tenant] = ???
 

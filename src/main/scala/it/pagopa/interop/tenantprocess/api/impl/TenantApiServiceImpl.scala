@@ -22,7 +22,7 @@ import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed._
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.AttributeRegistryManagementAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.TenantManagementAdapters._
-import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.TenantIsNotACertifier
+import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{SelfcareIdConflict, TenantIsNotACertifier}
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
 
@@ -118,19 +118,32 @@ final case class TenantApiServiceImpl(
 
     val now = dateTimeSupplier.get
 
+    def updateTenant(tenant: DependencyTenant): Future[DependencyTenant] = for {
+      _ <- Future
+        .failed(SelfcareIdConflict(tenant.id, tenant.selfcareId, seed.selfcareId))
+        .whenA(tenant.selfcareId.nonEmpty && !tenant.selfcareId.contains(seed.selfcareId))
+      selfcareId = Some(tenant.selfcareId) // TODO This should be an Option from api
+      updatedTenant <- selfcareId
+        .map(_ => Future.successful(tenant))
+        .getOrElse(
+          tenantManagementService
+            .updateTenant(tenant.id, TenantUpdatePayload(selfcareId = seed.selfcareId))
+        )
+    } yield updatedTenant
+
     val result: Future[Tenant] = for {
       existingTenant <- findTenant(seed.externalId)
-      tenant         <- existingTenant.fold(createTenant(seed, Nil, now))(updateTenantAttributes(Nil))
-      _              <- tenantManagementService
-        .linkSelfcareIdToTenant(tenant.externalId, seed.selfcareId)
-        .whenA(tenant.selfcareId.isEmpty) // TODO Raise a 409 if already exists and is different?
+      tenant         <- existingTenant.fold(createTenant(seed, Nil, now))(updateTenant)
     } yield tenant.toApi
 
     onComplete(result) {
       handleApiError() orElse {
-        case Success(tenant) =>
-          internalUpsertTenant201(tenant)
-        case Failure(ex)     =>
+        case Success(tenant)                 =>
+          selfcareUpsertTenant201(tenant)
+        case Failure(ex: SelfcareIdConflict) =>
+          logger.error(s"Error creating tenant with external id ${seed.externalId} via SelfCare request", ex)
+          selfcareUpsertTenant409(problemOf(StatusCodes.Conflict, ex))
+        case Failure(ex)                     =>
           logger.error(s"Error creating tenant with external id ${seed.externalId} via SelfCare request", ex)
           internalServerError()
       }
@@ -152,6 +165,7 @@ final case class TenantApiServiceImpl(
   )(tenant: DependencyTenant)(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] =
     for {
       attributes <- getAttributes(attributes)
+      // TODO tenant.attributes can be an issue in case of pagination. Create a tenantManagementService.getAttribute?
       newAttributes = attributes.filterNot(attr => tenant.attributes.exists(_.id.toString == attr.id))
       tenants <- Future.traverse(newAttributes)(a =>
         tenantManagementService.addTenantAttribute(tenant.id, TenantAttributeSeed(a.id))

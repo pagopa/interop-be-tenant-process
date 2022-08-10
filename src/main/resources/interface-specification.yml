@@ -126,8 +126,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tenant'
-        '400':
-          description: Bad request
+        '409':
+          description: Selfcare Id is already assigned and is different from the request
           content:
             application/problem+json:
               schema:
