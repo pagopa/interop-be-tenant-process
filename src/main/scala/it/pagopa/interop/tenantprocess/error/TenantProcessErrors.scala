@@ -6,7 +6,7 @@ import java.util.UUID
 
 object TenantProcessErrors {
   final case class TenantIsNotACertifier(tenantId: String)
-      extends ComponentError("0001", s"Organization $tenantId not allowed")
+      extends ComponentError("0001", s"Organization $tenantId not allowed to assign attributes")
 
   final case class SelfcareIdConflict(tenantId: UUID, existingSelfcareId: String, newSelfcareId: String)
       extends ComponentError(

@@ -100,9 +100,12 @@ final case class TenantApiServiceImpl(
 
       onComplete(result) {
         handleApiError() orElse {
-          case Success(tenant) =>
+          case Success(tenant)                    =>
             m2mUpsertTenant201(tenant)
-          case Failure(ex)     =>
+          case Failure(ex: TenantIsNotACertifier) =>
+            logger.error(s"Error creating tenant with external id ${seed.externalId} via m2m request", ex)
+            m2mUpsertTenant403(problemOf(StatusCodes.Forbidden, ex))
+          case Failure(ex)                        =>
             logger.error(s"Error creating tenant with external id ${seed.externalId} via m2m request", ex)
             internalServerError()
         }

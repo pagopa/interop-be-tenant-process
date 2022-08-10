@@ -89,8 +89,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tenant'
-        '400':
-          description: Bad request
+        '403':
+          description: Forbidden
           content:
             application/problem+json:
               schema:
