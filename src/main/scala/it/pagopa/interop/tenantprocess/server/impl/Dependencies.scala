@@ -85,10 +85,13 @@ trait Dependencies {
   private final val tenantManagementApi: TenantManagementApi =
     TenantManagementApi(ApplicationConfiguration.tenantManagementURL)
 
+  private final val tenantManagementAttributesApi: TenantManagementAttributesApi =
+    TenantManagementAttributesApi(ApplicationConfiguration.tenantManagementURL)
+
   def tenantManagement(
     blockingEc: ExecutionContextExecutor
   )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): TenantManagementService =
-    TenantManagementServiceImpl(tenantManagementInvoker(blockingEc), tenantManagementApi)
+    TenantManagementServiceImpl(tenantManagementInvoker(blockingEc), tenantManagementApi, tenantManagementAttributesApi)
 
   private def attributeRegistryManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_]

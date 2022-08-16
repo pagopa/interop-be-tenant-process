@@ -15,7 +15,13 @@ import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{GenericError, OperationForbidden}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError => TenantApiError}
-import it.pagopa.interop.tenantmanagement.client.model.{Problem => TenantProblem, Tenant => DependencyTenant}
+import it.pagopa.interop.tenantmanagement.client.model.{
+  TenantDelta,
+  TenantFeature,
+  Certifier => DependencyCertifier,
+  Problem => TenantProblem,
+  Tenant => DependencyTenant
+}
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed
 import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed._
@@ -47,6 +53,8 @@ final case class TenantApiServiceImpl(
       route
     }
 
+  // TODO Rename attributes to certifiedAttributes in upsert
+
   // TODO Tenant process riceve richiesta di revoca
   //    Chiama agreement process con tenant e attribute
   //    Agreement process lista attributi del tenant con quell'attribute
@@ -66,7 +74,7 @@ final case class TenantApiServiceImpl(
     val result: Future[Tenant] = for {
       existingTenant <- findTenant(seed.externalId)
       attributesIds = seed.attributes.map(a => ExternalId(a.origin, a.code))
-      tenant <- existingTenant.fold(createTenant(seed, attributesIds, now))(updateTenantAttributes(attributesIds))
+      tenant <- existingTenant.fold(createTenant(seed, attributesIds, now))(updateTenantAttributes(attributesIds, now))
     } yield tenant.toApi
 
     onComplete(result) {
@@ -92,19 +100,19 @@ final case class TenantApiServiceImpl(
 
       val now = dateTimeSupplier.get
 
-      def validateCertifierTenant: Future[DependencyTenant] = for {
+      def validateCertifierTenant: Future[DependencyCertifier] = for {
         requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
         requesterTenantUuid <- requesterTenantId.toFutureUUID
         requesterTenant     <- tenantManagementService.getTenant(requesterTenantUuid)
-        _ <- Future.failed(TenantIsNotACertifier(requesterTenantId)).whenA(requesterTenant.kind) // TODO when ready
-      } yield requesterTenant
+        maybeCertifier = requesterTenant.features.collectFirst { case TenantFeature(Some(certifier)) => certifier }
+        certifier <- maybeCertifier.toFuture(TenantIsNotACertifier(requesterTenantId))
+      } yield certifier
 
       val result: Future[Tenant] = for {
-        requesterTenant <- validateCertifierTenant
-        existingTenant  <- findTenant(seed.externalId)
-        // TODO when ready requesterTenant certificationOrigin
-        attributesIds = seed.attributes.map(a => ExternalId(requesterTenant.kind.toString, a.code))
-        tenant <- existingTenant.fold(createTenant(seed, attributesIds, now))(updateTenantAttributes(attributesIds))
+        certifier      <- validateCertifierTenant
+        existingTenant <- findTenant(seed.externalId)
+        attributesId = seed.attributes.map(a => ExternalId(certifier.certifierId, a.code))
+        tenant <- existingTenant.fold(createTenant(seed, attributesId, now))(updateTenantAttributes(attributesId, now))
       } yield tenant.toApi
 
       onComplete(result) {
@@ -132,23 +140,22 @@ final case class TenantApiServiceImpl(
 
     val now = dateTimeSupplier.get
 
-    def updateTenant(tenant: DependencyTenant): Future[DependencyTenant] = for {
-      _ <- Future
-        .failed(SelfcareIdConflict(tenant.id, tenant.selfcareId, seed.selfcareId))
-        .whenA(tenant.selfcareId.nonEmpty && !tenant.selfcareId.contains(seed.selfcareId))
-      selfcareId = Some(tenant.selfcareId) // TODO This should be an Option from api
-      updatedTenant <- selfcareId
-        .map(_ => Future.successful(tenant))
-        .getOrElse(
-          tenantManagementService
-            .updateTenant(tenant.id, TenantUpdatePayload(selfcareId = seed.selfcareId))
-        )
-    } yield updatedTenant
+    def updateSelfcareId(tenant: DependencyTenant): Future[DependencyTenant] = {
+      def updateTenant(): Future[DependencyTenant]                     = tenantManagementService
+        .updateTenant(tenant.id, TenantDelta(selfcareId = Some(seed.selfcareId), features = tenant.features))
+      def verifyConflict(selfcareId: String): Future[DependencyTenant] = Future
+        .failed(SelfcareIdConflict(tenant.id, selfcareId, seed.selfcareId))
+        .whenA(selfcareId != seed.selfcareId)
+        .as(tenant)
+
+      tenant.selfcareId.fold(updateTenant())(verifyConflict)
+    }
 
     val result: Future[Tenant] = for {
       existingTenant <- findTenant(seed.externalId)
-      tenant         <- existingTenant.fold(createTenant(seed, Nil, now))(updateTenant)
-    } yield tenant.toApi
+      tenant         <- existingTenant.fold(createTenant(seed, Nil, now))(Future.successful)
+      updatedTenant  <- updateSelfcareId(tenant)
+    } yield updatedTenant.toApi
 
     onComplete(result) {
       handleApiError() orElse {
@@ -169,20 +176,20 @@ final case class TenantApiServiceImpl(
   ): Future[DependencyTenant] =
     for {
       attributes <- getAttributes(attributes)
-      dependencyAttributes = attributes.map(_.toSeed(timestamp))
+      dependencyAttributes = attributes.map(_.toCertifiedSeed(timestamp))
       tenantId             = uuidSupplier.get
       tenant <- tenantManagementService.createTenant(toDependency(seed, tenantId, dependencyAttributes))
     } yield tenant
 
-  private def updateTenantAttributes(
-    attributes: Seq[ExternalId]
-  )(tenant: DependencyTenant)(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] =
+  private def updateTenantAttributes(attributes: Seq[ExternalId], timestamp: OffsetDateTime)(
+    tenant: DependencyTenant
+  )(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] =
     for {
       attributes <- getAttributes(attributes)
       // TODO tenant.attributes can be an issue in case of pagination. Create a tenantManagementService.getAttribute?
       newAttributes = attributes.filterNot(attr => tenant.attributes.exists(_.id.toString == attr.id))
       tenants <- Future.traverse(newAttributes)(a =>
-        tenantManagementService.addTenantAttribute(tenant.id, TenantAttributeSeed(a.id))
+        tenantManagementService.addTenantAttribute(tenant.id, a.toCertifiedSeed(timestamp))
       )
     } yield tenants.lastOption.getOrElse(tenant)
 

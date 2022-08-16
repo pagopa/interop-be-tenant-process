@@ -7,26 +7,28 @@ import it.pagopa.interop.commons.utils.extractHeaders
 import it.pagopa.interop.tenantmanagement.client.invoker.BearerToken
 import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.service.{
-  TenantAttributeSeed,
   TenantManagementApi,
+  TenantManagementAttributesApi,
   TenantManagementInvoker,
-  TenantManagementService,
-  TenantUpdatePayload
+  TenantManagementService
 }
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-final case class TenantManagementServiceImpl(invoker: TenantManagementInvoker, api: TenantManagementApi)(implicit
-  ec: ExecutionContext
-) extends TenantManagementService {
+final case class TenantManagementServiceImpl(
+  invoker: TenantManagementInvoker,
+  tenantApi: TenantManagementApi,
+  attributeApi: TenantManagementAttributesApi
+)(implicit ec: ExecutionContext)
+    extends TenantManagementService {
 
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   override def createTenant(seed: TenantSeed)(implicit contexts: Seq[(String, String)]): Future[Tenant] = for {
     (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-    request = api.createTenant(xCorrelationId = correlationId, seed, xForwardedFor = ip)(BearerToken(bearerToken))
+    request = tenantApi.createTenant(xCorrelationId = correlationId, seed, xForwardedFor = ip)(BearerToken(bearerToken))
     result <- invoker.invoke(
       request,
       s"Creating tenant for Origin ${seed.externalId.origin} and Value ${seed.externalId.value}"
@@ -35,20 +37,50 @@ final case class TenantManagementServiceImpl(invoker: TenantManagementInvoker, a
 
   override def getTenant(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[Tenant] = for {
     (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-    request = api.getTenant(xCorrelationId = correlationId, tenantId = tenantId, xForwardedFor = ip)(
+    request = tenantApi.getTenant(xCorrelationId = correlationId, tenantId = tenantId, xForwardedFor = ip)(
       BearerToken(bearerToken)
     )
     result <- invoker.invoke(request, s"Retrieving tenant with id $tenantId")
   } yield result
 
-  override def updateTenant(tenantId: UUID, payload: TenantUpdatePayload)(implicit
+  override def updateTenant(tenantId: UUID, payload: TenantDelta)(implicit
     contexts: Seq[(String, String)]
-  ): Future[Tenant] = ???
+  ): Future[Tenant] = for {
+    (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+    request = tenantApi.updateTenant(
+      xCorrelationId = correlationId,
+      tenantId = tenantId,
+      tenantDelta = payload,
+      xForwardedFor = ip
+    )(BearerToken(bearerToken))
+    result <- invoker.invoke(request, s"Updating tenant with id $tenantId")
+  } yield result
 
-  override def addTenantAttribute(tenantId: UUID, seed: TenantAttributeSeed)(implicit
+  override def addTenantAttribute(tenantId: UUID, attribute: TenantAttribute)(implicit
     contexts: Seq[(String, String)]
-  ): Future[Tenant] = ???
+  ): Future[Tenant] = for {
+    (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+    request = attributeApi.addTenantAttribute(
+      xCorrelationId = correlationId,
+      tenantId = tenantId,
+      tenantAttribute = attribute,
+      xForwardedFor = ip
+    )(BearerToken(bearerToken))
+    result <- invoker.invoke(request, s"Adding attribute ${attribute.id} to tenant $tenantId")
+  } yield result
 
   override def getTenantByExternalId(externalId: ExternalId)(implicit contexts: Seq[(String, String)]): Future[Tenant] =
-    ???
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = tenantApi.getTenantByExternalId(
+        xCorrelationId = correlationId,
+        origin = externalId.origin,
+        code = externalId.value,
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
+      result <- invoker.invoke(
+        request,
+        s"Retrieving tenant with origin ${externalId.origin} and code ${externalId.value}"
+      )
+    } yield result
 }

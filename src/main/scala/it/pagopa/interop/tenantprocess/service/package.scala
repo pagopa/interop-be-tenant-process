@@ -9,8 +9,9 @@ package object service {
   type AttributeRegistryManagementInvoker = attributeregistrymanagement.client.invoker.ApiInvoker
   type AttributeRegistryManagementApi     = attributeregistrymanagement.client.api.AttributeApi
 
-  type TenantManagementInvoker = tenantmanagement.client.invoker.ApiInvoker
-  type TenantManagementApi     = tenantmanagement.client.api.TenantApi
+  type TenantManagementInvoker       = tenantmanagement.client.invoker.ApiInvoker
+  type TenantManagementApi           = tenantmanagement.client.api.TenantApi
+  type TenantManagementAttributesApi = tenantmanagement.client.api.AttributesApi
 
   object AttributeRegistryManagementInvoker {
     def apply(
@@ -32,6 +33,10 @@ package object service {
 
   object TenantManagementApi {
     def apply(baseUrl: String): TenantManagementApi = tenantmanagement.client.api.TenantApi(baseUrl)
+  }
+
+  object TenantManagementAttributesApi {
+    def apply(baseUrl: String): TenantManagementAttributesApi = tenantmanagement.client.api.AttributesApi(baseUrl)
   }
 
 }

@@ -9,13 +9,14 @@ import java.util.UUID
 object AttributeRegistryManagementAdapters {
 
   implicit class AttributeWrapper(private val a: Attribute) extends AnyVal {
-    def toSeed(now: OffsetDateTime): TenantAttribute = TenantAttribute(
+    def toCertifiedSeed(now: OffsetDateTime): TenantAttribute = TenantAttribute(
       id = UUID.fromString(a.id), // TODO This should be an UUID in attribute registry
       kind = TenantAttributeKind.CERTIFIED,
       assignmentTimestamp = now,
       revocationTimestamp = None,
-      extensionTimestamp = None,
-      expirationTimestamp = None
+      renewal = None,
+      verifiedBy = None,
+      revokedBy = None
     )
   }
 
