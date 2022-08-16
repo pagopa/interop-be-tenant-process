@@ -53,8 +53,6 @@ final case class TenantApiServiceImpl(
       route
     }
 
-  // TODO Rename attributes to certifiedAttributes in upsert
-
   // TODO Tenant process riceve richiesta di revoca
   //    Chiama agreement process con tenant e attribute
   //    Agreement process lista attributi del tenant con quell'attribute
@@ -73,7 +71,7 @@ final case class TenantApiServiceImpl(
 
     val result: Future[Tenant] = for {
       existingTenant <- findTenant(seed.externalId)
-      attributesIds = seed.attributes.map(a => ExternalId(a.origin, a.code))
+      attributesIds = seed.certifiedAttributes.map(a => ExternalId(a.origin, a.code))
       tenant <- existingTenant.fold(createTenant(seed, attributesIds, now))(updateTenantAttributes(attributesIds, now))
     } yield tenant.toApi
 
@@ -111,7 +109,7 @@ final case class TenantApiServiceImpl(
       val result: Future[Tenant] = for {
         certifier      <- validateCertifierTenant
         existingTenant <- findTenant(seed.externalId)
-        attributesId = seed.attributes.map(a => ExternalId(certifier.certifierId, a.code))
+        attributesId = seed.certifiedAttributes.map(a => ExternalId(certifier.certifierId, a.code))
         tenant <- existingTenant.fold(createTenant(seed, attributesId, now))(updateTenantAttributes(attributesId, now))
       } yield tenant.toApi
 

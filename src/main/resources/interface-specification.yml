@@ -36,7 +36,7 @@ paths:
         - tenant
       operationId: internalUpsertTenant
       description: |
-        Creates the Tenant if it does not exist. Otherwise, update the existing Tenant.
+        Creates the Tenant if it does not exist. Otherwise, add missing attributes.
         Used when the attribute origin is known
       responses:
 #        TODO Is this required?
@@ -73,8 +73,8 @@ paths:
         - tenant
       operationId: m2mUpsertTenant
       description:  |
-        Creates the Tenant if it does not exist. Otherwise, update the existing Tenant.
-        Used when the attribute origin is deducted from requester
+        Creates the Tenant if it does not exist. Otherwise, add missing attributes.
+        Used when the attribute origin should be deducted from requester
       responses:
         #        TODO Is this required?
 #        '200':
@@ -110,7 +110,7 @@ paths:
         - tenant
       operationId: selfcareUpsertTenant
       description:  |
-        Creates the Tenant if it does not exist. Otherwise, update the existing Tenant.
+        Creates the Tenant if it does not exist. Otherwise, set Tenant SelfcareId.
         Used when the request source is SelfCare
       responses:
 #        TODO Is this required?
@@ -237,26 +237,26 @@ components:
       properties:
         externalId:
           $ref: '#/components/schemas/ExternalId'
-        attributes:
+        certifiedAttributes:
           type: array
           items:
             $ref: '#/components/schemas/InternalAttributeSeed'
       required:
         - externalId
-        - attributes
+        - certifiedAttributes
     M2MTenantSeed:
       description: Tenant Seed model
       type: object
       properties:
         externalId:
           $ref: '#/components/schemas/ExternalId'
-        attributes:
+        certifiedAttributes:
           type: array
           items:
             $ref: '#/components/schemas/M2MAttributeSeed'
       required:
         - externalId
-        - attributes
+        - certifiedAttributes
     SelfcareTenantSeed:
       description: Tenant Seed model
       type: object
