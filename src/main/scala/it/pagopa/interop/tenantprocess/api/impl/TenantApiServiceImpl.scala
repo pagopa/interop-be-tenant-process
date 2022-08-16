@@ -47,11 +47,18 @@ final case class TenantApiServiceImpl(
       route
     }
 
+  // TODO Tenant process riceve richiesta di revoca
+  //    Chiama agreement process con tenant e attribute
+  //    Agreement process lista attributi del tenant con quell'attribute
+  //    Agreement process ricalcola gli stati degli agreement (eventualmente sospende utilizzando il suspendedByPlatform)
+
   override def internalUpsertTenant(seed: InternalTenantSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(INTERNAL_ROLE) {
+    // TODO Check if tenant's agreements need to be re-activated (an attribute could have been revoked and granted again)
+
     logger.info(s"Creating tenant with external id ${seed.externalId} via internal request")
 
     val now = dateTimeSupplier.get
@@ -79,6 +86,8 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route =
     authorize(M2M_ROLE) {
+      // TODO Check if tenant's agreements need to be re-activated (an attribute could have been revoked and granted again)
+
       logger.info(s"Creating tenant with external id ${seed.externalId} via m2m request")
 
       val now = dateTimeSupplier.get
@@ -117,6 +126,8 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE) {
+    // TODO Do we need to trigger attributes load if a new tenant is created?
+
     logger.info(s"Creating tenant with external id ${seed.externalId} via SelfCare request")
 
     val now = dateTimeSupplier.get

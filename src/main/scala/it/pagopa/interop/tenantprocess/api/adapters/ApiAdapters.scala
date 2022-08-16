@@ -1,26 +1,20 @@
 package it.pagopa.interop.tenantprocess.api.adapters
 
-import it.pagopa.interop.tenantmanagement.client.model.{
-  ExternalId => DependencyExternalId,
-  TenantAttribute => DependencyTenantAttribute,
-  TenantSeed => DependencyTenantSeed
-}
-import it.pagopa.interop.tenantprocess.model.{ExternalId, InternalTenantSeed}
-
-import java.util.UUID
+import it.pagopa.interop.tenantmanagement.client.model.{ExternalId => DependencyExternalId}
+import it.pagopa.interop.tenantprocess.model.ExternalId
 
 object ApiAdapters {
 
-  implicit class InternalTenantSeedWrapper(private val t: InternalTenantSeed) extends AnyVal {
-    def toDependency(id: UUID, attributes: Seq[DependencyTenantAttribute]): DependencyTenantSeed =
-      DependencyTenantSeed(
-        id = Some(id),
-        selfcareId = UUID.randomUUID(), // TODO Remove this on dependency fix
-        externalId = t.externalId.toDependency,
-        kind = false,                   // TODO This should be STANDARD
-        attributes = attributes
-      )
-  }
+//  implicit class InternalTenantSeedWrapper(private val t: InternalTenantSeed) extends AnyVal {
+//    def toDependency(id: UUID, attributes: Seq[DependencyTenantAttribute]): DependencyTenantSeed =
+//      DependencyTenantSeed(
+//        id = Some(id),
+//        selfcareId = UUID.randomUUID(), // TODO Remove this on dependency fix
+//        externalId = t.externalId.toDependency,
+//        kind = false,                   // TODO This should be STANDARD
+//        attributes = attributes
+//      )
+//  }
 
   //  implicit class TenantSeedWrapper(private val t: TenantSeed) extends AnyVal {
 //    def toDependency(id: UUID): DependencyTenantSeed = DependencyTenantSeed(
