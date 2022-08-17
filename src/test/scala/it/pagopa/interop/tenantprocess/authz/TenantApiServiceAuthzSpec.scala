@@ -4,14 +4,13 @@ import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupp
 import it.pagopa.interop.tenantprocess.api._
 import it.pagopa.interop.tenantprocess.api.impl._
 import it.pagopa.interop.tenantprocess.utils.AuthorizedRoutes.endpoints
-import it.pagopa.interop.tenantprocess.utils.ClusteredMUnitRouteTest
 import it.pagopa.interop.tenantprocess.utils.FakeDependencies.{FakeAttributeRegistryManagement, FakeTenantManagement}
-import it.pagopa.interop.tenantprocess.utils.SpecData._
+import it.pagopa.interop.tenantprocess.utils.{ClusteredMUnitRouteTest, SpecData}
 
 import java.time.OffsetDateTime
 import java.util.UUID
 
-class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest {
+class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
   val fakeAttributeRegistryManagement: FakeAttributeRegistryManagement = FakeAttributeRegistryManagement()
   val fakeTenantManagement: FakeTenantManagement                       = FakeTenantManagement()
   val dummyDateTimeSupplier: OffsetDateTimeSupplier                    = new OffsetDateTimeSupplier {

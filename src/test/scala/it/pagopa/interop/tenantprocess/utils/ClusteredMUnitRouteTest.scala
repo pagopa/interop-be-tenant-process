@@ -22,6 +22,7 @@ trait ClusteredMUnitRouteTest extends FunSuite with RouteTest with TestFramework
   override def afterAll() = {
     ActorTestKit.shutdown(testTypedSystem, 10.seconds)
     cleanUp()
+    super.afterAll()
   }
 
 //  override def beforeAll(): Unit = {
