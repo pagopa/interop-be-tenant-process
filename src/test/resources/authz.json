@@ -1,0 +1,27 @@
+{
+  "endpoints": [
+    {
+      "route": "internalUpsertTenant",
+      "verb": "POST",
+      "roles": [
+        "internal"
+      ]
+    },
+    {
+      "route": "m2mUpsertTenant",
+      "verb": "POST",
+      "roles": [
+        "m2m"
+      ]
+    },
+    {
+      "route": "selfcareUpsertTenant",
+      "verb": "POST",
+      "roles": [
+        "admin",
+        "security",
+        "api"
+      ]
+    }
+  ]
+}
