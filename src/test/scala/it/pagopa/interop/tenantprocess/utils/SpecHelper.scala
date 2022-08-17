@@ -15,13 +15,15 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait SpecHelper extends MockFactory with SpecData {
 
-  val bearerToken                            = "token"
+  val bearerToken          = "token"
+  val organizationId: UUID = UUID.randomUUID()
+
   val userContext: Seq[(String, String)]     =
     Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> UUID.randomUUID().toString)
   val m2mContext: Seq[(String, String)]      =
-    Seq("bearer" -> bearerToken, USER_ROLES -> "m2m", UID -> UUID.randomUUID().toString)
+    Seq("bearer" -> bearerToken, USER_ROLES -> "m2m", ORGANIZATION_ID_CLAIM -> organizationId.toString)
   val internalContext: Seq[(String, String)] =
-    Seq("bearer" -> bearerToken, USER_ROLES -> "internal", UID -> UUID.randomUUID().toString)
+    Seq("bearer" -> bearerToken, USER_ROLES -> "internal")
 
   val mockAttributeRegistryManagement: AttributeRegistryManagementService = mock[AttributeRegistryManagementService]
   val mockTenantManagement: TenantManagementService                       = mock[TenantManagementService]
@@ -33,6 +35,13 @@ trait SpecHelper extends MockFactory with SpecData {
     TenantApiServiceImpl(mockAttributeRegistryManagement, mockTenantManagement, mockUuidSupplier, mockDateTimeSupplier)(
       ExecutionContext.global
     )
+
+  def mockGetTenantById(tenantId: UUID, result: Tenant = dependencyTenant)(implicit contexts: Seq[(String, String)]) =
+    (mockTenantManagement
+      .getTenant(_: UUID)(_: Seq[(String, String)]))
+      .expects(tenantId, contexts)
+      .once()
+      .returns(Future.successful(result.copy(id = tenantId)))
 
   def mockGetTenantByExternalId(externalId: ExternalId, result: Tenant = dependencyTenant)(implicit
     contexts: Seq[(String, String)]
