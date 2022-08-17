@@ -4,7 +4,7 @@ import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.commons.utils._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client.invoker.ApiError
-import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantAttribute, TenantSeed}
+import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantAttribute, TenantDelta, TenantSeed}
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiServiceImpl
 import it.pagopa.interop.tenantprocess.service.{AttributeRegistryManagementService, TenantManagementService}
@@ -65,6 +65,15 @@ trait SpecHelper extends MockFactory with SpecData {
       .expects(seed, contexts)
       .once()
       .returns(Future.successful(result.copy(externalId = seed.externalId)))
+
+  def mockUpdateTenant(tenantId: UUID, payload: TenantDelta, result: Tenant = dependencyTenant)(implicit
+    contexts: Seq[(String, String)]
+  ) =
+    (mockTenantManagement
+      .updateTenant(_: UUID, _: TenantDelta)(_: Seq[(String, String)]))
+      .expects(tenantId, payload, contexts)
+      .once()
+      .returns(Future.successful(result))
 
   def mockAddTenantAttribute(tenantId: UUID, attribute: TenantAttribute)(implicit contexts: Seq[(String, String)]) =
     (mockTenantManagement

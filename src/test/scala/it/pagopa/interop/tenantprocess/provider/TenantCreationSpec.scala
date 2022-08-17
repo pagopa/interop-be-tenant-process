@@ -3,7 +3,7 @@ package it.pagopa.interop.tenantprocess.provider
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import cats.implicits._
-import it.pagopa.interop.tenantmanagement.client.model.{Certifier, TenantAttributeKind, TenantFeature, TenantSeed}
+import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters.ExternalIdWrapper
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import it.pagopa.interop.tenantprocess.model.{InternalAttributeSeed, M2MAttributeSeed}
@@ -38,8 +38,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         code = attributeSeed2.code.some
       )
 
-    val seed =
-      internalTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
+    val seed = internalTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
     val expectedAttribute1 = dependencyTenantAttribute.copy(
       id = attributeId1,
@@ -54,7 +53,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val expectedTenantSeed = TenantSeed(
       id = Some(tenantId),
-      externalId = internalTenantSeed.externalId.toDependency,
+      externalId = seed.externalId.toDependency,
       features = Nil,
       attributes = Seq(expectedAttribute1, expectedAttribute2)
     )
@@ -62,7 +61,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound(internalTenantSeed.externalId.toDependency)
+    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -123,14 +122,14 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val expectedNewAttribute2 = expectedNewAttribute1.copy(id = newAttributeId2)
 
     mockDateTimeGet()
-    mockGetTenantByExternalId(internalTenantSeed.externalId.toDependency, existingTenant)
+    mockGetTenantByExternalId(seed.externalId.toDependency, existingTenant)
 
     mockGetAttributeByExternalId(existingAttribute.origin.get, existingAttribute.code.get, existingAttribute)
     mockGetAttributeByExternalId(newAttribute1.origin.get, newAttribute1.code.get, newAttribute1)
     mockGetAttributeByExternalId(newAttribute2.origin.get, newAttribute2.code.get, newAttribute2)
 
-    mockAddTenantAttribute(dependencyTenant.id, expectedNewAttribute1)
-    mockAddTenantAttribute(dependencyTenant.id, expectedNewAttribute2)
+    mockAddTenantAttribute(existingTenant.id, expectedNewAttribute1)
+    mockAddTenantAttribute(existingTenant.id, expectedNewAttribute2)
 
     Get() ~> tenantService.internalUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.Created)
@@ -166,8 +165,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         code = attributeSeed2.code.some
       )
 
-    val seed =
-      m2mTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
+    val seed = m2mTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
     val expectedAttribute1 = dependencyTenantAttribute.copy(
       id = attributeId1,
@@ -182,7 +180,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val expectedTenantSeed = TenantSeed(
       id = Some(newTenantId),
-      externalId = m2mTenantSeed.externalId.toDependency,
+      externalId = seed.externalId.toDependency,
       features = Nil,
       attributes = Seq(expectedAttribute1, expectedAttribute2)
     )
@@ -191,7 +189,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockUuidGet(newTenantId)
 
     mockGetTenantById(requesterTenantId, requesterTenant)
-    mockGetTenantByExternalIdNotFound(m2mTenantSeed.externalId.toDependency)
+    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -260,14 +258,14 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
 
     mockGetTenantById(requesterTenantId, requesterTenant)
-    mockGetTenantByExternalId(m2mTenantSeed.externalId.toDependency, existingTenant)
+    mockGetTenantByExternalId(seed.externalId.toDependency, existingTenant)
 
     mockGetAttributeByExternalId(existingAttribute.origin.get, existingAttribute.code.get, existingAttribute)
     mockGetAttributeByExternalId(newAttribute1.origin.get, newAttribute1.code.get, newAttribute1)
     mockGetAttributeByExternalId(newAttribute2.origin.get, newAttribute2.code.get, newAttribute2)
 
-    mockAddTenantAttribute(dependencyTenant.id, expectedNewAttribute1)
-    mockAddTenantAttribute(dependencyTenant.id, expectedNewAttribute2)
+    mockAddTenantAttribute(existingTenant.id, expectedNewAttribute1)
+    mockAddTenantAttribute(existingTenant.id, expectedNewAttribute2)
 
     Get() ~> tenantService.m2mUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.Created)
@@ -291,6 +289,96 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     Get() ~> tenantService.m2mUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.Forbidden)
+    }
+  }
+
+  "SelfCare request - Creation of a new tenant must succeed" in {
+    implicit val context: Seq[(String, String)] = userContext
+
+    val tenantId = UUID.randomUUID()
+    val seed     = selfcareTenantSeed
+    val tenant   = dependencyTenant.copy(id = tenantId)
+
+    val expectedTenantSeed   =
+      TenantSeed(id = Some(tenantId), externalId = seed.externalId.toDependency, features = Nil, attributes = Nil)
+    val expectedTenantUpdate = TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil)
+
+    mockDateTimeGet()
+    mockUuidGet(tenantId)
+
+    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
+
+    mockCreateTenant(expectedTenantSeed, tenant)
+    mockUpdateTenant(tenantId, expectedTenantUpdate)
+
+    Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
+      assert(status == StatusCodes.Created)
+    }
+  }
+
+  "SelfCare request - Update of an existing tenant must succeed if SelfCare ID is not set" in {
+    implicit val context: Seq[(String, String)] = userContext
+
+    val tenantId = UUID.randomUUID()
+    val seed     = selfcareTenantSeed
+    val tenant   = dependencyTenant.copy(
+      id = tenantId,
+      selfcareId = None,
+      features = Seq(TenantFeature(certifier = Some(Certifier("something"))))
+    )
+
+    val expectedTenantUpdate = TenantDelta(selfcareId = Some(seed.selfcareId), features = tenant.features)
+
+    mockDateTimeGet()
+
+    mockGetTenantByExternalId(seed.externalId.toDependency, tenant)
+    mockUpdateTenant(tenantId, expectedTenantUpdate)
+
+    Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
+      assert(status == StatusCodes.Created)
+    }
+  }
+
+  "SelfCare request - Update should not be performed if existing SelfCare ID is equal to the request" in {
+    implicit val context: Seq[(String, String)] = userContext
+
+    val tenantId   = UUID.randomUUID()
+    val selfcareId = UUID.randomUUID().toString
+    val seed       = selfcareTenantSeed.copy(selfcareId = selfcareId)
+    val tenant     = dependencyTenant.copy(
+      id = tenantId,
+      selfcareId = Some(selfcareId),
+      features = Seq(TenantFeature(certifier = Some(Certifier("something"))))
+    )
+
+    mockDateTimeGet()
+
+    mockGetTenantByExternalId(seed.externalId.toDependency, tenant)
+
+    Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
+      assert(status == StatusCodes.Created)
+    }
+  }
+
+  "SelfCare request - Must fail if existing SelfCare ID is different from request" in {
+    implicit val context: Seq[(String, String)] = userContext
+
+    val tenantId           = UUID.randomUUID()
+    val existingSelfcareId = UUID.randomUUID().toString
+    val newSelfcareId      = UUID.randomUUID().toString
+    val seed               = selfcareTenantSeed.copy(selfcareId = newSelfcareId)
+    val tenant             = dependencyTenant.copy(
+      id = tenantId,
+      selfcareId = Some(existingSelfcareId),
+      features = Seq(TenantFeature(certifier = Some(Certifier("something"))))
+    )
+
+    mockDateTimeGet()
+
+    mockGetTenantByExternalId(seed.externalId.toDependency, tenant)
+
+    Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
+      assert(status == StatusCodes.Conflict)
     }
   }
 
