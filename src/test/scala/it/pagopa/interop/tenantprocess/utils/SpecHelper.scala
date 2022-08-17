@@ -36,16 +36,14 @@ trait SpecHelper extends MockFactory with SpecData {
       ExecutionContext.global
     )
 
-  def mockGetTenantById(tenantId: UUID, result: Tenant = dependencyTenant)(implicit contexts: Seq[(String, String)]) =
+  def mockGetTenantById(tenantId: UUID, result: Tenant)(implicit contexts: Seq[(String, String)]) =
     (mockTenantManagement
       .getTenant(_: UUID)(_: Seq[(String, String)]))
       .expects(tenantId, contexts)
       .once()
       .returns(Future.successful(result.copy(id = tenantId)))
 
-  def mockGetTenantByExternalId(externalId: ExternalId, result: Tenant = dependencyTenant)(implicit
-    contexts: Seq[(String, String)]
-  ) =
+  def mockGetTenantByExternalId(externalId: ExternalId, result: Tenant)(implicit contexts: Seq[(String, String)]) =
     (mockTenantManagement
       .getTenantByExternalId(_: ExternalId)(_: Seq[(String, String)]))
       .expects(externalId, contexts)
@@ -59,7 +57,7 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.failed(ApiError(code = 404, message = "Not Found", responseContent = None)))
 
-  def mockCreateTenant(seed: TenantSeed, result: Tenant = dependencyTenant)(implicit contexts: Seq[(String, String)]) =
+  def mockCreateTenant(seed: TenantSeed, result: Tenant)(implicit contexts: Seq[(String, String)]) =
     (mockTenantManagement
       .createTenant(_: TenantSeed)(_: Seq[(String, String)]))
       .expects(seed, contexts)
@@ -82,7 +80,7 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(dependencyTenant))
 
-  def mockGetAttributeByExternalId(origin: String, value: String, result: Attribute = dependencyAttribute)(implicit
+  def mockGetAttributeByExternalId(origin: String, value: String, result: Attribute)(implicit
     contexts: Seq[(String, String)]
   ) =
     (mockAttributeRegistryManagement

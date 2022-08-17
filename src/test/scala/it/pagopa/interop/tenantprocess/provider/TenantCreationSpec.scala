@@ -19,6 +19,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     implicit val context: Seq[(String, String)] = internalContext
 
     val tenantId     = UUID.randomUUID()
+    val tenant       = dependencyTenant.copy(id = tenantId)
     val attributeId1 = UUID.randomUUID()
     val attributeId2 = UUID.randomUUID()
 
@@ -66,7 +67,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
 
-    mockCreateTenant(expectedTenantSeed)
+    mockCreateTenant(expectedTenantSeed, tenant)
 
     Get() ~> tenantService.internalUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.Created)
@@ -141,6 +142,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     implicit val context: Seq[(String, String)] = m2mContext
 
     val newTenantId       = UUID.randomUUID()
+    val newTenant         = dependencyTenant.copy(id = newTenantId)
     val requesterTenantId = organizationId
     val requesterTenant   = dependencyTenant.copy(
       id = requesterTenantId,
@@ -194,7 +196,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
 
-    mockCreateTenant(expectedTenantSeed)
+    mockCreateTenant(expectedTenantSeed, newTenant)
 
     Get() ~> tenantService.m2mUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.Created)
