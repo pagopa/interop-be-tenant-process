@@ -1,7 +1,15 @@
 package it.pagopa.interop.tenantprocess.utils
 
 import it.pagopa.interop.attributeregistrymanagement.client.model.{Attribute, AttributeKind}
-import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantAttribute, TenantDelta, TenantSeed}
+import it.pagopa.interop.tenantmanagement.client.model.{
+  Certifier,
+  ExternalId,
+  Tenant,
+  TenantAttribute,
+  TenantDelta,
+  TenantFeature,
+  TenantSeed
+}
 import it.pagopa.interop.tenantprocess.service.{AttributeRegistryManagementService, TenantManagementService}
 
 import java.time.OffsetDateTime
@@ -50,7 +58,7 @@ object FakeDependencies {
     id = UUID.randomUUID(),
     selfcareId = None,
     externalId = ExternalId("IPA", "something"),
-    features = Nil,
+    features = Seq(TenantFeature(certifier = Some(Certifier("SOMETHING")))),
     attributes = Nil,
     createdAt = OffsetDateTime.now(),
     updatedAt = None

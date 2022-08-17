@@ -3,7 +3,7 @@ package it.pagopa.interop.tenantprocess.utils
 import akka.http.scaladsl.client.RequestBuilding.{Delete, Get, Post, Put}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.HttpRequest
-import it.pagopa.interop.commons.utils.USER_ROLES
+import it.pagopa.interop.commons.utils._
 import spray.json.DefaultJsonProtocol._
 import it.pagopa.interop.commons.jwt._
 import spray.json._
@@ -18,10 +18,24 @@ case class Endpoint(route: String, verb: String, roles: Seq[String]) {
 
   def invalidRoles: Seq[Seq[(String, String)]] = AuthorizedRoutes.existingRoles
     .diff(roles)
-    .map(role => Seq("bearer" -> "token", "uid" -> UUID.randomUUID().toString, USER_ROLES -> role))
+    .map(role =>
+      Seq(
+        "bearer"              -> "token",
+        UID                   -> UUID.randomUUID().toString,
+        ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString,
+        USER_ROLES            -> role
+      )
+    )
 
   def rolesInContexts: Seq[Seq[(String, String)]] =
-    roles.map(role => Seq("bearer" -> "token", "uid" -> UUID.randomUUID().toString, USER_ROLES -> role))
+    roles.map(role =>
+      Seq(
+        "bearer"              -> "token",
+        UID                   -> UUID.randomUUID().toString,
+        ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString,
+        USER_ROLES            -> role
+      )
+    )
 
   def asRequest: HttpRequest = verb match {
     case "GET"    => Get()
