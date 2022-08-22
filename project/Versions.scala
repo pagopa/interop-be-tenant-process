@@ -20,6 +20,6 @@ object Versions {
 
 object PagopaVersions {
   lazy val attributeRegistryManagementVersion = "1.0.x-SNAPSHOT"
-  lazy val tenantManagementVersion            = "PIN-1681-SNAPSHOT"
+  lazy val tenantManagementVersion            = "1.0.x-SNAPSHOT"
   lazy val commonsVersion                     = "1.0.x-SNAPSHOT"
 }
