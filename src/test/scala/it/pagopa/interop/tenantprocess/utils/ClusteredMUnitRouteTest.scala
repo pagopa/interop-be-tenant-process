@@ -17,26 +17,17 @@ import akka.http.scaladsl.model.StatusCode
 
 trait ClusteredMUnitRouteTest extends FunSuite with RouteTest with TestFrameworkInterface {
 
-//  val testPersistentEntity: Entity[Command, ShardingEnvelope[Command]]
-
   override def afterAll() = {
     ActorTestKit.shutdown(testTypedSystem, 10.seconds)
     cleanUp()
     super.afterAll()
   }
 
-//  override def beforeAll(): Unit = {
-//    val _ = testAkkaSharding.init(testPersistentEntity)
-//  }
-
   override def failTest(msg: String): Nothing = fail(msg)
   def testExceptionHandler: ExceptionHandler  = ExceptionHandler { case e => throw e }
 
   lazy val testKit             = ActorTestKit(ConfigFactory.load())
   implicit def testTypedSystem = testKit.system
-
-//  val testAkkaSharding: ClusterSharding = ClusterSharding(testTypedSystem)
-//  Cluster(testTypedSystem).manager ! Join(Cluster(testTypedSystem).selfMember.address)
 
   def validateAuthorization(endpoint: Endpoint, r: Seq[(String, String)] => Route)(implicit loc: Location): Unit = {
     endpoint.rolesInContexts.foreach(contexts => {
