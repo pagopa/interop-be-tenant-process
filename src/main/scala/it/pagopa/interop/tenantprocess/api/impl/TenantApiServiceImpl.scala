@@ -63,11 +63,9 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(INTERNAL_ROLE) {
-    // TODO Check if tenant's agreements need to be re-activated (an attribute could have been revoked and granted again)
-
     logger.info(s"Creating tenant with external id ${seed.externalId} via internal request")
 
-    val now = dateTimeSupplier.get
+    val now: OffsetDateTime = dateTimeSupplier.get
 
     val result: Future[Tenant] = for {
       existingTenant <- findTenant(seed.externalId)
@@ -92,11 +90,9 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route =
     authorize(M2M_ROLE) {
-      // TODO Check if tenant's agreements need to be re-activated (an attribute could have been revoked and granted again)
-
       logger.info(s"Creating tenant with external id ${seed.externalId} via m2m request")
 
-      val now = dateTimeSupplier.get
+      val now: OffsetDateTime = dateTimeSupplier.get
 
       def validateCertifierTenant: Future[DependencyCertifier] = for {
         requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
@@ -132,15 +128,13 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE) {
-    // TODO Do we need to trigger attributes load if a new tenant is created?
-
     logger.info(s"Creating tenant with external id ${seed.externalId} via SelfCare request")
 
-    val now = dateTimeSupplier.get
+    val now: OffsetDateTime = dateTimeSupplier.get
 
     def updateSelfcareId(tenant: DependencyTenant): Future[DependencyTenant] = {
       def updateTenant(): Future[DependencyTenant]                     = tenantManagementService
-        .updateTenant(tenant.id, TenantDelta(selfcareId = Some(seed.selfcareId), features = tenant.features))
+        .updateTenant(tenant.id, TenantDelta(selfcareId = seed.selfcareId.some, features = tenant.features))
       def verifyConflict(selfcareId: String): Future[DependencyTenant] = Future
         .failed(SelfcareIdConflict(tenant.id, selfcareId, seed.selfcareId))
         .whenA(selfcareId != seed.selfcareId)

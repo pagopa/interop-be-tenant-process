@@ -70,7 +70,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockCreateTenant(expectedTenantSeed, tenant)
 
     Get() ~> tenantService.internalUpsertTenant(seed) ~> check {
-      assert(status == StatusCodes.Created)
+      assert(status == StatusCodes.OK)
     }
   }
 
@@ -133,7 +133,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockAddTenantAttribute(existingTenant.id, expectedNewAttribute2)
 
     Get() ~> tenantService.internalUpsertTenant(seed) ~> check {
-      assert(status == StatusCodes.Created)
+      assert(status == StatusCodes.OK)
     }
   }
 
@@ -199,7 +199,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockCreateTenant(expectedTenantSeed, newTenant)
 
     Get() ~> tenantService.m2mUpsertTenant(seed) ~> check {
-      assert(status == StatusCodes.Created)
+      assert(status == StatusCodes.OK)
     }
   }
 
@@ -270,7 +270,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockAddTenantAttribute(existingTenant.id, expectedNewAttribute2)
 
     Get() ~> tenantService.m2mUpsertTenant(seed) ~> check {
-      assert(status == StatusCodes.Created)
+      assert(status == StatusCodes.OK)
     }
   }
 
@@ -314,7 +314,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockUpdateTenant(tenantId, expectedTenantUpdate)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
-      assert(status == StatusCodes.Created)
+      assert(status == StatusCodes.OK)
     }
   }
 
@@ -337,7 +337,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockUpdateTenant(tenantId, expectedTenantUpdate)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
-      assert(status == StatusCodes.Created)
+      assert(status == StatusCodes.OK)
     }
   }
 
@@ -358,7 +358,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetTenantByExternalId(seed.externalId.toDependency, tenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
-      assert(status == StatusCodes.Created)
+      assert(status == StatusCodes.OK)
     }
   }
 
