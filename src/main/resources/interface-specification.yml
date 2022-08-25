@@ -39,15 +39,8 @@ paths:
         Creates the Tenant if it does not exist. Otherwise, add missing attributes.
         Used when the attribute origin is known
       responses:
-#        TODO Is this required?
-#        '200':
-#          description: Tenant updated
-#          content:
-#            application/json:
-#              schema:
-#                $ref: '#/components/schemas/Tenant'
-        '201':
-          description: Tenant created
+        '200':
+          description: Tenant created or updated
           content:
             application/json:
               schema:
@@ -76,15 +69,8 @@ paths:
         Creates the Tenant if it does not exist. Otherwise, add missing attributes.
         Used when the attribute origin should be deducted from requester
       responses:
-        #        TODO Is this required?
-#        '200':
-#          description: Tenant updated
-#          content:
-#            application/json:
-#              schema:
-#                $ref: '#/components/schemas/Tenant'
-        '201':
-          description: Tenant created
+        '200':
+          description: Tenant created or updated
           content:
             application/json:
               schema:
@@ -113,15 +99,8 @@ paths:
         Creates the Tenant if it does not exist. Otherwise, set Tenant SelfcareId.
         Used when the request source is SelfCare
       responses:
-#        TODO Is this required?
-#        '200':
-#          description: Tenant updated
-#          content:
-#            application/json:
-#              schema:
-#                $ref: '#/components/schemas/Tenant'
-        '201':
-          description: Tenant created
+        '200':
+          description: Tenant created or updated
           content:
             application/json:
               schema:

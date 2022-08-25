@@ -78,7 +78,7 @@ final case class TenantApiServiceImpl(
     onComplete(result) {
       handleApiError() orElse {
         case Success(tenant) =>
-          internalUpsertTenant201(tenant)
+          internalUpsertTenant200(tenant)
         case Failure(ex)     =>
           logger.error(s"Error creating tenant with external id ${seed.externalId} via internal request", ex)
           internalServerError()
@@ -116,7 +116,7 @@ final case class TenantApiServiceImpl(
       onComplete(result) {
         handleApiError() orElse {
           case Success(tenant)                    =>
-            m2mUpsertTenant201(tenant)
+            m2mUpsertTenant200(tenant)
           case Failure(ex: TenantIsNotACertifier) =>
             logger.error(s"Error creating tenant with external id ${seed.externalId} via m2m request", ex)
             m2mUpsertTenant403(problemOf(StatusCodes.Forbidden, ex))
@@ -158,7 +158,7 @@ final case class TenantApiServiceImpl(
     onComplete(result) {
       handleApiError() orElse {
         case Success(tenant)                 =>
-          selfcareUpsertTenant201(tenant)
+          selfcareUpsertTenant200(tenant)
         case Failure(ex: SelfcareIdConflict) =>
           logger.error(s"Error creating tenant with external id ${seed.externalId} via SelfCare request", ex)
           selfcareUpsertTenant409(problemOf(StatusCodes.Conflict, ex))
