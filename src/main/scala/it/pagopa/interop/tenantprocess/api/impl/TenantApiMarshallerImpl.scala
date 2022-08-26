@@ -8,10 +8,17 @@ import it.pagopa.interop.tenantprocess.model._
 import spray.json._
 
 object TenantApiMarshallerImpl extends TenantApiMarshaller with SprayJsonSupport with DefaultJsonProtocol {
-  override implicit def fromEntityUnmarshallerTenantSeed: FromEntityUnmarshaller[TenantSeed] =
-    sprayJsonUnmarshaller[TenantSeed]
 
   override implicit def toEntityMarshallerProblem: ToEntityMarshaller[Problem] = sprayJsonMarshaller[Problem]
 
   override implicit def toEntityMarshallerTenant: ToEntityMarshaller[Tenant] = sprayJsonMarshaller[Tenant]
+
+  override implicit def fromEntityUnmarshallerInternalTenantSeed: FromEntityUnmarshaller[InternalTenantSeed] =
+    sprayJsonUnmarshaller[InternalTenantSeed]
+
+  override implicit def fromEntityUnmarshallerSelfcareTenantSeed: FromEntityUnmarshaller[SelfcareTenantSeed] =
+    sprayJsonUnmarshaller[SelfcareTenantSeed]
+
+  override implicit def fromEntityUnmarshallerM2MTenantSeed: FromEntityUnmarshaller[M2MTenantSeed] =
+    sprayJsonUnmarshaller[M2MTenantSeed]
 }

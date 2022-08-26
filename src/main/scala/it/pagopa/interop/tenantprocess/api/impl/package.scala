@@ -17,10 +17,15 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   final val serviceErrorCodePrefix: String = "019"
   final val defaultProblemType: String     = "about:blank"
 
-  implicit def externalIdFormat: RootJsonFormat[ExternalId]           = jsonFormat2(ExternalId)
-  implicit def tenantAttributeFormat: RootJsonFormat[TenantAttribute] = jsonFormat6(TenantAttribute)
+  implicit def externalIdFormat: RootJsonFormat[ExternalId] = jsonFormat2(ExternalId)
 
-  implicit def tenantSeedFormat: RootJsonFormat[TenantSeed] = jsonFormat5(TenantSeed)
+  implicit def internalAttributeSeedFormat: RootJsonFormat[InternalAttributeSeed] = jsonFormat2(InternalAttributeSeed)
+  implicit def internalTenantSeedFormat: RootJsonFormat[InternalTenantSeed]       = jsonFormat2(InternalTenantSeed)
+
+  implicit def m2mAttributeSeedFormat: RootJsonFormat[M2MAttributeSeed] = jsonFormat1(M2MAttributeSeed)
+  implicit def m2mTenantSeedFormat: RootJsonFormat[M2MTenantSeed]       = jsonFormat2(M2MTenantSeed)
+
+  implicit def selfcareTenantSeedFormat: RootJsonFormat[SelfcareTenantSeed] = jsonFormat2(SelfcareTenantSeed)
 
   implicit def tenantFormat: RootJsonFormat[Tenant]             = jsonFormat1(Tenant)
   implicit def problemErrorFormat: RootJsonFormat[ProblemError] = jsonFormat2(ProblemError)

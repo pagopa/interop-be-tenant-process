@@ -27,24 +27,26 @@ tags:
       description: Find out more
       url: 'http://swagger.io'
 paths:
-  /tenants:
+  /internal/tenants:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
       - $ref: '#/components/parameters/IpAddress'
     post:
       tags:
         - tenant
-      operationId: createTenant
-      description: Creates the Tenant
+      operationId: internalUpsertTenant
+      description: |
+        Creates the Tenant if it does not exist. Otherwise, add missing attributes.
+        Used when the attribute origin is known
       responses:
-        '201':
-          description: Tenant created
+        '200':
+          description: Tenant created or updated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tenant'
-        '409':
-          description: Tenant already exists
+        '400':
+          description: Bad request
           content:
             application/problem+json:
               schema:
@@ -53,7 +55,67 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TenantSeed'
+              $ref: '#/components/schemas/InternalTenantSeed'
+        required: true
+  /m2m/tenants:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    post:
+      tags:
+        - tenant
+      operationId: m2mUpsertTenant
+      description:  |
+        Creates the Tenant if it does not exist. Otherwise, add missing attributes.
+        Used when the attribute origin should be deducted from requester
+      responses:
+        '200':
+          description: Tenant created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2MTenantSeed'
+        required: true
+  /selfcare/tenants:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    post:
+      tags:
+        - tenant
+      operationId: selfcareUpsertTenant
+      description:  |
+        Creates the Tenant if it does not exist. Otherwise, set Tenant SelfcareId.
+        Used when the request source is SelfCare
+      responses:
+        '200':
+          description: Tenant created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '409':
+          description: Selfcare Id is already assigned and is different from the request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelfcareTenantSeed'
         required: true
   /tenants/{id}:
     parameters:
@@ -122,37 +184,23 @@ components:
       required:
         - origin
         - value
-    TenantAttribute:
+    InternalAttributeSeed:
       type: object
       properties:
-        id:
+        origin:
           type: string
-          format: uuid
-        kind:
+        code:
           type: string
-          $ref: '#/components/schemas/TenantAttributeKind'
-        assignmentTimestamp:
-          type: string
-          format: date-time
-        revocationTimestamp:
-          type: string
-          format: date-time
-        extensionTimestamp:
-          type: string
-          format: date-time
-        expirationTimestamp:
-          type: string
-          format: date-time
       required:
-        - id
-        - kind
-        - assignmentTimestamp
-    TenantAttributeKind:
-      type: string
-      enum:
-        - CERTIFIED
-        - DECLARED
-        - VERIFIED
+        - origin
+        - code
+    M2MAttributeSeed:
+      type: object
+      properties:
+        code:
+          type: string
+      required:
+        - code
     Tenant:
       type: object
       properties:
@@ -162,29 +210,43 @@ components:
       required:
         - id
       description: Representation of a Tenant
-    TenantSeed:
+    InternalTenantSeed:
       description: Tenant Seed model
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
-        selfcareId:
-          type: string
         externalId:
           $ref: '#/components/schemas/ExternalId'
-        kind:
-          type: boolean
-          default: false
-        attributes:
+        certifiedAttributes:
           type: array
           items:
-            $ref: '#/components/schemas/TenantAttribute'
+            $ref: '#/components/schemas/InternalAttributeSeed'
       required:
-        - selfcareId
         - externalId
-        - kind
-        - attributes
+        - certifiedAttributes
+    M2MTenantSeed:
+      description: Tenant Seed model
+      type: object
+      properties:
+        externalId:
+          $ref: '#/components/schemas/ExternalId'
+        certifiedAttributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/M2MAttributeSeed'
+      required:
+        - externalId
+        - certifiedAttributes
+    SelfcareTenantSeed:
+      description: Tenant Seed model
+      type: object
+      properties:
+        externalId:
+          $ref: '#/components/schemas/ExternalId'
+        selfcareId:
+          type: string
+      required:
+        - externalId
+        - selfcareId
     Problem:
       properties:
         type:

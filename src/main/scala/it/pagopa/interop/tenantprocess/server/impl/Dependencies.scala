@@ -13,6 +13,8 @@ import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVe
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors
+import it.pagopa.interop.commons.utils.service.impl.{OffsetDateTimeSupplierImpl, UUIDSupplierImpl}
+import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.tenantprocess.api.impl.{
   HealthApiMarshallerImpl,
@@ -29,6 +31,9 @@ import it.pagopa.interop.tenantprocess.service.impl._
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 trait Dependencies {
+
+  val uuidSupplier: UUIDSupplier               = new UUIDSupplierImpl
+  val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplierImpl
 
   def jwtValidator(): Future[JWTReader] = JWTConfiguration.jwtReader
     .loadKeyset()
@@ -62,7 +67,12 @@ trait Dependencies {
     ec: ExecutionContext
   ): TenantApi =
     new TenantApi(
-      TenantApiServiceImpl(tenantManagement(blockingEc)),
+      TenantApiServiceImpl(
+        attributeRegistryManagement(blockingEc),
+        tenantManagement(blockingEc),
+        uuidSupplier,
+        dateTimeSupplier
+      ),
       TenantApiMarshallerImpl,
       jwtReader.OAuth2JWTValidatorAsContexts
     )
@@ -75,9 +85,28 @@ trait Dependencies {
   private final val tenantManagementApi: TenantManagementApi =
     TenantManagementApi(ApplicationConfiguration.tenantManagementURL)
 
+  private final val tenantManagementAttributesApi: TenantManagementAttributesApi =
+    TenantManagementAttributesApi(ApplicationConfiguration.tenantManagementURL)
+
   def tenantManagement(
     blockingEc: ExecutionContextExecutor
   )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): TenantManagementService =
-    TenantManagementServiceImpl(tenantManagementInvoker(blockingEc), tenantManagementApi)
+    TenantManagementServiceImpl(tenantManagementInvoker(blockingEc), tenantManagementApi, tenantManagementAttributesApi)
+
+  private def attributeRegistryManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): AttributeRegistryManagementInvoker =
+    AttributeRegistryManagementInvoker(blockingEc)(actorSystem.classicSystem)
+
+  private final val attributeRegistryManagementApi: AttributeRegistryManagementApi =
+    AttributeRegistryManagementApi(ApplicationConfiguration.attributeRegistryManagementURL)
+
+  def attributeRegistryManagement(
+    blockingEc: ExecutionContextExecutor
+  )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): AttributeRegistryManagementService =
+    AttributeRegistryManagementServiceImpl(
+      attributeRegistryManagementInvoker(blockingEc),
+      attributeRegistryManagementApi
+    )
 
 }
