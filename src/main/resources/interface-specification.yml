@@ -1,0 +1,309 @@
+openapi: 3.0.3
+info:
+  title: tenant Process Micro Service
+  description: Offers operations to retrieve tenant data
+  version: '{{version}}'
+  contact:
+    name: API Support
+    url: 'http://www.example.com/support'
+    email: support@example.com
+  termsOfService: 'http://swagger.io/terms/'
+  x-api-id: an x-api-id
+  x-summary: an x-summary
+servers:
+  - url: '/tenant-process/{{version}}'
+    description: This service is the tenant process
+security:
+  - bearerAuth: []
+tags:
+  - name: tenant
+    description: Implements tenant process
+    externalDocs:
+      description: Find out more
+      url: 'http://swagger.io'
+  - name: health
+    description: Verify service status
+    externalDocs:
+      description: Find out more
+      url: 'http://swagger.io'
+paths:
+  /internal/tenants:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    post:
+      tags:
+        - tenant
+      operationId: internalUpsertTenant
+      description: |
+        Creates the Tenant if it does not exist. Otherwise, add missing attributes.
+        Used when the attribute origin is known
+      responses:
+        '200':
+          description: Tenant created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalTenantSeed'
+        required: true
+  /m2m/tenants:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    post:
+      tags:
+        - tenant
+      operationId: m2mUpsertTenant
+      description:  |
+        Creates the Tenant if it does not exist. Otherwise, add missing attributes.
+        Used when the attribute origin should be deducted from requester
+      responses:
+        '200':
+          description: Tenant created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/M2MTenantSeed'
+        required: true
+  /selfcare/tenants:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    post:
+      tags:
+        - tenant
+      operationId: selfcareUpsertTenant
+      description:  |
+        Creates the Tenant if it does not exist. Otherwise, set Tenant SelfcareId.
+        Used when the request source is SelfCare
+      responses:
+        '200':
+          description: Tenant created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '409':
+          description: Selfcare Id is already assigned and is different from the request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelfcareTenantSeed'
+        required: true
+  /tenants/{id}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - name: id
+        in: path
+        description: the tenant id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - tenant
+      operationId: getTenant
+      description: Retrieve the Tenant
+      responses:
+        '200':
+          description: Tenant retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '404':
+          description: Tenant Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /status:
+    get:
+      security: []
+      tags:
+        - health
+      summary: Health status endpoint
+      description: Return ok
+      operationId: getStatus
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+components:
+  parameters:
+    CorrelationIdHeader:
+      in: header
+      name: X-Correlation-Id
+      required: true
+      schema:
+        type: string
+    IpAddress:
+      in: header
+      name: X-Forwarded-For
+      schema:
+        type: string
+  schemas:
+    ExternalId:
+      properties:
+        origin:
+          type: string
+        value:
+          type: string
+      required:
+        - origin
+        - value
+    InternalAttributeSeed:
+      type: object
+      properties:
+        origin:
+          type: string
+        code:
+          type: string
+      required:
+        - origin
+        - code
+    M2MAttributeSeed:
+      type: object
+      properties:
+        code:
+          type: string
+      required:
+        - code
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+      required:
+        - id
+      description: Representation of a Tenant
+    InternalTenantSeed:
+      description: Tenant Seed model
+      type: object
+      properties:
+        externalId:
+          $ref: '#/components/schemas/ExternalId'
+        certifiedAttributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/InternalAttributeSeed'
+      required:
+        - externalId
+        - certifiedAttributes
+    M2MTenantSeed:
+      description: Tenant Seed model
+      type: object
+      properties:
+        externalId:
+          $ref: '#/components/schemas/ExternalId'
+        certifiedAttributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/M2MAttributeSeed'
+      required:
+        - externalId
+        - certifiedAttributes
+    SelfcareTenantSeed:
+      description: Tenant Seed model
+      type: object
+      properties:
+        externalId:
+          $ref: '#/components/schemas/ExternalId'
+        selfcareId:
+          type: string
+      required:
+        - externalId
+        - selfcareId
+    Problem:
+      properties:
+        type:
+          description: URI reference of type definition
+          type: string
+        status:
+          description: The HTTP status code generated by the origin server for this occurrence of the problem.
+          example: 503
+          exclusiveMaximum: true
+          format: int32
+          maximum: 600
+          minimum: 100
+          type: integer
+        title:
+          description: A short, summary of the problem type. Written in english and readable
+          example: Service Unavailable
+          maxLength: 64
+          pattern: '^[ -~]{0,64}$'
+          type: string
+        detail:
+          description: A human readable explanation of the problem.
+          example: Request took too long to complete.
+          maxLength: 4096
+          pattern: '^.{0,1024}$'
+          type: string
+        errors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ProblemError'
+      additionalProperties: false
+      required:
+        - type
+        - status
+        - title
+        - errors
+    ProblemError:
+      properties:
+        code:
+          description: Internal code of the error
+          example: 123-4567
+          minLength: 8
+          maxLength: 8
+          pattern: '^[0-9]{3}-[0-9]{4}$'
+          type: string
+        detail:
+          description: A human readable explanation specific to this occurrence of the problem.
+          example: Parameter not valid
+          maxLength: 4096
+          pattern: '^.{0,1024}$'
+          type: string
+      required:
+        - code
+        - detail
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: 'A bearer token in the format of a JWS and conformed to the specifications included in [RFC8725](https://tools.ietf.org/html/RFC8725).'
+      scheme: bearer
+      bearerFormat: JWT
