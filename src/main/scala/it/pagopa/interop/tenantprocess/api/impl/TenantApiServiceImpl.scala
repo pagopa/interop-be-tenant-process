@@ -35,8 +35,6 @@ import it.pagopa.interop.tenantprocess.service._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
-import it.pagopa.interop.tenantmanagement.client.model.TenantAttribute
-import java.util.UUID
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
@@ -72,7 +70,9 @@ final case class TenantApiServiceImpl(
     val result: Future[Tenant] = for {
       existingTenant <- findTenant(seed.externalId)
       attributesIds = seed.certifiedAttributes.map(a => ExternalId(a.origin, a.code))
-      tenant <- existingTenant.fold(createTenant(seed, attributesIds, now))(updateTenantAttributes(attributesIds, now))
+      tenant <- existingTenant.fold(createTenant(seed, attributesIds, now))(
+        updateTenantCertifiedAttributes(attributesIds, now)
+      )
     } yield tenant.toApi
 
     onComplete(result) {
@@ -108,7 +108,9 @@ final case class TenantApiServiceImpl(
         certifier      <- validateCertifierTenant
         existingTenant <- findTenant(seed.externalId)
         attributesId = seed.certifiedAttributes.map(a => ExternalId(certifier.certifierId, a.code))
-        tenant <- existingTenant.fold(createTenant(seed, attributesId, now))(updateTenantAttributes(attributesId, now))
+        tenant <- existingTenant.fold(createTenant(seed, attributesId, now))(
+          updateTenantCertifiedAttributes(attributesId, now)
+        )
       } yield tenant.toApi
 
       onComplete(result) {
@@ -175,21 +177,19 @@ final case class TenantApiServiceImpl(
       tenant <- tenantManagementService.createTenant(toDependency(seed, tenantId, dependencyAttributes))
     } yield tenant
 
-  private def updateTenantAttributes(attributes: Seq[ExternalId], timestamp: OffsetDateTime)(
+  private def updateTenantCertifiedAttributes(attributes: Seq[ExternalId], timestamp: OffsetDateTime)(
     tenant: DependencyTenant
   )(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] =
     for {
       attributes <- getAttributes(attributes)
       // TODO tenant.attributes can be an issue in case of pagination. Create a tenantManagementService.getAttribute?
-      newAttributes = attributes.filterNot(attr => tenant.attributes.map(id).flatten.map(_.toString).contains(attr.id))
+      newAttributes = attributes.filterNot(attr =>
+        tenant.attributes.mapFilter(_.certified).map(_.id.toString).contains(attr.id)
+      )
       tenants <- Future.traverse(newAttributes)(a =>
         tenantManagementService.addTenantAttribute(tenant.id, a.toCertifiedSeed(timestamp))
       )
     } yield tenants.lastOption.getOrElse(tenant)
-
-  def id(attribute: TenantAttribute): Option[UUID] =
-    attribute.declared.map(_.id).orElse(attribute.verified.map(_.id)).orElse(attribute.certified.map(_.id))
-
   private def getAttributes(attributes: Seq[ExternalId])(implicit
     contexts: Seq[(String, String)]
   ): Future[Seq[Attribute]] =
