@@ -66,7 +66,13 @@ final case class TenantManagementServiceImpl(
       tenantAttribute = attribute,
       xForwardedFor = ip
     )(BearerToken(bearerToken))
-    result <- invoker.invoke(request, s"Adding attribute ${attribute.id} to tenant $tenantId")
+    id      = attribute.certified
+      .map(_.id)
+      .orElse(attribute.verified.map(_.id))
+      .orElse(attribute.declared.map(_.id))
+      .map(_.toString())
+      .getOrElse("")
+    result <- invoker.invoke(request, s"Adding attribute $id to tenant $tenantId")
   } yield result
 
   override def getTenantByExternalId(externalId: ExternalId)(implicit contexts: Seq[(String, String)]): Future[Tenant] =

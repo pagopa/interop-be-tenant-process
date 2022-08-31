@@ -35,6 +35,8 @@ import it.pagopa.interop.tenantprocess.service._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+import it.pagopa.interop.tenantmanagement.client.model.TenantAttribute
+import java.util.UUID
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
@@ -179,11 +181,14 @@ final case class TenantApiServiceImpl(
     for {
       attributes <- getAttributes(attributes)
       // TODO tenant.attributes can be an issue in case of pagination. Create a tenantManagementService.getAttribute?
-      newAttributes = attributes.filterNot(attr => tenant.attributes.exists(_.id.toString == attr.id))
+      newAttributes = attributes.filterNot(attr => tenant.attributes.map(id).flatten.map(_.toString).contains(attr.id))
       tenants <- Future.traverse(newAttributes)(a =>
         tenantManagementService.addTenantAttribute(tenant.id, a.toCertifiedSeed(timestamp))
       )
     } yield tenants.lastOption.getOrElse(tenant)
+
+  def id(attribute: TenantAttribute): Option[UUID] =
+    attribute.declared.map(_.id).orElse(attribute.verified.map(_.id)).orElse(attribute.certified.map(_.id))
 
   private def getAttributes(attributes: Seq[ExternalId])(implicit
     contexts: Seq[(String, String)]

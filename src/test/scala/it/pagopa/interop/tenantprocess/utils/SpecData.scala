@@ -1,11 +1,12 @@
 package it.pagopa.interop.tenantprocess.utils
 
+import cats.implicits._
 import it.pagopa.interop.attributeregistrymanagement.client.model.{AttributeKind, Attribute => DependencyAttribute}
 import it.pagopa.interop.tenantmanagement.client.model.{
-  TenantAttributeKind,
   ExternalId => DependencyExternalId,
   Tenant => DependencyTenant,
-  TenantAttribute => DependencyTenantAttribute
+  TenantAttribute => DependencyTenantAttribute,
+  CertifiedTenantAttribute => DependencyCertifiedTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.model.{
   ExternalId,
@@ -42,14 +43,12 @@ trait SpecData {
     updatedAt = None
   )
 
-  val dependencyTenantAttribute: DependencyTenantAttribute = DependencyTenantAttribute(
-    id = UUID.randomUUID(),
-    kind = TenantAttributeKind.CERTIFIED,
-    assignmentTimestamp = timestamp,
-    revocationTimestamp = None,
-    renewal = None,
-    verifiedBy = None,
-    revokedBy = None
+  val dependencyTenantAttribute: DependencyTenantAttribute = DependencyTenantAttribute(certified =
+    DependencyCertifiedTenantAttribute(
+      id = UUID.randomUUID(),
+      assignmentTimestamp = timestamp,
+      revocationTimestamp = None
+    ).some
   )
 
   val dependencyAttribute: DependencyAttribute = DependencyAttribute(

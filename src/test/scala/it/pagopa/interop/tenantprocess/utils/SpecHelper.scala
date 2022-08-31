@@ -89,9 +89,8 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(result.copy(origin = Some(origin), code = Some(value))))
 
-  def mockDateTimeGet() =
-    (() => mockDateTimeSupplier.get).expects().returning(timestamp).once()
+  def mockDateTimeGet() = (() => mockDateTimeSupplier.get).expects().returning(timestamp).once()
 
-  def mockUuidGet(uuid: UUID) =
-    (() => mockUuidSupplier.get).expects().returning(uuid).once()
+  def mockUuidGet(uuid: UUID) = (() => mockUuidSupplier.get).expects().returning(uuid).once()
+
 }

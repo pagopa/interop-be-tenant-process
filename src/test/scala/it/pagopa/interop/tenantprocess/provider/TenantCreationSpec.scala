@@ -9,6 +9,7 @@ import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import it.pagopa.interop.tenantprocess.model.{InternalAttributeSeed, M2MAttributeSeed}
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
+import TenantCreationSpec._
 
 import java.util.UUID
 
@@ -41,16 +42,10 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val seed = internalTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
-    val expectedAttribute1 = dependencyTenantAttribute.copy(
-      id = attributeId1,
-      kind = TenantAttributeKind.CERTIFIED,
-      assignmentTimestamp = timestamp,
-      revocationTimestamp = None,
-      renewal = None,
-      verifiedBy = None,
-      revokedBy = None
+    val expectedAttribute1 = dependencyTenantAttribute.copy(certified =
+      CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
     )
-    val expectedAttribute2 = expectedAttribute1.copy(id = attributeId2)
+    val expectedAttribute2 = expectedAttribute1.withNewId(attributeId2)
 
     val expectedTenantSeed = TenantSeed(
       id = Some(tenantId),
@@ -106,21 +101,15 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       )
 
     val existingTenant =
-      dependencyTenant.copy(attributes = Seq(dependencyTenantAttribute.copy(id = existingAttributeId)))
+      dependencyTenant.copy(attributes = Seq(dependencyTenantAttribute.withNewId(existingAttributeId)))
 
     val seed =
       internalTenantSeed.copy(certifiedAttributes = Seq(existingAttributeSeed, newAttributeSeed1, newAttributeSeed2))
 
-    val expectedNewAttribute1 = dependencyTenantAttribute.copy(
-      id = newAttributeId1,
-      kind = TenantAttributeKind.CERTIFIED,
-      assignmentTimestamp = timestamp,
-      revocationTimestamp = None,
-      renewal = None,
-      verifiedBy = None,
-      revokedBy = None
+    val expectedNewAttribute1 = dependencyTenantAttribute.copy(certified =
+      CertifiedTenantAttribute(id = newAttributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
     )
-    val expectedNewAttribute2 = expectedNewAttribute1.copy(id = newAttributeId2)
+    val expectedNewAttribute2 = expectedNewAttribute1.withNewId(newAttributeId2)
 
     mockDateTimeGet()
     mockGetTenantByExternalId(seed.externalId.toDependency, existingTenant)
@@ -169,16 +158,10 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val seed = m2mTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
-    val expectedAttribute1 = dependencyTenantAttribute.copy(
-      id = attributeId1,
-      kind = TenantAttributeKind.CERTIFIED,
-      assignmentTimestamp = timestamp,
-      revocationTimestamp = None,
-      renewal = None,
-      verifiedBy = None,
-      revokedBy = None
+    val expectedAttribute1 = dependencyTenantAttribute.copy(certified =
+      CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
     )
-    val expectedAttribute2 = expectedAttribute1.copy(id = attributeId2)
+    val expectedAttribute2 = expectedAttribute1.withNewId(attributeId2)
 
     val expectedTenantSeed = TenantSeed(
       id = Some(newTenantId),
@@ -241,21 +224,15 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       )
 
     val existingTenant =
-      dependencyTenant.copy(attributes = Seq(dependencyTenantAttribute.copy(id = existingAttributeId)))
+      dependencyTenant.copy(attributes = Seq(dependencyTenantAttribute.withNewId(existingAttributeId)))
 
     val seed =
       m2mTenantSeed.copy(certifiedAttributes = Seq(existingAttributeSeed, newAttributeSeed1, newAttributeSeed2))
 
-    val expectedNewAttribute1 = dependencyTenantAttribute.copy(
-      id = newAttributeId1,
-      kind = TenantAttributeKind.CERTIFIED,
-      assignmentTimestamp = timestamp,
-      revocationTimestamp = None,
-      renewal = None,
-      verifiedBy = None,
-      revokedBy = None
+    val expectedNewAttribute1 = dependencyTenantAttribute.copy(certified =
+      CertifiedTenantAttribute(id = newAttributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
     )
-    val expectedNewAttribute2 = expectedNewAttribute1.copy(id = newAttributeId2)
+    val expectedNewAttribute2 = expectedNewAttribute1.withNewId(newAttributeId2)
 
     mockDateTimeGet()
 
@@ -384,4 +361,11 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     }
   }
 
+}
+
+object TenantCreationSpec {
+  implicit class DependencyTenantAttributeSyntax(val a: TenantAttribute) extends AnyVal {
+    def withNewId(id: UUID): TenantAttribute =
+      a.copy(certified = a.certified.map(_.copy(id = id)))
+  }
 }
