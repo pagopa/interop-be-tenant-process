@@ -28,17 +28,9 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val attributeSeed2 = InternalAttributeSeed(origin = "origin2", code = "code2")
 
     val attribute1 =
-      dependencyAttribute.copy(
-        id = attributeId1.toString,
-        origin = attributeSeed1.origin.some,
-        code = attributeSeed1.code.some
-      )
+      dependencyAttribute.copy(id = attributeId1, origin = attributeSeed1.origin.some, code = attributeSeed1.code.some)
     val attribute2 =
-      dependencyAttribute.copy(
-        id = attributeId2.toString,
-        origin = attributeSeed2.origin.some,
-        code = attributeSeed2.code.some
-      )
+      dependencyAttribute.copy(id = attributeId2, origin = attributeSeed2.origin.some, code = attributeSeed2.code.some)
 
     val seed = internalTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
@@ -83,19 +75,19 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val existingAttribute =
       dependencyAttribute.copy(
-        id = existingAttributeId.toString,
+        id = existingAttributeId,
         origin = existingAttributeSeed.origin.some,
         code = existingAttributeSeed.code.some
       )
     val newAttribute1     =
       dependencyAttribute.copy(
-        id = newAttributeId1.toString,
+        id = newAttributeId1,
         origin = newAttributeSeed1.origin.some,
         code = newAttributeSeed1.code.some
       )
     val newAttribute2     =
       dependencyAttribute.copy(
-        id = newAttributeId2.toString,
+        id = newAttributeId2,
         origin = newAttributeSeed2.origin.some,
         code = newAttributeSeed2.code.some
       )
@@ -144,17 +136,9 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val attributeSeed2 = M2MAttributeSeed(code = "code2")
 
     val attribute1 =
-      dependencyAttribute.copy(
-        id = attributeId1.toString,
-        origin = "CUSTOM_ORIGIN".some,
-        code = attributeSeed1.code.some
-      )
+      dependencyAttribute.copy(id = attributeId1, origin = "CUSTOM_ORIGIN".some, code = attributeSeed1.code.some)
     val attribute2 =
-      dependencyAttribute.copy(
-        id = attributeId2.toString,
-        origin = "CUSTOM_ORIGIN".some,
-        code = attributeSeed2.code.some
-      )
+      dependencyAttribute.copy(id = attributeId2, origin = "CUSTOM_ORIGIN".some, code = attributeSeed2.code.some)
 
     val seed = m2mTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
@@ -206,22 +190,14 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val existingAttribute =
       dependencyAttribute.copy(
-        id = existingAttributeId.toString,
+        id = existingAttributeId,
         origin = "CUSTOM_ORIGIN".some,
         code = existingAttributeSeed.code.some
       )
     val newAttribute1     =
-      dependencyAttribute.copy(
-        id = newAttributeId1.toString,
-        origin = "CUSTOM_ORIGIN".some,
-        code = newAttributeSeed1.code.some
-      )
+      dependencyAttribute.copy(id = newAttributeId1, origin = "CUSTOM_ORIGIN".some, code = newAttributeSeed1.code.some)
     val newAttribute2     =
-      dependencyAttribute.copy(
-        id = newAttributeId2.toString,
-        origin = "CUSTOM_ORIGIN".some,
-        code = newAttributeSeed2.code.some
-      )
+      dependencyAttribute.copy(id = newAttributeId2, origin = "CUSTOM_ORIGIN".some, code = newAttributeSeed2.code.some)
 
     val existingTenant =
       dependencyTenant.copy(attributes = Seq(dependencyTenantAttribute.withNewId(existingAttributeId)))

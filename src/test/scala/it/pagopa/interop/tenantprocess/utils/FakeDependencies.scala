@@ -22,7 +22,7 @@ object FakeDependencies {
       contexts: Seq[(String, String)]
     ): Future[Attribute] = Future.successful(
       Attribute(
-        id = UUID.randomUUID().toString,
+        id = UUID.randomUUID(),
         code = Some(UUID.randomUUID().toString),
         kind = AttributeKind.CERTIFIED,
         description = "Attribute x",
