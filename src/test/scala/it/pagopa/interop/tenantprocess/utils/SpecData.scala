@@ -52,7 +52,7 @@ trait SpecData {
   )
 
   val dependencyAttribute: DependencyAttribute = DependencyAttribute(
-    id = UUID.randomUUID().toString,
+    id = UUID.randomUUID(),
     code = None,
     kind = AttributeKind.CERTIFIED,
     description = "An attribute",
