@@ -20,6 +20,7 @@ import it.pagopa.interop.tenantprocess.api.impl.{
   HealthServiceApiImpl,
   TenantApiMarshallerImpl,
   TenantApiServiceImpl,
+  entityMarshallerProblem,
   problemOf
 }
 import it.pagopa.interop.tenantprocess.api.{HealthApi, TenantApi}
@@ -47,8 +48,8 @@ trait Dependencies {
 
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
-      problemOf(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report).head)
-    complete(error.status, error)(HealthApiMarshallerImpl.toEntityMarshallerProblem)
+      problemOf(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report))
+    complete(error.status, error)(entityMarshallerProblem)
   }
 
   val healthApi: HealthApi = new HealthApi(
