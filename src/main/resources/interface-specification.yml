@@ -65,7 +65,7 @@ paths:
       tags:
         - tenant
       operationId: m2mUpsertTenant
-      description:  |
+      description: |
         Creates the Tenant if it does not exist. Otherwise, add missing attributes.
         Used when the attribute origin should be deducted from requester
       responses:
@@ -95,7 +95,7 @@ paths:
       tags:
         - tenant
       operationId: selfcareUpsertTenant
-      description:  |
+      description: |
         Creates the Tenant if it does not exist. Otherwise, set Tenant SelfcareId.
         Used when the request source is SelfCare
       responses:
@@ -202,14 +202,162 @@ components:
       required:
         - code
     Tenant:
+      description: Tenant model
       type: object
       properties:
         id:
           type: string
           format: uuid
+        selfcareId:
+          type: string
+        externalId:
+          $ref: '#/components/schemas/ExternalId'
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantFeature'
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantAttribute'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
       required:
         - id
-      description: Representation of a Tenant
+        - certifier
+        - externalId
+        - features
+        - attributes
+        - createdAt
+    TenantFeature:
+      type: object
+      properties:
+        certifier:
+          $ref: '#/components/schemas/Certifier'
+    Certifier:
+      description: Certifier Tenant Feature
+      type: object
+      properties:
+        certifierId:
+          type: string
+      required:
+        - certifierId
+    TenantAttribute:
+      type: object
+      properties:
+        declared:
+          $ref: '#/components/schemas/DeclaredTenantAttribute'
+        certified:
+          $ref: '#/components/schemas/CertifiedTenantAttribute'
+        verified:
+          $ref: '#/components/schemas/VerifiedTenantAttribute'
+    DeclaredTenantAttribute:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        assignmentTimestamp:
+          type: string
+          format: date-time
+        revocationTimestamp:
+          type: string
+          format: date-time
+      required:
+        - id
+        - kind
+        - assignmentTimestamp
+    CertifiedTenantAttribute:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        assignmentTimestamp:
+          type: string
+          format: date-time
+        revocationTimestamp:
+          type: string
+          format: date-time
+      required:
+        - id
+        - kind
+        - assignmentTimestamp
+    VerifiedTenantAttribute:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        assignmentTimestamp:
+          type: string
+          format: date-time
+        renewal:
+          $ref: '#/components/schemas/VerificationRenewal'
+        verifiedBy:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantVerifier'
+        revokedBy:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantRevoker'
+      required:
+        - id
+        - kind
+        - assignmentTimestamp
+        - renewal
+        - verifiedBy
+        - revokedBy
+    VerificationRenewal:
+      type: string
+      enum:
+        - REVOKE_ON_EXPIRATION
+        - AUTOMATIC_RENEWAL
+    TenantVerifier:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        verificationDate:
+          type: string
+          format: date-time
+        expirationDate:
+          type: string
+          format: date-time
+        extentionDate:
+          type: string
+          format: date-time
+      required:
+        - id
+        - verificationDate
+    TenantRevoker:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        verificationDate:
+          type: string
+          format: date-time
+        expirationDate:
+          type: string
+          format: date-time
+        extentionDate:
+          type: string
+          format: date-time
+        revocationDate:
+          type: string
+          format: date-time
+      required:
+        - id
+        - verificationDate
+        - revocationDate
     InternalTenantSeed:
       description: Tenant Seed model
       type: object

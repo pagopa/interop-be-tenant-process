@@ -20,7 +20,27 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit def selfcareTenantSeedFormat: RootJsonFormat[SelfcareTenantSeed] = jsonFormat2(SelfcareTenantSeed)
 
-  implicit def tenantFormat: RootJsonFormat[Tenant]             = jsonFormat1(Tenant)
+  implicit def certifierFormat: RootJsonFormat[Certifier]             = jsonFormat1(Certifier)
+  implicit def tenantFeatureFormat: RootJsonFormat[TenantFeature]     = jsonFormat1(TenantFeature)
+  implicit def tenantAttributeFormat: RootJsonFormat[TenantAttribute] = jsonFormat3(TenantAttribute)
+
+  implicit def declaredTenantAttributeFormat: RootJsonFormat[DeclaredTenantAttribute]   = jsonFormat3(
+    DeclaredTenantAttribute
+  )
+  implicit def certifiedTenantAttributeFormat: RootJsonFormat[CertifiedTenantAttribute] = jsonFormat3(
+    CertifiedTenantAttribute
+  )
+  implicit def verifiedTenantAttributeFormat: RootJsonFormat[VerifiedTenantAttribute]   = jsonFormat5(
+    VerifiedTenantAttribute
+  )
+
+  implicit def verificationRenewalFormat: RootJsonFormat[VerificationRenewal] =
+    VerificationRenewal.VerificationRenewalFormat
+
+  implicit def tenantVerifierFormat: RootJsonFormat[TenantVerifier] = jsonFormat4(TenantVerifier)
+  implicit def tenantRevokerFormat: RootJsonFormat[TenantRevoker]   = jsonFormat5(TenantRevoker)
+
+  implicit def tenantFormat: RootJsonFormat[Tenant]             = jsonFormat7(Tenant)
   implicit def problemErrorFormat: RootJsonFormat[ProblemError] = jsonFormat2(ProblemError)
   implicit def problemFormat: RootJsonFormat[Problem]           = jsonFormat5(Problem)
 
