@@ -15,6 +15,13 @@
       ]
     },
     {
+      "route": "m2mDeleteAttribute",
+      "verb": "DELETE",
+      "roles": [
+        "m2m"
+      ]
+    },
+    {
       "route": "selfcareUpsertTenant",
       "verb": "POST",
       "roles": [

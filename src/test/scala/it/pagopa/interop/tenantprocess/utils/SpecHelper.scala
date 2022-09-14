@@ -80,6 +80,13 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(dependencyTenant))
 
+  def mockDeleteTenantAttribute(tenantId: UUID, attributeId: UUID)(implicit contexts: Seq[(String, String)]) =
+    (mockTenantManagement
+      .deleteTenantAttribute(_: UUID, _: UUID)(_: Seq[(String, String)]))
+      .expects(tenantId, attributeId, contexts)
+      .once()
+      .returns(Future.successful(dependencyTenant))
+
   def mockGetAttributeByExternalId(origin: String, value: String, result: Attribute)(implicit
     contexts: Seq[(String, String)]
   ) =
@@ -88,6 +95,13 @@ trait SpecHelper extends MockFactory with SpecData {
       .expects(origin, value, contexts)
       .once()
       .returns(Future.successful(result.copy(origin = Some(origin), code = Some(value))))
+
+  def mockGetAttributeById(id: UUID, result: Attribute)(implicit contexts: Seq[(String, String)]) =
+    (mockAttributeRegistryManagement
+      .getAttributeById(_: UUID)(_: Seq[(String, String)]))
+      .expects(id, contexts)
+      .once()
+      .returns(Future.successful(result))
 
   def mockDateTimeGet() = (() => mockDateTimeSupplier.get).expects().returning(timestamp).once()
 
