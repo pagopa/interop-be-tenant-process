@@ -87,6 +87,52 @@ paths:
             schema:
               $ref: '#/components/schemas/M2MTenantSeed'
         required: true
+  /m2m/origin/{origin}/externalId/{externalId}/attributes/{code}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - name: origin
+        in: path
+        description: the origin of the tenant
+        required: true
+        schema:
+          type: string
+      - name: externalId
+        in: path
+        description: the externalId of the tenant
+        required: true
+        schema:
+          type: string
+      - name: code
+        in: path
+        description: the code of the attribute
+        required: true
+        schema:
+          type: string
+    delete:
+      tags:
+        - tenant
+      operationId: m2mDeleteAttribute
+      description: Deletes the specific attribute from the tenant
+      responses:
+        '200':
+          description: Tenant created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          description: BadRequest
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /selfcare/tenants:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'

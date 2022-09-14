@@ -13,6 +13,7 @@ import it.pagopa.interop.tenantprocess.service.{
 }
 
 import scala.concurrent.{ExecutionContext, Future}
+import java.util.UUID
 
 final case class AttributeRegistryManagementServiceImpl(
   invoker: AttributeRegistryManagementInvoker,
@@ -34,6 +35,14 @@ final case class AttributeRegistryManagementServiceImpl(
       xForwardedFor = ip
     )(BearerToken(bearerToken))
     result <- invoker.invoke(request, s"Retrieve Attribute for Origin $origin and Code $code")
+  } yield result
+
+  override def getAttributeById(id: UUID)(implicit contexts: Seq[(String, String)]): Future[Attribute] = for {
+    (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+    request = api.getAttributeById(xCorrelationId = correlationId, attributeId = id, xForwardedFor = ip)(
+      BearerToken(bearerToken)
+    )
+    result <- invoker.invoke(request, s"Retrieve Attribute $id")
   } yield result
 
 }

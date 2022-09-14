@@ -126,7 +126,8 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
         )
       )
   }
-  implicit class ProblemWrapper(private val t: DependencyProblem)            extends AnyVal {
+
+  implicit class ProblemWrapper(private val t: DependencyProblem) extends AnyVal {
     def toApi: Problem =
       Problem(`type` = t.`type`, status = t.status, title = t.title, detail = t.detail, errors = t.errors.map(_.toApi))
   }
