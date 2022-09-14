@@ -171,7 +171,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     }
   }
 
-  "M2M request - Deletion of an attributes in a tenant must succeed" in {
+  "M2M request - Revocation of an attribute in a tenant must succeed" in {
 
     implicit val context: Seq[(String, String)] = m2mContext
 
@@ -187,24 +187,55 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockGetTenantById(requesterTenantId, requesterTenant)
 
-    val attributeId = UUID.randomUUID()
+    val attributeId     = UUID.randomUUID()
+    val tenantAttribute =
+      TenantAttribute(certified = CertifiedTenantAttribute(attributeId, OffsetDateTime.now, timestamp.some).some)
 
-    val tenantToModify = dependencyTenant.copy(attributes =
-      TenantAttribute(certified = CertifiedTenantAttribute(attributeId, OffsetDateTime.now, None).some) :: Nil
-    )
+    val tenantToModify = dependencyTenant.copy(attributes = tenantAttribute :: Nil)
 
     val attribute = dependencyAttribute.copy(id = attributeId, origin = certifierId.some, code = code.some)
 
     mockGetTenantByExternalId(ExternalId(origin, externalId), tenantToModify)
-    mockGetAttributeById(attributeId, attribute)
-    mockDeleteTenantAttribute(dependencyTenant.id, attributeId)
+    mockGetAttributeByExternalId(certifierId, code, attribute)
+    mockDateTimeGet()
+    mockUpdateTenantAttribute(dependencyTenant.id, attributeId, tenantAttribute)
 
-    Get() ~> tenantService.m2mDeleteAttribute(origin, externalId, code) ~> check {
-      assert(status == StatusCodes.OK)
+    Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
+      assert(status == StatusCodes.NoContent)
     }
   }
 
-  "M2M request - Deletion of an attributes in a tenant must fail if attribute is not found" in {
+  "M2M request - Revocation of an attribute in a tenant must fail if attribute is not found" in {
+
+    implicit val context: Seq[(String, String)] = m2mContext
+
+    val requesterTenantId = organizationId
+    val certifierId       = "CUSTOM_ORIGIN"
+    val code              = "code"
+    val requesterTenant   = dependencyTenant.copy(
+      id = requesterTenantId,
+      features = TenantFeature(certifier = Certifier(certifierId).some) :: Nil
+    )
+    val origin            = "origin"
+    val externalId        = "externalId"
+
+    mockGetTenantById(requesterTenantId, requesterTenant)
+
+    val attributeId     = UUID.randomUUID()
+    val tenantAttribute =
+      TenantAttribute(certified = CertifiedTenantAttribute(attributeId, OffsetDateTime.now, timestamp.some).some)
+
+    val tenantToModify = dependencyTenant.copy(attributes = tenantAttribute :: Nil)
+
+    mockGetTenantByExternalId(ExternalId(origin, externalId), tenantToModify)
+    mockGetAttributeByExternalIdNotFound(certifierId, code)
+
+    Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
+      assert(status == StatusCodes.BadRequest)
+    }
+  }
+
+  "M2M request - Revocation of an attribute in a tenant must fail if attribute is doesn't correspond" in {
 
     implicit val context: Seq[(String, String)] = m2mContext
 
@@ -222,21 +253,19 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val attributeId = UUID.randomUUID()
 
-    val tenantToModify = dependencyTenant.copy(attributes =
-      TenantAttribute(certified = CertifiedTenantAttribute(attributeId, OffsetDateTime.now, None).some) :: Nil
-    )
+    val tenantToModify = dependencyTenant.copy(attributes = Nil)
 
-    val attribute = dependencyAttribute.copy(id = attributeId, origin = certifierId.some, code = "ANOTHER_CODE".some)
+    val attribute = dependencyAttribute.copy(id = attributeId, origin = certifierId.some, code = code.some)
 
     mockGetTenantByExternalId(ExternalId(origin, externalId), tenantToModify)
-    mockGetAttributeById(attributeId, attribute)
+    mockGetAttributeByExternalId(certifierId, code, attribute)
 
-    Get() ~> tenantService.m2mDeleteAttribute(origin, externalId, code) ~> check {
+    Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
       assert(status == StatusCodes.BadRequest)
     }
   }
 
-  "M2M request - Deletion of an attributes in a tenant must fail if tenant is not a certifier" in {
+  "M2M request - Revocation of an attribute in a tenant must fail if tenant is not a certifier" in {
 
     implicit val context: Seq[(String, String)] = m2mContext
 
@@ -248,7 +277,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockGetTenantById(requesterTenantId, requesterTenant)
 
-    Get() ~> tenantService.m2mDeleteAttribute(origin, externalId, code) ~> check {
+    Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
       assert(status == StatusCodes.Forbidden)
     }
   }

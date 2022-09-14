@@ -128,14 +128,13 @@ final case class TenantApiServiceImpl(
       }
     }
 
-  override def m2mDeleteAttribute(origin: String, externalId: String, code: String)(implicit
+  override def m2mRevokeAttribute(origin: String, externalId: String, code: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(M2M_ROLE) {
-    logger.info(s"Deleting attribute ${code} from tenant (${origin},${externalId}) via m2m request")
+    logger.info(s"Revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request")
 
-    val result: Future[Tenant] = for {
+    val result: Future[Unit] = for {
       requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
       requesterTenantUuid <- requesterTenantId.toFutureUUID
       requesterTenant     <- tenantManagementService.getTenant(requesterTenantUuid)
@@ -143,27 +142,35 @@ final case class TenantApiServiceImpl(
         .collectFirstSome(_.certifier.map(_.certifierId))
         .toFuture(TenantIsNotACertifier(requesterTenantId))
       tenantToModify      <- tenantManagementService.getTenantByExternalId(client.model.ExternalId(origin, externalId))
-      certifiedAttributesIds = tenantToModify.attributes.mapFilter(_.certified).map(_.id)
-      certifiedAttributes <- Future.traverse(certifiedAttributesIds)(
-        attributeRegistryManagementService.getAttributeById
-      )
-      attributeIdToRemove <- certifiedAttributes
-        .collectFirst { case Attribute(id, Some(`code`), _, _, Some(`certifierId`), _, _) => id }
-        .toFuture(CertifiedAttributeNotFound(origin, externalId))
-      tenant              <- tenantManagementService.deleteTenantAttribute(tenantToModify.id, attributeIdToRemove)
-    } yield tenant.toApi
+      attributeIdToRevoke <- attributeRegistryManagementService
+        .getAttributeByExternalCode(certifierId, code)
+        .map(_.id)
+        .recoverWith(_ => Future.failed(CertifiedAttributeNotFound(origin, certifierId)))
+      attributeToModify   <- tenantToModify.attributes
+        .mapFilter(_.certified)
+        .find(_.id == attributeIdToRevoke)
+        .toFuture(CertifiedAttributeNotFound(origin, certifierId))
+      modifiedAttribute = attributeToModify.copy(revocationTimestamp = dateTimeSupplier.get.some)
+      () <- tenantManagementService
+        .updateTenantAttribute(
+          tenantToModify.id,
+          attributeToModify.id,
+          client.model.TenantAttribute(certified = modifiedAttribute.some)
+        )
+        .void
+    } yield ()
 
     onComplete(result) {
       handleApiError() orElse {
-        case Success(tenant)                         => m2mDeleteAttribute200(tenant)
+        case Success(())                             => m2mRevokeAttribute204
         case Failure(ex: TenantIsNotACertifier)      =>
-          logger.error(s"Error deleting attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
-          m2mDeleteAttribute403(problemOf(StatusCodes.Forbidden, ex))
+          logger.error(s"Error revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
+          m2mRevokeAttribute403(problemOf(StatusCodes.Forbidden, ex))
         case Failure(ex: CertifiedAttributeNotFound) =>
-          logger.error(s"Error deleting attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
-          m2mDeleteAttribute400(problemOf(StatusCodes.BadRequest, ex))
+          logger.error(s"Error revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
+          m2mRevokeAttribute400(problemOf(StatusCodes.BadRequest, ex))
         case Failure(ex)                             =>
-          logger.error(s"Error deleting attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
+          logger.error(s"Error revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
           internalServerError()
       }
     }

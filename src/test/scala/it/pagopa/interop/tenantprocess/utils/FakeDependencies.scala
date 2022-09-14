@@ -49,7 +49,7 @@ object FakeDependencies {
 
   case class FakeTenantManagement() extends TenantManagementService {
 
-    override def deleteTenantAttribute(tenantId: UUID, attributeId: UUID)(implicit
+    override def updateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
       contexts: Seq[(String, String)]
     ): Future[Tenant] = Future.successful(fakeTenant)
 

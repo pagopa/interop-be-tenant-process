@@ -112,15 +112,11 @@ paths:
     delete:
       tags:
         - tenant
-      operationId: m2mDeleteAttribute
-      description: Deletes the specific attribute from the tenant
+      operationId: m2mRevokeAttribute
+      description: Revokes the specific attribute from the tenant
       responses:
-        '200':
-          description: Tenant created or updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Tenant'
+        '204':
+          description: Attribute revoked
         '400':
           description: BadRequest
           content:

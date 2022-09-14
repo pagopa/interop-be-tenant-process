@@ -51,7 +51,7 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
   test("Tenant api should accept authorized roles for m2mDeleteAttribute") {
     validateAuthorization(
       endpoints("m2mDeleteAttribute"),
-      { implicit c: Seq[(String, String)] => tenantService.m2mDeleteAttribute("foo", "bar", "baz") }
+      { implicit c: Seq[(String, String)] => tenantService.m2mRevokeAttribute("foo", "bar", "baz") }
     )
   }
 

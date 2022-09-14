@@ -80,10 +80,12 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(dependencyTenant))
 
-  def mockDeleteTenantAttribute(tenantId: UUID, attributeId: UUID)(implicit contexts: Seq[(String, String)]) =
+  def mockUpdateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
+    contexts: Seq[(String, String)]
+  ) =
     (mockTenantManagement
-      .deleteTenantAttribute(_: UUID, _: UUID)(_: Seq[(String, String)]))
-      .expects(tenantId, attributeId, contexts)
+      .updateTenantAttribute(_: UUID, _: UUID, _: TenantAttribute)(_: Seq[(String, String)]))
+      .expects(tenantId, attributeId, attribute, contexts)
       .once()
       .returns(Future.successful(dependencyTenant))
 
@@ -95,6 +97,13 @@ trait SpecHelper extends MockFactory with SpecData {
       .expects(origin, value, contexts)
       .once()
       .returns(Future.successful(result.copy(origin = Some(origin), code = Some(value))))
+
+  def mockGetAttributeByExternalIdNotFound(origin: String, value: String)(implicit contexts: Seq[(String, String)]) =
+    (mockAttributeRegistryManagement
+      .getAttributeByExternalCode(_: String, _: String)(_: Seq[(String, String)]))
+      .expects(origin, value, contexts)
+      .once()
+      .returns(Future.failed(ApiError(code = 404, message = "Not Found", responseContent = None)))
 
   def mockGetAttributeById(id: UUID, result: Attribute)(implicit contexts: Seq[(String, String)]) =
     (mockAttributeRegistryManagement
