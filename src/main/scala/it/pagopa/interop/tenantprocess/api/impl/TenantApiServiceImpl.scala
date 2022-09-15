@@ -36,6 +36,7 @@ import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import it.pagopa.interop.tenantmanagement.client
+import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
@@ -145,7 +146,10 @@ final case class TenantApiServiceImpl(
       attributeIdToRevoke <- attributeRegistryManagementService
         .getAttributeByExternalCode(certifierId, code)
         .map(_.id)
-        .recoverWith(_ => Future.failed(CertifiedAttributeNotFound(origin, certifierId)))
+        .recoverWith {
+          case x: AttributeRegistryApiError[_] if x.code < 500 =>
+            Future.failed(CertifiedAttributeNotFound(origin, certifierId))
+        }
       attributeToModify   <- tenantToModify.attributes
         .mapFilter(_.certified)
         .find(_.id == attributeIdToRevoke)
