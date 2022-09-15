@@ -28,13 +28,15 @@ import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed._
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.AttributeRegistryManagementAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.TenantManagementAdapters._
-import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{SelfcareIdConflict, TenantIsNotACertifier}
+import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
 
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+import it.pagopa.interop.tenantmanagement.client
+import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
@@ -127,6 +129,57 @@ final case class TenantApiServiceImpl(
       }
     }
 
+  override def m2mRevokeAttribute(origin: String, externalId: String, code: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(M2M_ROLE) {
+    logger.info(s"Revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request")
+
+    val result: Future[Unit] = for {
+      requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
+      requesterTenantUuid <- requesterTenantId.toFutureUUID
+      requesterTenant     <- tenantManagementService.getTenant(requesterTenantUuid)
+      certifierId         <- requesterTenant.features
+        .collectFirstSome(_.certifier.map(_.certifierId))
+        .toFuture(TenantIsNotACertifier(requesterTenantId))
+      tenantToModify      <- tenantManagementService.getTenantByExternalId(client.model.ExternalId(origin, externalId))
+      attributeIdToRevoke <- attributeRegistryManagementService
+        .getAttributeByExternalCode(certifierId, code)
+        .map(_.id)
+        .recoverWith {
+          case x: AttributeRegistryApiError[_] if x.code < 500 =>
+            Future.failed(CertifiedAttributeNotFound(origin, certifierId))
+        }
+      attributeToModify   <- tenantToModify.attributes
+        .mapFilter(_.certified)
+        .find(_.id == attributeIdToRevoke)
+        .toFuture(CertifiedAttributeNotFound(origin, certifierId))
+      modifiedAttribute = attributeToModify.copy(revocationTimestamp = dateTimeSupplier.get.some)
+      () <- tenantManagementService
+        .updateTenantAttribute(
+          tenantToModify.id,
+          attributeToModify.id,
+          client.model.TenantAttribute(certified = modifiedAttribute.some)
+        )
+        .void
+    } yield ()
+
+    onComplete(result) {
+      handleApiError() orElse {
+        case Success(())                             => m2mRevokeAttribute204
+        case Failure(ex: TenantIsNotACertifier)      =>
+          logger.error(s"Error revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
+          m2mRevokeAttribute403(problemOf(StatusCodes.Forbidden, ex))
+        case Failure(ex: CertifiedAttributeNotFound) =>
+          logger.error(s"Error revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
+          m2mRevokeAttribute400(problemOf(StatusCodes.BadRequest, ex))
+        case Failure(ex)                             =>
+          logger.error(s"Error revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
+          internalServerError()
+      }
+    }
+  }
+
   override def selfcareUpsertTenant(seed: SelfcareTenantSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
@@ -155,8 +208,7 @@ final case class TenantApiServiceImpl(
 
     onComplete(result) {
       handleApiError() orElse {
-        case Success(tenant)                 =>
-          selfcareUpsertTenant200(tenant)
+        case Success(tenant)                 => selfcareUpsertTenant200(tenant)
         case Failure(ex: SelfcareIdConflict) =>
           logger.error(s"Error creating tenant with external id ${seed.externalId} via SelfCare request", ex)
           selfcareUpsertTenant409(problemOf(StatusCodes.Conflict, ex))
@@ -188,6 +240,7 @@ final case class TenantApiServiceImpl(
         tenantManagementService.addTenantAttribute(tenant.id, a.toCertifiedSeed(timestamp))
       )
     } yield tenants.lastOption.getOrElse(tenant)
+
   private def getAttributes(attributes: Seq[ExternalId])(implicit
     contexts: Seq[(String, String)]
   ): Future[Seq[Attribute]] =
@@ -211,8 +264,7 @@ final case class TenantApiServiceImpl(
 
     onComplete(result) {
       handleApiError() orElse {
-        case Success(tenant) =>
-          getTenant200(tenant)
+        case Success(tenant) => getTenant200(tenant)
         case Failure(ex)     =>
           logger.error(s"Error while retrieving tenant $id", ex)
           internalServerError()

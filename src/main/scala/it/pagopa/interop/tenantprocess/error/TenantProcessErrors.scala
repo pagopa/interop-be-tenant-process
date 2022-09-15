@@ -14,4 +14,7 @@ object TenantProcessErrors {
         s"Conflict on Tenant SelfCare ID update for tenant $tenantId: old value $existingSelfcareId - new value $newSelfcareId"
       )
 
+  final case class CertifiedAttributeNotFound(origin: String, attributeCode: String)
+      extends ComponentError("0003", s"Attribute ($origin, $attributeCode) not found")
+
 }

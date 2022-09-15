@@ -18,6 +18,20 @@ import scala.concurrent.Future
 
 object FakeDependencies {
   case class FakeAttributeRegistryManagement() extends AttributeRegistryManagementService {
+
+    override def getAttributeById(id: UUID)(implicit contexts: Seq[(String, String)]): Future[Attribute] =
+      Future.successful(
+        Attribute(
+          id = UUID.randomUUID(),
+          code = Some(UUID.randomUUID().toString),
+          kind = AttributeKind.CERTIFIED,
+          description = "Attribute x",
+          origin = Some("IPA"),
+          name = "AttributeX",
+          creationTime = OffsetDateTime.now()
+        )
+      )
+
     override def getAttributeByExternalCode(origin: String, code: String)(implicit
       contexts: Seq[(String, String)]
     ): Future[Attribute] = Future.successful(
@@ -34,6 +48,11 @@ object FakeDependencies {
   }
 
   case class FakeTenantManagement() extends TenantManagementService {
+
+    override def updateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
+      contexts: Seq[(String, String)]
+    ): Future[Tenant] = Future.successful(fakeTenant)
+
     override def createTenant(seed: TenantSeed)(implicit contexts: Seq[(String, String)]): Future[Tenant] =
       Future.successful(fakeTenant)
 

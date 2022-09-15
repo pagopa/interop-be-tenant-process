@@ -75,6 +75,20 @@ final case class TenantManagementServiceImpl(
     result <- invoker.invoke(request, s"Adding attribute $id to tenant $tenantId")
   } yield result
 
+  override def updateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Tenant] = for {
+    (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+    request = attributeApi.updateTenantAttribute(
+      xCorrelationId = correlationId,
+      tenantId = tenantId.toString(),
+      attributeId = attributeId,
+      tenantAttribute = attribute,
+      xForwardedFor = ip
+    )(BearerToken(bearerToken))
+    result <- invoker.invoke(request, s"Deleting attribute $attributeId from tenant $tenantId")
+  } yield result
+
   override def getTenantByExternalId(externalId: ExternalId)(implicit contexts: Seq[(String, String)]): Future[Tenant] =
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture

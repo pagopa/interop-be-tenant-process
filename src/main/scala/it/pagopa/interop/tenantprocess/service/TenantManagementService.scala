@@ -12,6 +12,9 @@ trait TenantManagementService {
   def addTenantAttribute(tenantId: UUID, seed: TenantAttribute)(implicit
     contexts: Seq[(String, String)]
   ): Future[Tenant]
+  def updateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Tenant]
 
   def getTenant(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[Tenant]
   def getTenantByExternalId(externalId: ExternalId)(implicit contexts: Seq[(String, String)]): Future[Tenant]
