@@ -4,6 +4,7 @@ import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.commons.utils._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client.invoker.ApiError
+import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantAttribute, TenantDelta, TenantSeed}
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiServiceImpl
@@ -103,7 +104,7 @@ trait SpecHelper extends MockFactory with SpecData {
       .getAttributeByExternalCode(_: String, _: String)(_: Seq[(String, String)]))
       .expects(origin, value, contexts)
       .once()
-      .returns(Future.failed(ApiError(code = 404, message = "Not Found", responseContent = None)))
+      .returns(Future.failed(AttributeRegistryApiError(code = 404, message = "Not Found", responseContent = None)))
 
   def mockGetAttributeById(id: UUID, result: Attribute)(implicit contexts: Seq[(String, String)]) =
     (mockAttributeRegistryManagement
