@@ -235,11 +235,25 @@ final case class TenantApiServiceImpl(
     for {
       attributes <- getAttributes(attributes)
       // TODO tenant.attributes can be an issue in case of pagination. Create a tenantManagementService.getAttribute?
-      newAttributes = attributes.filterNot(attr => tenant.attributes.mapFilter(_.certified).exists(_.id == attr.id))
-      tenants <- Future.traverse(newAttributes)(a =>
-        tenantManagementService.addTenantAttribute(tenant.id, a.toCertifiedSeed(timestamp))
+      (existingAttributes, newAttributes) = attributes.partition(attr =>
+        tenant.attributes.mapFilter(_.certified).exists(_.id == attr.id)
       )
-    } yield tenants.lastOption.getOrElse(tenant)
+      () <- Future
+        .traverse(newAttributes)(a =>
+          tenantManagementService.addTenantAttribute(tenant.id, a.toCertifiedSeed(timestamp))
+        )
+        .void
+      existingAttributesIds    = existingAttributes.map(_.id)
+      existingTenantAttributes = tenant.attributes
+        .mapFilter(_.certified.filter(a => existingAttributesIds.contains(a.id)))
+        .map(c => (c.id, client.model.TenantAttribute(certified = c.some)))
+      ()            <- Future
+        .traverse(existingTenantAttributes) { case (id, a) =>
+          tenantManagementService.updateTenantAttribute(tenant.id, id, a)
+        }
+        .void
+      updatedTenant <- tenantManagementService.getTenant(tenant.id)
+    } yield updatedTenant
 
   private def getAttributes(attributes: Seq[ExternalId])(implicit
     contexts: Seq[(String, String)]
