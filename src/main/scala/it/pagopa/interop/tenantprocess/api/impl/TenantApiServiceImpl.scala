@@ -246,7 +246,7 @@ final case class TenantApiServiceImpl(
       existingAttributesIds    = existingAttributes.map(_.id)
       existingTenantAttributes = tenant.attributes
         .mapFilter(_.certified.filter(a => existingAttributesIds.contains(a.id)))
-        .map(c => (c.id, client.model.TenantAttribute(certified = c.some)))
+        .map(c => (c.id, client.model.TenantAttribute(certified = c.copy(revocationTimestamp = None).some)))
       ()            <- Future
         .traverse(existingTenantAttributes) { case (id, a) =>
           tenantManagementService.updateTenantAttribute(tenant.id, id, a)
