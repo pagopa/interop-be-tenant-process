@@ -114,6 +114,14 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockAddTenantAttribute(existingTenant.id, expectedNewAttribute1)
     mockAddTenantAttribute(existingTenant.id, expectedNewAttribute2)
 
+    mockUpdateTenantAttribute(
+      existingTenant.id,
+      existingAttributeId,
+      dependencyTenantAttribute.withNewId(existingAttributeId)
+    )
+
+    mockGetTenantById(existingTenant.id, existingTenant)
+
     Get() ~> tenantService.internalUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
     }
@@ -333,6 +341,14 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockAddTenantAttribute(existingTenant.id, expectedNewAttribute1)
     mockAddTenantAttribute(existingTenant.id, expectedNewAttribute2)
+
+    mockUpdateTenantAttribute(
+      existingTenant.id,
+      existingAttributeId,
+      dependencyTenantAttribute.withNewId(existingAttributeId)
+    )
+
+    mockGetTenantById(existingTenant.id, existingTenant)
 
     Get() ~> tenantService.m2mUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
