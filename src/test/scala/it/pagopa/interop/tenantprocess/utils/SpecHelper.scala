@@ -83,6 +83,14 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(dependencyTenant))
 
+  def mockGetTenantAttribute(tenantId: UUID, attributeId: UUID, result: TenantAttribute = dependencyTenantAttribute)(
+    implicit contexts: Seq[(String, String)]
+  ) = (mockTenantManagement
+    .getTenantAttribute(_: UUID, _: UUID)(_: Seq[(String, String)]))
+    .expects(tenantId, attributeId, contexts)
+    .once()
+    .returns(Future.successful(result))
+
   def mockUpdateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
     contexts: Seq[(String, String)]
   ) =

@@ -32,4 +32,29 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
   }
+
+  "Declared attribute revoke" should {
+    "succeed" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val attribute   = dependencyDeclaredTenantAttribute
+      val attributeId = attribute.declared.get.id
+
+      val managementSeed = TenantAttribute(
+        declared = Some(
+          DeclaredTenantAttribute(attributeId, assignmentTimestamp = timestamp, revocationTimestamp = Some(timestamp))
+        ),
+        certified = None,
+        verified = None
+      )
+
+      mockDateTimeGet()
+      mockGetTenantAttribute(organizationId, attributeId, attribute)
+      mockUpdateTenantAttribute(organizationId, attributeId, managementSeed)
+
+      Post() ~> tenantService.revokeDeclaredAttribute(attributeId.toString) ~> check {
+        assert(status == StatusCodes.OK)
+      }
+    }
+  }
 }

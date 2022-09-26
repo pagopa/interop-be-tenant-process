@@ -81,7 +81,7 @@ final case class TenantManagementServiceImpl(
     (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
     request = attributeApi.updateTenantAttribute(
       xCorrelationId = correlationId,
-      tenantId = tenantId.toString(),
+      tenantId = tenantId,
       attributeId = attributeId,
       tenantAttribute = attribute,
       xForwardedFor = ip
@@ -103,4 +103,17 @@ final case class TenantManagementServiceImpl(
         s"Retrieving tenant with origin ${externalId.origin} and code ${externalId.value}"
       )
     } yield result
+
+  override def getTenantAttribute(tenantId: UUID, attributeId: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[TenantAttribute] = for {
+    (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+    request = attributeApi.getTenantAttribute(
+      xCorrelationId = correlationId,
+      tenantId = tenantId,
+      attributeId = attributeId,
+      xForwardedFor = ip
+    )(BearerToken(bearerToken))
+    result <- invoker.invoke(request, s"Retrieving attribute $attributeId for tenant $tenantId")
+  } yield result
 }

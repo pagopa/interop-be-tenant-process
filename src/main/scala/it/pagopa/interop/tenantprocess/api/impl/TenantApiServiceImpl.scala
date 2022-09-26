@@ -246,6 +246,40 @@ final case class TenantApiServiceImpl(
     }
   }
 
+  override def revokeDeclaredAttribute(attributeId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = authorize(ADMIN_ROLE) {
+    logger.info(s"Revoking declared attribute $attributeId to requester tenant")
+
+    val now: OffsetDateTime = dateTimeSupplier.get
+
+    val result: Future[Tenant] = for {
+      requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
+      requesterTenantUuid <- requesterTenantId.toFutureUUID
+      _ = logger.info(s"Revoking declared attribute $attributeId to $requesterTenantUuid")
+      attributeUuid     <- attributeId.toFutureUUID
+      attribute         <- tenantManagementService.getTenantAttribute(requesterTenantUuid, attributeUuid)
+      declaredAttribute <- attribute.declared.toFuture(DeclaredAttributeNotFound(requesterTenantId, attributeId))
+      revokedAttribute = declaredAttribute.copy(revocationTimestamp = now.some).toTenantAttribute
+      tenant <- tenantManagementService.updateTenantAttribute(requesterTenantUuid, attributeUuid, revokedAttribute)
+    } yield tenant.toApi
+
+    onComplete(result) {
+      handleApiError() orElse {
+        case Success(tenant)                        =>
+          revokeDeclaredAttribute200(tenant)
+        case Failure(ex: DeclaredAttributeNotFound) =>
+          logger.error(s"Error revoking declared attribute $attributeId to requester tenant", ex)
+          revokeDeclaredAttribute404(problemOf(StatusCodes.NotFound, ex))
+        case Failure(ex)                            =>
+          logger.error(s"Error revoking declared attribute $attributeId to requester tenant", ex)
+          internalServerError()
+      }
+    }
+  }
+
   private def createTenant[T: AdaptableSeed](seed: T, attributes: Seq[ExternalId], timestamp: OffsetDateTime)(implicit
     contexts: Seq[(String, String)]
   ): Future[DependencyTenant] =

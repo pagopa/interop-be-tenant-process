@@ -36,6 +36,13 @@
       "roles": [
         "admin"
       ]
+    },
+    {
+      "route": "revokeDeclaredAttribute",
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ]
     }
   ]
 }

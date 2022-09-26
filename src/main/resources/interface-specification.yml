@@ -216,7 +216,35 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-# TODO Revocation
+  /tenants/attributes/declared/{attributeId}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - name: attributeId
+        in: path
+        description: Attribute id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      tags:
+        - tenant
+      operationId: revokeDeclaredAttribute
+      description: Revokes a Declared attribute to the requesting Tenant
+      responses:
+        '200':
+          description: Updated Tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '404':
+          description: Tenant Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /status:
     get:
       security: []

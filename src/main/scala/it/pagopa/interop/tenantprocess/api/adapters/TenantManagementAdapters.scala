@@ -66,6 +66,9 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       assignmentTimestamp = t.assignmentTimestamp,
       revocationTimestamp = t.revocationTimestamp
     )
+
+    def toTenantAttribute: DependencyTenantAttribute =
+      DependencyTenantAttribute(declared = Some(t), certified = None, verified = None)
   }
 
   implicit class DependencyCertifiedTenantAttributeWrapper(private val t: DependencyCertifiedTenantAttribute)
