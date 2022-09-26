@@ -237,8 +237,7 @@ final case class TenantApiServiceImpl(
 
     onComplete(result) {
       handleApiError() orElse {
-        case Success(tenant) =>
-          addDeclaredAttribute200(tenant)
+        case Success(tenant) => addDeclaredAttribute200(tenant)
         case Failure(ex)     =>
           logger.error(s"Error adding declared attribute ${seed.id} to requester tenant", ex)
           internalServerError()
@@ -268,8 +267,7 @@ final case class TenantApiServiceImpl(
 
     onComplete(result) {
       handleApiError() orElse {
-        case Success(tenant)                        =>
-          revokeDeclaredAttribute200(tenant)
+        case Success(tenant)                        => revokeDeclaredAttribute200(tenant)
         case Failure(ex: DeclaredAttributeNotFound) =>
           logger.error(s"Error revoking declared attribute $attributeId to requester tenant", ex)
           revokeDeclaredAttribute404(problemOf(StatusCodes.NotFound, ex))

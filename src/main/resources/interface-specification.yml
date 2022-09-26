@@ -216,6 +216,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '409':
+          description: Attribute already assigned to Tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /tenants/attributes/declared/{attributeId}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
