@@ -29,6 +29,13 @@
         "security",
         "api"
       ]
+    },
+    {
+      "route": "addDeclaredAttribute",
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ]
     }
   ]
 }

@@ -188,6 +188,35 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /tenants/attributes/declared:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    post:
+      tags:
+        - tenant
+      operationId: addDeclaredAttribute
+      description: Adds a Declared attribute to the requesting Tenant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeclaredTenantAttributeSeed'
+        required: true
+      responses:
+        '200':
+          description: Updated Tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '404':
+          description: Tenant Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+# TODO Revocation
   /status:
     get:
       security: []
@@ -355,6 +384,14 @@ components:
         - renewal
         - verifiedBy
         - revokedBy
+    DeclaredTenantAttributeSeed:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+      required:
+        - id
     VerificationRenewal:
       type: string
       enum:

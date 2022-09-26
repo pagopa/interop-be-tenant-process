@@ -376,7 +376,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
   }
 
   "SelfCare request - Creation of a new tenant must succeed" in {
-    implicit val context: Seq[(String, String)] = userContext
+    implicit val context: Seq[(String, String)] = selfcareContext
 
     val tenantId = UUID.randomUUID()
     val seed     = selfcareTenantSeed
@@ -400,7 +400,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
   }
 
   "SelfCare request - Update of an existing tenant must succeed if SelfCare ID is not set" in {
-    implicit val context: Seq[(String, String)] = userContext
+    implicit val context: Seq[(String, String)] = selfcareContext
 
     val tenantId = UUID.randomUUID()
     val seed     = selfcareTenantSeed
@@ -423,7 +423,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
   }
 
   "SelfCare request - Update should not be performed if existing SelfCare ID is equal to the request" in {
-    implicit val context: Seq[(String, String)] = userContext
+    implicit val context: Seq[(String, String)] = selfcareContext
 
     val tenantId   = UUID.randomUUID()
     val selfcareId = UUID.randomUUID().toString
@@ -444,7 +444,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
   }
 
   "SelfCare request - Must fail if existing SelfCare ID is different from request" in {
-    implicit val context: Seq[(String, String)] = userContext
+    implicit val context: Seq[(String, String)] = selfcareContext
 
     val tenantId           = UUID.randomUUID()
     val existingSelfcareId = UUID.randomUUID().toString
