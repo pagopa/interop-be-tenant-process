@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
+import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
@@ -14,10 +15,9 @@ import it.pagopa.interop.commons.utils.ORGANIZATION_ID_CLAIM
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{GenericError, OperationForbidden}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
+import it.pagopa.interop.tenantmanagement.client
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError => TenantApiError}
 import it.pagopa.interop.tenantmanagement.client.model.{
-  DeclaredTenantAttribute,
-  TenantAttribute,
   TenantDelta,
   TenantFeature,
   Certifier => DependencyCertifier,
@@ -37,8 +37,6 @@ import it.pagopa.interop.tenantprocess.service._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
-import it.pagopa.interop.tenantmanagement.client
-import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
@@ -233,9 +231,8 @@ final case class TenantApiServiceImpl(
     val result: Future[Tenant] = for {
       requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
       requesterTenantUuid <- requesterTenantId.toFutureUUID
-      _              = logger.info(s"Adding declared attribute ${seed.id} to $requesterTenantUuid")
-      managementSeed = TenantAttribute(declared = DeclaredTenantAttribute(seed.id, now, None).some)
-      tenant <- tenantManagementService.addTenantAttribute(requesterTenantUuid, managementSeed)
+      _ = logger.info(s"Adding declared attribute ${seed.id} to $requesterTenantUuid")
+      tenant <- tenantManagementService.addTenantAttribute(requesterTenantUuid, seed.toDependency(now))
     } yield tenant.toApi
 
     onComplete(result) {
