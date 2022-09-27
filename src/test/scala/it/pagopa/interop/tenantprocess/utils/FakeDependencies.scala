@@ -71,6 +71,9 @@ object FakeDependencies {
       contexts: Seq[(String, String)]
     ): Future[Tenant] = Future.successful(fakeTenant)
 
+    override def getTenantAttribute(tenantId: UUID, attributeId: UUID)(implicit
+      contexts: Seq[(String, String)]
+    ): Future[TenantAttribute] = Future.successful(fakeAttribute)
   }
 
   val fakeTenant: Tenant = Tenant(
@@ -82,4 +85,6 @@ object FakeDependencies {
     createdAt = OffsetDateTime.now(),
     updatedAt = None
   )
+
+  val fakeAttribute: TenantAttribute = TenantAttribute(None, None, None)
 }

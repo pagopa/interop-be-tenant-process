@@ -29,6 +29,20 @@
         "security",
         "api"
       ]
+    },
+    {
+      "route": "addDeclaredAttribute",
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "route": "revokeDeclaredAttribute",
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ]
     }
   ]
 }

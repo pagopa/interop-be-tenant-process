@@ -17,4 +17,7 @@ object TenantProcessErrors {
   final case class CertifiedAttributeNotFound(origin: String, attributeCode: String)
       extends ComponentError("0003", s"Attribute ($origin, $attributeCode) not found")
 
+  final case class DeclaredAttributeNotFound(tenantId: String, attributeId: String)
+      extends ComponentError("0004", s"Attribute $attributeId not found for Tenant $tenantId")
+
 }

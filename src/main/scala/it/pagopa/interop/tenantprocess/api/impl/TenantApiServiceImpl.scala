@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
+import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
@@ -14,6 +15,7 @@ import it.pagopa.interop.commons.utils.ORGANIZATION_ID_CLAIM
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{GenericError, OperationForbidden}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
+import it.pagopa.interop.tenantmanagement.client
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError => TenantApiError}
 import it.pagopa.interop.tenantmanagement.client.model.{
   TenantDelta,
@@ -35,8 +37,6 @@ import it.pagopa.interop.tenantprocess.service._
 import java.time.OffsetDateTime
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
-import it.pagopa.interop.tenantmanagement.client
-import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
@@ -133,7 +133,7 @@ final case class TenantApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(M2M_ROLE) {
-    logger.info(s"Revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request")
+    logger.info(s"Revoking attribute $code from tenant ($origin,$externalId) via m2m request")
 
     val result: Future[Unit] = for {
       requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
@@ -168,13 +168,13 @@ final case class TenantApiServiceImpl(
       handleApiError() orElse {
         case Success(())                             => m2mRevokeAttribute204
         case Failure(ex: TenantIsNotACertifier)      =>
-          logger.error(s"Error revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
+          logger.error(s"Error revoking attribute $code from tenant ($origin,$externalId) via m2m request", ex)
           m2mRevokeAttribute403(problemOf(StatusCodes.Forbidden, ex))
         case Failure(ex: CertifiedAttributeNotFound) =>
-          logger.error(s"Error revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
+          logger.error(s"Error revoking attribute $code from tenant ($origin,$externalId) via m2m request", ex)
           m2mRevokeAttribute400(problemOf(StatusCodes.BadRequest, ex))
         case Failure(ex)                             =>
-          logger.error(s"Error revoking attribute ${code} from tenant (${origin},${externalId}) via m2m request", ex)
+          logger.error(s"Error revoking attribute $code from tenant ($origin,$externalId) via m2m request", ex)
           internalServerError()
       }
     }
@@ -214,6 +214,65 @@ final case class TenantApiServiceImpl(
           selfcareUpsertTenant409(problemOf(StatusCodes.Conflict, ex))
         case Failure(ex)                     =>
           logger.error(s"Error creating tenant with external id ${seed.externalId} via SelfCare request", ex)
+          internalServerError()
+      }
+    }
+  }
+
+  override def addDeclaredAttribute(seed: DeclaredTenantAttributeSeed)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = authorize(ADMIN_ROLE) {
+    logger.info(s"Adding declared attribute ${seed.id} to requester tenant")
+
+    val now: OffsetDateTime = dateTimeSupplier.get
+
+    val result: Future[Tenant] = for {
+      requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
+      requesterTenantUuid <- requesterTenantId.toFutureUUID
+      _ = logger.info(s"Adding declared attribute ${seed.id} to $requesterTenantUuid")
+      tenant <- tenantManagementService.addTenantAttribute(requesterTenantUuid, seed.toDependency(now))
+    } yield tenant.toApi
+
+    onComplete(result) {
+      handleApiError() orElse {
+        case Success(tenant) => addDeclaredAttribute200(tenant)
+        case Failure(ex)     =>
+          logger.error(s"Error adding declared attribute ${seed.id} to requester tenant", ex)
+          internalServerError()
+      }
+    }
+  }
+
+  override def revokeDeclaredAttribute(attributeId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = authorize(ADMIN_ROLE) {
+    logger.info(s"Revoking declared attribute $attributeId to requester tenant")
+
+    val now: OffsetDateTime = dateTimeSupplier.get
+
+    val result: Future[Tenant] = for {
+      requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
+      requesterTenantUuid <- requesterTenantId.toFutureUUID
+      _ = logger.info(s"Revoking declared attribute $attributeId to $requesterTenantUuid")
+      attributeUuid     <- attributeId.toFutureUUID
+      attribute         <- tenantManagementService.getTenantAttribute(requesterTenantUuid, attributeUuid)
+      declaredAttribute <- attribute.declared.toFuture(DeclaredAttributeNotFound(requesterTenantId, attributeId))
+      revokedAttribute = declaredAttribute.copy(revocationTimestamp = now.some).toTenantAttribute
+      tenant <- tenantManagementService.updateTenantAttribute(requesterTenantUuid, attributeUuid, revokedAttribute)
+    } yield tenant.toApi
+
+    onComplete(result) {
+      handleApiError() orElse {
+        case Success(tenant)                        => revokeDeclaredAttribute200(tenant)
+        case Failure(ex: DeclaredAttributeNotFound) =>
+          logger.error(s"Error revoking declared attribute $attributeId to requester tenant", ex)
+          revokeDeclaredAttribute404(problemOf(StatusCodes.NotFound, ex))
+        case Failure(ex)                            =>
+          logger.error(s"Error revoking declared attribute $attributeId to requester tenant", ex)
           internalServerError()
       }
     }

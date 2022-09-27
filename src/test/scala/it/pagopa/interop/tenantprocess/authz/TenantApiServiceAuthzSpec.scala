@@ -3,6 +3,7 @@ package it.pagopa.interop.tenantprocess.authz
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantprocess.api._
 import it.pagopa.interop.tenantprocess.api.impl._
+import it.pagopa.interop.tenantprocess.model.DeclaredTenantAttributeSeed
 import it.pagopa.interop.tenantprocess.utils.AuthorizedRoutes.endpoints
 import it.pagopa.interop.tenantprocess.utils.FakeDependencies.{FakeAttributeRegistryManagement, FakeTenantManagement}
 import it.pagopa.interop.tenantprocess.utils.{ClusteredMUnitRouteTest, SpecData}
@@ -55,4 +56,19 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     )
   }
 
+  test("Tenant api should accept authorized roles for addDeclaredAttribute") {
+    validateAuthorization(
+      endpoints("addDeclaredAttribute"),
+      { implicit c: Seq[(String, String)] =>
+        tenantService.addDeclaredAttribute(DeclaredTenantAttributeSeed(UUID.randomUUID()))
+      }
+    )
+  }
+
+  test("Tenant api should accept authorized roles for revokeDeclaredAttribute") {
+    validateAuthorization(
+      endpoints("revokeDeclaredAttribute"),
+      { implicit c: Seq[(String, String)] => tenantService.revokeDeclaredAttribute("attributeId") }
+    )
+  }
 }

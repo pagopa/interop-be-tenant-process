@@ -19,12 +19,14 @@ trait SpecHelper extends MockFactory with SpecData {
   val bearerToken          = "token"
   val organizationId: UUID = UUID.randomUUID()
 
-  val userContext: Seq[(String, String)]     =
+  val selfcareContext: Seq[(String, String)] =
     Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> UUID.randomUUID().toString)
   val m2mContext: Seq[(String, String)]      =
     Seq("bearer" -> bearerToken, USER_ROLES -> "m2m", ORGANIZATION_ID_CLAIM -> organizationId.toString)
   val internalContext: Seq[(String, String)] =
     Seq("bearer" -> bearerToken, USER_ROLES -> "internal")
+  val adminContext: Seq[(String, String)]    =
+    Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> organizationId.toString)
 
   val mockAttributeRegistryManagement: AttributeRegistryManagementService = mock[AttributeRegistryManagementService]
   val mockTenantManagement: TenantManagementService                       = mock[TenantManagementService]
@@ -80,6 +82,14 @@ trait SpecHelper extends MockFactory with SpecData {
       .expects(tenantId, attribute, contexts)
       .once()
       .returns(Future.successful(dependencyTenant))
+
+  def mockGetTenantAttribute(tenantId: UUID, attributeId: UUID, result: TenantAttribute = dependencyTenantAttribute)(
+    implicit contexts: Seq[(String, String)]
+  ) = (mockTenantManagement
+    .getTenantAttribute(_: UUID, _: UUID)(_: Seq[(String, String)]))
+    .expects(tenantId, attributeId, contexts)
+    .once()
+    .returns(Future.successful(result))
 
   def mockUpdateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
     contexts: Seq[(String, String)]

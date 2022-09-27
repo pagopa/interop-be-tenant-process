@@ -6,7 +6,8 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   ExternalId => DependencyExternalId,
   Tenant => DependencyTenant,
   TenantAttribute => DependencyTenantAttribute,
-  CertifiedTenantAttribute => DependencyCertifiedTenantAttribute
+  CertifiedTenantAttribute => DependencyCertifiedTenantAttribute,
+  DeclaredTenantAttribute => DependencyDeclaredTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.model.{
   ExternalId,
@@ -45,6 +46,14 @@ trait SpecData {
 
   val dependencyTenantAttribute: DependencyTenantAttribute = DependencyTenantAttribute(certified =
     DependencyCertifiedTenantAttribute(
+      id = UUID.randomUUID(),
+      assignmentTimestamp = timestamp,
+      revocationTimestamp = None
+    ).some
+  )
+
+  val dependencyDeclaredTenantAttribute: DependencyTenantAttribute = DependencyTenantAttribute(declared =
+    DependencyDeclaredTenantAttribute(
       id = UUID.randomUUID(),
       assignmentTimestamp = timestamp,
       revocationTimestamp = None
