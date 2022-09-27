@@ -9,6 +9,7 @@ object ApplicationConfiguration {
   val jwtAudience: Set[String] = config.getString("tenant-process.jwt.audience").split(",").toSet.filter(_.nonEmpty)
 
   val attributeRegistryManagementURL: String = config.getString("tenant-process.services.attribute-registry-management")
+  val agreementProcessURL: String            = config.getString("tenant-process.services.agreement-process")
   val tenantManagementURL: String            = config.getString("tenant-process.services.tenant-management")
 
   require(jwtAudience.nonEmpty, "Audience cannot be empty")
