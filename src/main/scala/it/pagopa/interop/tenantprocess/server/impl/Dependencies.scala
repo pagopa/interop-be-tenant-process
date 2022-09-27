@@ -25,8 +25,8 @@ import it.pagopa.interop.tenantprocess.api.impl.{
 }
 import it.pagopa.interop.tenantprocess.api.{HealthApi, TenantApi}
 import it.pagopa.interop.tenantprocess.common.system.ApplicationConfiguration
-import it.pagopa.interop.tenantprocess.service.{AgreementProcessInvoker, _}
 import it.pagopa.interop.tenantprocess.service.impl._
+import it.pagopa.interop.tenantprocess.service._
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
