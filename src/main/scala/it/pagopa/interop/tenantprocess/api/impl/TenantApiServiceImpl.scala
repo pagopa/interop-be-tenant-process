@@ -35,6 +35,7 @@ import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
 
 import java.time.OffsetDateTime
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
@@ -158,7 +159,7 @@ final case class TenantApiServiceImpl(
           client.model.TenantAttribute(certified = modifiedAttribute.some)
         )
         .void
-      _  <- agreementProcessService.computeAgreementsByAttribute(requesterTenantUuid, attributeIdToRevoke)
+      _  <- agreementProcessService.computeAgreementsByAttribute(tenantToModify.id, attributeIdToRevoke)
     } yield ()
 
     onComplete(result) {
@@ -289,7 +290,10 @@ final case class TenantApiServiceImpl(
 
   private def updateTenantCertifiedAttributes(attributes: Seq[ExternalId], timestamp: OffsetDateTime)(
     tenant: DependencyTenant
-  )(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] =
+  )(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] = {
+    def computeAgreements(attributesIds: Seq[UUID]): Future[Seq[Unit]] =
+      Future.traverse(attributesIds)(agreementProcessService.computeAgreementsByAttribute(tenant.id, _))
+
     for {
       attributes <- getAttributes(attributes)
       // TODO tenant.attributes can be an issue in case of pagination. Create a tenantManagementService.getAttribute?
@@ -311,11 +315,10 @@ final case class TenantApiServiceImpl(
         }
         .void
       updatedTenant <- tenantManagementService.getTenant(tenant.id)
-      _ <- Future.traverse(newAttributes)(a => agreementProcessService.computeAgreementsByAttribute(tenant.id, a.id))
-      _ <- Future.traverse(reactivateTenantAttributes.map(_._1))(attrId =>
-        agreementProcessService.computeAgreementsByAttribute(tenant.id, attrId)
-      )
+      _             <- computeAgreements(newAttributes.map(_.id))
+      _             <- computeAgreements(reactivateTenantAttributes.map { case (id, _) => id })
     } yield updatedTenant
+  }
 
   private def getAttributes(attributes: Seq[ExternalId])(implicit
     contexts: Seq[(String, String)]

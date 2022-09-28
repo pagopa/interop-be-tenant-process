@@ -10,8 +10,11 @@ import it.pagopa.interop.tenantprocess.service.{AgreementProcessApi, AgreementPr
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-final case class AgreementProcessServiceImpl(invoker: AgreementProcessInvoker, agreementApi: AgreementProcessApi)(
-  implicit ec: ExecutionContext
+// Note: The service takes a blocking execution context in order to implement a fire and forget call of computeAgreementsByAttribute
+final case class AgreementProcessServiceImpl(
+  invoker: AgreementProcessInvoker,
+  agreementApi: AgreementProcessApi,
+  blockingEc: ExecutionContext
 ) extends AgreementProcessService {
 
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
@@ -19,17 +22,20 @@ final case class AgreementProcessServiceImpl(invoker: AgreementProcessInvoker, a
 
   override def computeAgreementsByAttribute(consumerId: UUID, attributeId: UUID)(implicit
     contexts: Seq[(String, String)]
-  ): Future[Unit] = for {
-    (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-    request = agreementApi.computeAgreementsByAttribute(
-      xCorrelationId = correlationId,
-      consumerId = consumerId,
-      attributeId = attributeId,
-      xForwardedFor = ip
-    )(BearerToken(bearerToken))
-    result <- invoker.invoke(
-      request,
-      s"Agreements state compute triggered for Tenant $consumerId and Attribute $attributeId"
-    )
-  } yield result
+  ): Future[Unit] = {
+    implicit val ec: ExecutionContext = blockingEc
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = agreementApi.computeAgreementsByAttribute(
+        xCorrelationId = correlationId,
+        consumerId = consumerId,
+        attributeId = attributeId,
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
+      result <- invoker.invoke(
+        request,
+        s"Agreements state compute triggered for Tenant $consumerId and Attribute $attributeId"
+      )
+    } yield result
+  }
 }

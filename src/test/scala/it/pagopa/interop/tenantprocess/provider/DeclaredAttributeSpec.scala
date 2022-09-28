@@ -26,6 +26,7 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockDateTimeGet()
       mockAddTenantAttribute(organizationId, managementSeed)
+      mockComputeAgreementState(organizationId, attributeId)
 
       Post() ~> tenantService.addDeclaredAttribute(seed) ~> check {
         assert(status == StatusCodes.OK)
@@ -51,6 +52,7 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockDateTimeGet()
       mockGetTenantAttribute(organizationId, attributeId, attribute)
       mockUpdateTenantAttribute(organizationId, attributeId, managementSeed)
+      mockComputeAgreementState(organizationId, attributeId)
 
       Post() ~> tenantService.revokeDeclaredAttribute(attributeId.toString) ~> check {
         assert(status == StatusCodes.OK)

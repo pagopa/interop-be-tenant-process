@@ -5,7 +5,11 @@ import it.pagopa.interop.tenantprocess.api._
 import it.pagopa.interop.tenantprocess.api.impl._
 import it.pagopa.interop.tenantprocess.model.DeclaredTenantAttributeSeed
 import it.pagopa.interop.tenantprocess.utils.AuthorizedRoutes.endpoints
-import it.pagopa.interop.tenantprocess.utils.FakeDependencies.{FakeAttributeRegistryManagement, FakeTenantManagement}
+import it.pagopa.interop.tenantprocess.utils.FakeDependencies.{
+  FakeAgreementProcess,
+  FakeAttributeRegistryManagement,
+  FakeTenantManagement
+}
 import it.pagopa.interop.tenantprocess.utils.{ClusteredMUnitRouteTest, SpecData}
 
 import java.time.OffsetDateTime
@@ -14,6 +18,7 @@ import java.util.UUID
 class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
   val fakeAttributeRegistryManagement: FakeAttributeRegistryManagement = FakeAttributeRegistryManagement()
   val fakeTenantManagement: FakeTenantManagement                       = FakeTenantManagement()
+  val fakeAgreementProcess: FakeAgreementProcess                       = FakeAgreementProcess()
   val dummyDateTimeSupplier: OffsetDateTimeSupplier                    = new OffsetDateTimeSupplier {
     def get: OffsetDateTime = OffsetDateTime.now()
   }
@@ -24,6 +29,7 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
   val tenantService: TenantApiService = TenantApiServiceImpl(
     fakeAttributeRegistryManagement,
     fakeTenantManagement,
+    fakeAgreementProcess,
     dummyUuidSupplier,
     dummyDateTimeSupplier
   )

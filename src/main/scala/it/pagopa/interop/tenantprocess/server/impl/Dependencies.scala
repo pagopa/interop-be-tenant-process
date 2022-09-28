@@ -99,10 +99,10 @@ trait Dependencies {
   ): AgreementProcessInvoker =
     AgreementProcessInvoker(blockingEc)(actorSystem.classicSystem)
 
-  def agreementProcess(
-    blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): AgreementProcessService =
-    AgreementProcessServiceImpl(agreementProcessInvoker(blockingEc), agreementProcessApi)
+  def agreementProcess(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): AgreementProcessService =
+    AgreementProcessServiceImpl(agreementProcessInvoker(blockingEc), agreementProcessApi, blockingEc)
 
   private def attributeRegistryManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_]
