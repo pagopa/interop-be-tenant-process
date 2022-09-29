@@ -10,8 +10,7 @@ import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError =>
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.AkkaUtils.getClaimFuture
-import it.pagopa.interop.commons.utils.ORGANIZATION_ID_CLAIM
+import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdFutureUUID
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{GenericError, OperationForbidden}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
@@ -64,7 +63,7 @@ final case class TenantApiServiceImpl(
   ): Route = authorize(INTERNAL_ROLE) {
     logger.info(s"Creating tenant with external id ${seed.externalId} via internal request")
 
-    val now: OffsetDateTime = dateTimeSupplier.get
+    val now: OffsetDateTime = dateTimeSupplier.get()
 
     val result: Future[Tenant] = for {
       existingTenant <- findTenant(seed.externalId)
@@ -93,14 +92,13 @@ final case class TenantApiServiceImpl(
     authorize(M2M_ROLE) {
       logger.info(s"Creating tenant with external id ${seed.externalId} via m2m request")
 
-      val now: OffsetDateTime = dateTimeSupplier.get
+      val now: OffsetDateTime = dateTimeSupplier.get()
 
       def validateCertifierTenant: Future[DependencyCertifier] = for {
-        requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
-        requesterTenantUuid <- requesterTenantId.toFutureUUID
+        requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
         requesterTenant     <- tenantManagementService.getTenant(requesterTenantUuid)
         maybeCertifier = requesterTenant.features.collectFirst { case TenantFeature(Some(certifier)) => certifier }
-        certifier <- maybeCertifier.toFuture(TenantIsNotACertifier(requesterTenantId))
+        certifier <- maybeCertifier.toFuture(TenantIsNotACertifier(requesterTenantUuid))
       } yield certifier
 
       val result: Future[Tenant] = for {
@@ -133,12 +131,11 @@ final case class TenantApiServiceImpl(
     logger.info(s"Revoking attribute $code from tenant ($origin,$externalId) via m2m request")
 
     val result: Future[Unit] = for {
-      requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
-      requesterTenantUuid <- requesterTenantId.toFutureUUID
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       requesterTenant     <- tenantManagementService.getTenant(requesterTenantUuid)
       certifierId         <- requesterTenant.features
         .collectFirstSome(_.certifier.map(_.certifierId))
-        .toFuture(TenantIsNotACertifier(requesterTenantId))
+        .toFuture(TenantIsNotACertifier(requesterTenantUuid))
       tenantToModify      <- tenantManagementService.getTenantByExternalId(client.model.ExternalId(origin, externalId))
       attributeIdToRevoke <- attributeRegistryManagementService
         .getAttributeByExternalCode(certifierId, code)
@@ -151,7 +148,7 @@ final case class TenantApiServiceImpl(
         .mapFilter(_.certified)
         .find(_.id == attributeIdToRevoke)
         .toFuture(CertifiedAttributeNotFound(origin, certifierId))
-      modifiedAttribute = attributeToModify.copy(revocationTimestamp = dateTimeSupplier.get.some)
+      modifiedAttribute = attributeToModify.copy(revocationTimestamp = dateTimeSupplier.get().some)
       () <- tenantManagementService
         .updateTenantAttribute(
           tenantToModify.id,
@@ -185,7 +182,7 @@ final case class TenantApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE) {
     logger.info(s"Creating tenant with external id ${seed.externalId} via SelfCare request")
 
-    val now: OffsetDateTime = dateTimeSupplier.get
+    val now: OffsetDateTime = dateTimeSupplier.get()
 
     def updateSelfcareId(tenant: DependencyTenant): Future[DependencyTenant] = {
       def updateTenant(): Future[DependencyTenant]                     = tenantManagementService
@@ -224,11 +221,10 @@ final case class TenantApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE) {
     logger.info(s"Adding declared attribute ${seed.id} to requester tenant")
 
-    val now: OffsetDateTime = dateTimeSupplier.get
+    val now: OffsetDateTime = dateTimeSupplier.get()
 
     val result: Future[Tenant] = for {
-      requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
-      requesterTenantUuid <- requesterTenantId.toFutureUUID
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Adding declared attribute ${seed.id} to $requesterTenantUuid")
       tenant <- tenantManagementService.addTenantAttribute(requesterTenantUuid, seed.toDependency(now))
       _      <- agreementProcessService.computeAgreementsByAttribute(requesterTenantUuid, seed.id)
@@ -251,15 +247,14 @@ final case class TenantApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE) {
     logger.info(s"Revoking declared attribute $attributeId to requester tenant")
 
-    val now: OffsetDateTime = dateTimeSupplier.get
+    val now: OffsetDateTime = dateTimeSupplier.get()
 
     val result: Future[Tenant] = for {
-      requesterTenantId   <- getClaimFuture(contexts, ORGANIZATION_ID_CLAIM)
-      requesterTenantUuid <- requesterTenantId.toFutureUUID
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Revoking declared attribute $attributeId to $requesterTenantUuid")
       attributeUuid     <- attributeId.toFutureUUID
       attribute         <- tenantManagementService.getTenantAttribute(requesterTenantUuid, attributeUuid)
-      declaredAttribute <- attribute.declared.toFuture(DeclaredAttributeNotFound(requesterTenantId, attributeId))
+      declaredAttribute <- attribute.declared.toFuture(DeclaredAttributeNotFound(requesterTenantUuid, attributeId))
       revokedAttribute = declaredAttribute.copy(revocationTimestamp = now.some).toTenantAttribute
       tenant <- tenantManagementService.updateTenantAttribute(requesterTenantUuid, attributeUuid, revokedAttribute)
       _      <- agreementProcessService.computeAgreementsByAttribute(requesterTenantUuid, attributeUuid)
@@ -284,7 +279,7 @@ final case class TenantApiServiceImpl(
     for {
       attributes <- getAttributes(attributes)
       dependencyAttributes = attributes.map(_.toCertifiedSeed(timestamp))
-      tenantId             = uuidSupplier.get
+      tenantId             = uuidSupplier.get()
       tenant <- tenantManagementService.createTenant(toDependency(seed, tenantId, dependencyAttributes))
     } yield tenant
 
