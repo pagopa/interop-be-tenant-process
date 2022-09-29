@@ -10,7 +10,7 @@ import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError =>
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdFuture
+import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdFutureUUID
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{GenericError, OperationForbidden}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
@@ -98,11 +98,10 @@ final case class TenantApiServiceImpl(
       val now: OffsetDateTime = dateTimeSupplier.get()
 
       def validateCertifierTenant: Future[DependencyCertifier] = for {
-        requesterTenantId   <- getOrganizationIdFuture(contexts)
-        requesterTenantUuid <- requesterTenantId.toFutureUUID
+        requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
         requesterTenant     <- tenantManagementService.getTenant(requesterTenantUuid)
         maybeCertifier = requesterTenant.features.collectFirst { case TenantFeature(Some(certifier)) => certifier }
-        certifier <- maybeCertifier.toFuture(TenantIsNotACertifier(requesterTenantId))
+        certifier <- maybeCertifier.toFuture(TenantIsNotACertifier(requesterTenantUuid))
       } yield certifier
 
       val result: Future[Tenant] = for {
@@ -135,12 +134,11 @@ final case class TenantApiServiceImpl(
     logger.info(s"Revoking attribute $code from tenant ($origin,$externalId) via m2m request")
 
     val result: Future[Unit] = for {
-      requesterTenantId   <- getOrganizationIdFuture(contexts)
-      requesterTenantUuid <- requesterTenantId.toFutureUUID
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       requesterTenant     <- tenantManagementService.getTenant(requesterTenantUuid)
       certifierId         <- requesterTenant.features
         .collectFirstSome(_.certifier.map(_.certifierId))
-        .toFuture(TenantIsNotACertifier(requesterTenantId))
+        .toFuture(TenantIsNotACertifier(requesterTenantUuid))
       tenantToModify      <- tenantManagementService.getTenantByExternalId(client.model.ExternalId(origin, externalId))
       attributeIdToRevoke <- attributeRegistryManagementService
         .getAttributeByExternalCode(certifierId, code)
@@ -228,8 +226,7 @@ final case class TenantApiServiceImpl(
     val now: OffsetDateTime = dateTimeSupplier.get()
 
     val result: Future[Tenant] = for {
-      requesterTenantId   <- getOrganizationIdFuture(contexts)
-      requesterTenantUuid <- requesterTenantId.toFutureUUID
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Adding declared attribute ${seed.id} to $requesterTenantUuid")
       tenant <- tenantManagementService.addTenantAttribute(requesterTenantUuid, seed.toDependency(now))
     } yield tenant.toApi
@@ -254,12 +251,11 @@ final case class TenantApiServiceImpl(
     val now: OffsetDateTime = dateTimeSupplier.get()
 
     val result: Future[Tenant] = for {
-      requesterTenantId   <- getOrganizationIdFuture(contexts)
-      requesterTenantUuid <- requesterTenantId.toFutureUUID
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Revoking declared attribute $attributeId to $requesterTenantUuid")
       attributeUuid     <- attributeId.toFutureUUID
       attribute         <- tenantManagementService.getTenantAttribute(requesterTenantUuid, attributeUuid)
-      declaredAttribute <- attribute.declared.toFuture(DeclaredAttributeNotFound(requesterTenantId, attributeId))
+      declaredAttribute <- attribute.declared.toFuture(DeclaredAttributeNotFound(requesterTenantUuid, attributeId))
       revokedAttribute = declaredAttribute.copy(revocationTimestamp = now.some).toTenantAttribute
       tenant <- tenantManagementService.updateTenantAttribute(requesterTenantUuid, attributeUuid, revokedAttribute)
     } yield tenant.toApi
