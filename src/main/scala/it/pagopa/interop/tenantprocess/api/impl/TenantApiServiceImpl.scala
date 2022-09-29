@@ -307,6 +307,8 @@ final case class TenantApiServiceImpl(
         .void
       existingAttributesIds      = existingAttributes.map(_.id)
       reactivateTenantAttributes = tenant.attributes
+        // Note: the filter considers revocationTimestamp the only field that can change.
+        //       If more fields would be updated in the future, this filter must be revisited
         .mapFilter(_.certified.filter(a => existingAttributesIds.contains(a.id) && a.revocationTimestamp.nonEmpty))
         .map(c => (c.id, client.model.TenantAttribute(certified = c.copy(revocationTimestamp = None).some)))
       ()            <- Future
