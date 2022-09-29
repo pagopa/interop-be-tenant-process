@@ -12,7 +12,6 @@ import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.interop.commons.utils.TypeConversions._
-import it.pagopa.interop.commons.utils.service.impl.{OffsetDateTimeSupplierImpl, UUIDSupplierImpl}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.tenantprocess.api.impl.{
@@ -32,8 +31,8 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 trait Dependencies {
 
-  val uuidSupplier: UUIDSupplier               = new UUIDSupplierImpl
-  val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplierImpl
+  val uuidSupplier: UUIDSupplier               = UUIDSupplier
+  val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplier
 
   def jwtValidator(): Future[JWTReader] = JWTConfiguration.jwtReader
     .loadKeyset()
@@ -85,9 +84,9 @@ trait Dependencies {
   private final val tenantManagementAttributesApi: TenantManagementAttributesApi =
     TenantManagementAttributesApi(ApplicationConfiguration.tenantManagementURL)
 
-  def tenantManagement(
-    blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): TenantManagementService =
+  def tenantManagement(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): TenantManagementService =
     TenantManagementServiceImpl(tenantManagementInvoker(blockingEc), tenantManagementApi, tenantManagementAttributesApi)
 
   private def attributeRegistryManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
@@ -100,7 +99,7 @@ trait Dependencies {
 
   def attributeRegistryManagement(
     blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): AttributeRegistryManagementService =
+  )(implicit actorSystem: ActorSystem[_]): AttributeRegistryManagementService =
     AttributeRegistryManagementServiceImpl(
       attributeRegistryManagementInvoker(blockingEc),
       attributeRegistryManagementApi

@@ -14,12 +14,8 @@ import java.util.UUID
 class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
   val fakeAttributeRegistryManagement: FakeAttributeRegistryManagement = FakeAttributeRegistryManagement()
   val fakeTenantManagement: FakeTenantManagement                       = FakeTenantManagement()
-  val dummyDateTimeSupplier: OffsetDateTimeSupplier                    = new OffsetDateTimeSupplier {
-    def get: OffsetDateTime = OffsetDateTime.now()
-  }
-  val dummyUuidSupplier: UUIDSupplier                                  = new UUIDSupplier {
-    def get: UUID = UUID.randomUUID()
-  }
+  val dummyDateTimeSupplier: OffsetDateTimeSupplier                    = () => OffsetDateTime.now()
+  val dummyUuidSupplier: UUIDSupplier                                  = () => UUID.randomUUID()
 
   val tenantService: TenantApiService = TenantApiServiceImpl(
     fakeAttributeRegistryManagement,
