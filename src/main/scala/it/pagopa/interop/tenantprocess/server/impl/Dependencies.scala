@@ -24,8 +24,8 @@ import it.pagopa.interop.tenantprocess.api.impl.{
 }
 import it.pagopa.interop.tenantprocess.api.{HealthApi, TenantApi}
 import it.pagopa.interop.tenantprocess.common.system.ApplicationConfiguration
-import it.pagopa.interop.tenantprocess.service._
 import it.pagopa.interop.tenantprocess.service.impl._
+import it.pagopa.interop.tenantprocess.service._
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
@@ -66,6 +66,7 @@ trait Dependencies {
       TenantApiServiceImpl(
         attributeRegistryManagement(blockingEc),
         tenantManagement(blockingEc),
+        agreementProcess(blockingEc),
         uuidSupplier,
         dateTimeSupplier
       ),
@@ -88,6 +89,19 @@ trait Dependencies {
     actorSystem: ActorSystem[_]
   ): TenantManagementService =
     TenantManagementServiceImpl(tenantManagementInvoker(blockingEc), tenantManagementApi, tenantManagementAttributesApi)
+
+  private final val agreementProcessApi: AgreementProcessApi =
+    AgreementProcessApi(ApplicationConfiguration.agreementProcessURL)
+
+  private def agreementProcessInvoker(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): AgreementProcessInvoker =
+    AgreementProcessInvoker(blockingEc)(actorSystem.classicSystem)
+
+  def agreementProcess(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): AgreementProcessService =
+    AgreementProcessServiceImpl(agreementProcessInvoker(blockingEc), agreementProcessApi, blockingEc)
 
   private def attributeRegistryManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_]

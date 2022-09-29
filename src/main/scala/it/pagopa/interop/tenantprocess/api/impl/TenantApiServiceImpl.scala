@@ -34,12 +34,14 @@ import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
 
 import java.time.OffsetDateTime
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
   tenantManagementService: TenantManagementService,
+  agreementProcessService: AgreementProcessService,
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext)
@@ -53,11 +55,6 @@ final case class TenantApiServiceImpl(
     authorizeInterop(hasPermissions(roles: _*), problemOf(StatusCodes.Forbidden, OperationForbidden)) {
       route
     }
-
-  // TODO Tenant process riceve richiesta di revoca
-  //    Chiama agreement process con tenant e attribute
-  //    Agreement process lista attributi del tenant con quell'attribute
-  //    Agreement process ricalcola gli stati degli agreement (eventualmente sospende utilizzando il suspendedByPlatform)
 
   override def internalUpsertTenant(seed: InternalTenantSeed)(implicit
     contexts: Seq[(String, String)],
@@ -159,6 +156,7 @@ final case class TenantApiServiceImpl(
           client.model.TenantAttribute(certified = modifiedAttribute.some)
         )
         .void
+      _  <- agreementProcessService.computeAgreementsByAttribute(tenantToModify.id, attributeIdToRevoke)
     } yield ()
 
     onComplete(result) {
@@ -229,6 +227,7 @@ final case class TenantApiServiceImpl(
       requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Adding declared attribute ${seed.id} to $requesterTenantUuid")
       tenant <- tenantManagementService.addTenantAttribute(requesterTenantUuid, seed.toDependency(now))
+      _      <- agreementProcessService.computeAgreementsByAttribute(requesterTenantUuid, seed.id)
     } yield tenant.toApi
 
     onComplete(result) {
@@ -258,6 +257,7 @@ final case class TenantApiServiceImpl(
       declaredAttribute <- attribute.declared.toFuture(DeclaredAttributeNotFound(requesterTenantUuid, attributeId))
       revokedAttribute = declaredAttribute.copy(revocationTimestamp = now.some).toTenantAttribute
       tenant <- tenantManagementService.updateTenantAttribute(requesterTenantUuid, attributeUuid, revokedAttribute)
+      _      <- agreementProcessService.computeAgreementsByAttribute(requesterTenantUuid, attributeUuid)
     } yield tenant.toApi
 
     onComplete(result) {
@@ -285,7 +285,10 @@ final case class TenantApiServiceImpl(
 
   private def updateTenantCertifiedAttributes(attributes: Seq[ExternalId], timestamp: OffsetDateTime)(
     tenant: DependencyTenant
-  )(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] =
+  )(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] = {
+    def computeAgreements(attributesIds: Seq[UUID]): Future[Seq[Unit]] =
+      Future.traverse(attributesIds)(agreementProcessService.computeAgreementsByAttribute(tenant.id, _))
+
     for {
       attributes <- getAttributes(attributes)
       // TODO tenant.attributes can be an issue in case of pagination. Create a tenantManagementService.getAttribute?
@@ -297,17 +300,22 @@ final case class TenantApiServiceImpl(
           tenantManagementService.addTenantAttribute(tenant.id, a.toCertifiedSeed(timestamp))
         )
         .void
-      existingAttributesIds    = existingAttributes.map(_.id)
-      existingTenantAttributes = tenant.attributes
-        .mapFilter(_.certified.filter(a => existingAttributesIds.contains(a.id)))
+      existingAttributesIds      = existingAttributes.map(_.id)
+      reactivateTenantAttributes = tenant.attributes
+        // Note: the filter considers revocationTimestamp the only field that can change.
+        //       If more fields would be updated in the future, this filter must be revisited
+        .mapFilter(_.certified.filter(a => existingAttributesIds.contains(a.id) && a.revocationTimestamp.nonEmpty))
         .map(c => (c.id, client.model.TenantAttribute(certified = c.copy(revocationTimestamp = None).some)))
       ()            <- Future
-        .traverse(existingTenantAttributes) { case (id, a) =>
+        .traverse(reactivateTenantAttributes) { case (id, a) =>
           tenantManagementService.updateTenantAttribute(tenant.id, id, a)
         }
         .void
       updatedTenant <- tenantManagementService.getTenant(tenant.id)
+      _             <- computeAgreements(newAttributes.map(_.id))
+      _             <- computeAgreements(reactivateTenantAttributes.map { case (id, _) => id })
     } yield updatedTenant
+  }
 
   private def getAttributes(attributes: Seq[ExternalId])(implicit
     contexts: Seq[(String, String)]

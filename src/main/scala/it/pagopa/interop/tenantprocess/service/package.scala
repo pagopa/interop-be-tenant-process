@@ -13,6 +13,9 @@ package object service {
   type TenantManagementApi           = tenantmanagement.client.api.TenantApi
   type TenantManagementAttributesApi = tenantmanagement.client.api.AttributesApi
 
+  type AgreementProcessInvoker = agreementprocess.client.invoker.ApiInvoker
+  type AgreementProcessApi     = agreementprocess.client.api.AgreementApi
+
   object AttributeRegistryManagementInvoker {
     def apply(
       blockingEc: ExecutionContextExecutor
@@ -37,6 +40,15 @@ package object service {
 
   object TenantManagementAttributesApi {
     def apply(baseUrl: String): TenantManagementAttributesApi = tenantmanagement.client.api.AttributesApi(baseUrl)
+  }
+
+  object AgreementProcessInvoker {
+    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): AgreementProcessInvoker =
+      agreementprocess.client.invoker.ApiInvoker(agreementprocess.client.api.EnumsSerializers.all, blockingEc)
+  }
+
+  object AgreementProcessApi {
+    def apply(baseUrl: String): AgreementProcessApi = agreementprocess.client.api.AgreementApi(baseUrl)
   }
 
 }

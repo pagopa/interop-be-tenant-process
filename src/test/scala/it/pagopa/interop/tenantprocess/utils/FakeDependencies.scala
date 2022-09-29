@@ -10,7 +10,11 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantFeature,
   TenantSeed
 }
-import it.pagopa.interop.tenantprocess.service.{AttributeRegistryManagementService, TenantManagementService}
+import it.pagopa.interop.tenantprocess.service.{
+  AgreementProcessService,
+  AttributeRegistryManagementService,
+  TenantManagementService
+}
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -74,6 +78,12 @@ object FakeDependencies {
     override def getTenantAttribute(tenantId: UUID, attributeId: UUID)(implicit
       contexts: Seq[(String, String)]
     ): Future[TenantAttribute] = Future.successful(fakeAttribute)
+  }
+
+  case class FakeAgreementProcess() extends AgreementProcessService {
+    override def computeAgreementsByAttribute(consumerId: UUID, attributeId: UUID)(implicit
+      contexts: Seq[(String, String)]
+    ): Future[Unit] = Future.unit
   }
 
   val fakeTenant: Tenant = Tenant(

@@ -8,7 +8,11 @@ import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError =>
 import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantAttribute, TenantDelta, TenantSeed}
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiServiceImpl
-import it.pagopa.interop.tenantprocess.service.{AttributeRegistryManagementService, TenantManagementService}
+import it.pagopa.interop.tenantprocess.service.{
+  AgreementProcessService,
+  AttributeRegistryManagementService,
+  TenantManagementService
+}
 import org.scalamock.scalatest.MockFactory
 
 import java.util.UUID
@@ -30,14 +34,19 @@ trait SpecHelper extends MockFactory with SpecData {
 
   val mockAttributeRegistryManagement: AttributeRegistryManagementService = mock[AttributeRegistryManagementService]
   val mockTenantManagement: TenantManagementService                       = mock[TenantManagementService]
+  val mockAgreementProcess: AgreementProcessService                       = mock[AgreementProcessService]
 
   val mockUuidSupplier: UUIDSupplier               = mock[UUIDSupplier]
   val mockDateTimeSupplier: OffsetDateTimeSupplier = mock[OffsetDateTimeSupplier]
 
   val tenantService: TenantApiService =
-    TenantApiServiceImpl(mockAttributeRegistryManagement, mockTenantManagement, mockUuidSupplier, mockDateTimeSupplier)(
-      ExecutionContext.global
-    )
+    TenantApiServiceImpl(
+      mockAttributeRegistryManagement,
+      mockTenantManagement,
+      mockAgreementProcess,
+      mockUuidSupplier,
+      mockDateTimeSupplier
+    )(ExecutionContext.global)
 
   def mockGetTenantById(tenantId: UUID, result: Tenant)(implicit contexts: Seq[(String, String)]) =
     (mockTenantManagement
@@ -122,6 +131,13 @@ trait SpecHelper extends MockFactory with SpecData {
       .expects(id, contexts)
       .once()
       .returns(Future.successful(result))
+
+  def mockComputeAgreementState(consumerId: UUID, attributeId: UUID)(implicit contexts: Seq[(String, String)]) =
+    (mockAgreementProcess
+      .computeAgreementsByAttribute(_: UUID, _: UUID)(_: Seq[(String, String)]))
+      .expects(consumerId, attributeId, contexts)
+      .once()
+      .returns(Future.unit)
 
   def mockDateTimeGet() = (() => mockDateTimeSupplier.get()).expects().returning(timestamp).once()
 
