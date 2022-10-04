@@ -14,7 +14,7 @@ import java.util.UUID
 class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest {
 
   "Verified attribute verification" should {
-    "add the attribute to the target Tenant if not present" in {
+    "add the attribute to the target Tenant when not present" in {
       implicit val context: Seq[(String, String)] = adminContext
 
       val targetTenantId = UUID.randomUUID()
@@ -60,7 +60,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "update the attribute of the target Tenant and add verifier if present" in {
+    "update the attribute of the target Tenant when present and add verifier" in {
       implicit val context: Seq[(String, String)] = adminContext
 
       val targetTenantId       = UUID.randomUUID()
@@ -103,7 +103,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "update the attribute of the target Tenant and add verifier and keep revoker if it previously revoked" in {
+    "update the attribute of the target Tenant adding verifier and keeping revoker when previously revoked" in {
       implicit val context: Seq[(String, String)] = adminContext
 
       val targetTenantId       = UUID.randomUUID()

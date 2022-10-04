@@ -56,7 +56,6 @@ object ApiAdapters {
         ).some
       )
 
-    // TODO Move this logic to the endpoint? Maybe it's a bit hidden
     def toUpdateDependency(
       now: OffsetDateTime,
       requesterId: UUID,

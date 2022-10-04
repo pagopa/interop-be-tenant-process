@@ -266,7 +266,7 @@ paths:
       tags:
         - tenant
       operationId: verifyVerifiedAttribute
-      description: Adds or de-revoke a Verified attribute to a Tenant by the requester Tenant
+      description: Verify or de-revoke a Verified attribute to a Tenant by the requester Tenant
       requestBody:
         content:
           application/json:
