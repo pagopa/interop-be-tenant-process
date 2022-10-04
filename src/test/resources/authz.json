@@ -43,6 +43,13 @@
       "roles": [
         "admin"
       ]
+    },
+    {
+      "route": "verifyVerifiedAttribute",
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ]
     }
   ]
 }

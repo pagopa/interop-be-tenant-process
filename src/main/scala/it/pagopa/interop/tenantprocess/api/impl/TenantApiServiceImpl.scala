@@ -273,6 +273,53 @@ final case class TenantApiServiceImpl(
     }
   }
 
+  override def verifyVerifiedAttribute(tenantId: String, seed: VerifiedTenantAttributeSeed)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = authorize(ADMIN_ROLE) {
+    logger.info(s"Verifying attribute ${seed.id} to tenant $tenantId")
+
+    val now: OffsetDateTime = dateTimeSupplier.get()
+
+    // TODO Should we allow this only if the requester tenant has an agreement with the target tenant?
+    val result: Future[Tenant] = for {
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
+      targetTenantUuid    <- tenantId.toFutureUUID
+      _            <- Future.failed(VerifiedAttributeSelfVerification).whenA(requesterTenantUuid == targetTenantUuid)
+      targetTenant <- tenantManagementService.getTenant(targetTenantUuid)
+      attribute = targetTenant.attributes.flatMap(_.verified).find(_.id == seed.id)
+      updatedTenant <- attribute.fold(
+        tenantManagementService.addTenantAttribute(targetTenantUuid, seed.toCreateDependency(now, requesterTenantUuid))
+      )(attr =>
+        Future
+          .failed(AttributeAlreadyVerified(targetTenantUuid, requesterTenantUuid, seed.id))
+          .whenA(attr.verifiedBy.exists(_.id == requesterTenantUuid)) >>
+          tenantManagementService.updateTenantAttribute(
+            targetTenantUuid,
+            seed.id,
+            seed.toUpdateDependency(now, requesterTenantUuid, attr)
+          )
+      )
+      _             <- agreementProcessService.computeAgreementsByAttribute(targetTenantUuid, seed.id)
+    } yield updatedTenant.toApi
+
+    onComplete(result) {
+      handleApiError() orElse {
+        case Success(tenant)                                     => verifyVerifiedAttribute200(tenant)
+        case Failure(ex: AttributeAlreadyVerified)               =>
+          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
+          verifyVerifiedAttribute409(problemOf(StatusCodes.Conflict, ex))
+        case Failure(ex: VerifiedAttributeSelfVerification.type) =>
+          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
+          verifyVerifiedAttribute403(problemOf(StatusCodes.Forbidden, ex))
+        case Failure(ex)                                         =>
+          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
+          internalServerError()
+      }
+    }
+  }
+
   private def createTenant[T: AdaptableSeed](seed: T, attributes: Seq[ExternalId], timestamp: OffsetDateTime)(implicit
     contexts: Seq[(String, String)]
   ): Future[DependencyTenant] =

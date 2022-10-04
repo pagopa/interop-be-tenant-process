@@ -85,7 +85,6 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
     def toApi: VerifiedTenantAttribute = VerifiedTenantAttribute(
       id = t.id,
       assignmentTimestamp = t.assignmentTimestamp,
-      renewal = t.renewal.toApi,
       verifiedBy = t.verifiedBy.map(_.toApi),
       revokedBy = t.revokedBy.map(_.toApi)
     )
@@ -102,8 +101,9 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
     def toApi: TenantVerifier = TenantVerifier(
       id = t.id,
       verificationDate = t.verificationDate,
+      renewal = t.renewal.toApi,
       expirationDate = t.expirationDate,
-      extentionDate = t.extentionDate
+      extensionDate = t.extensionDate
     )
   }
 
@@ -111,8 +111,9 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
     def toApi: TenantRevoker = TenantRevoker(
       id = t.id,
       verificationDate = t.verificationDate,
+      renewal = t.renewal.toApi,
       expirationDate = t.expirationDate,
-      extentionDate = t.extentionDate,
+      extensionDate = t.extensionDate,
       revocationDate = t.revocationDate
     )
   }

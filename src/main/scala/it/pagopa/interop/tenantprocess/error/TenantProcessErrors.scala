@@ -20,4 +20,13 @@ object TenantProcessErrors {
   final case class DeclaredAttributeNotFound(tenantId: UUID, attributeId: String)
       extends ComponentError("0004", s"Attribute $attributeId not found for Tenant $tenantId")
 
+  final case class AttributeAlreadyVerified(targetTenantId: UUID, requesterTenantId: UUID, attributeId: UUID)
+      extends ComponentError(
+        "0005",
+        s"Attribute $attributeId has been already verified for $targetTenantId by $requesterTenantId"
+      )
+
+  object VerifiedAttributeSelfVerification
+      extends ComponentError("0006", s"Organizations are not allowed to verify own attributes")
+
 }
