@@ -353,10 +353,8 @@ final case class TenantApiServiceImpl(
         .toFuture(AttributeRevocationNotAllowed(targetTenantUuid, attributeUuid))
       _             <- Future
         .failed(AttributeAlreadyRevoked(targetTenantUuid, requesterTenantUuid, attributeUuid))
-        .whenA(
-          !attribute.verifiedBy.exists(_.id == requesterTenantUuid) &&
-            attribute.revokedBy.exists(_.id == requesterTenantUuid)
-        )
+        .unlessA(attribute.verifiedBy.exists(_.id == requesterTenantUuid))
+        .whenA(attribute.revokedBy.exists(_.id == requesterTenantUuid))
       updatedTenant <- tenantManagementService.updateTenantAttribute(
         targetTenantUuid,
         attributeUuid,
