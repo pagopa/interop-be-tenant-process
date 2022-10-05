@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
+import it.pagopa.interop.agreementmanagement.client.model.AgreementState
 import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.commons.jwt._
@@ -42,6 +43,8 @@ final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
   tenantManagementService: TenantManagementService,
   agreementProcessService: AgreementProcessService,
+  agreementManagementService: AgreementManagementService,
+  catalogManagementService: CatalogManagementService,
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext)
@@ -282,11 +285,11 @@ final case class TenantApiServiceImpl(
 
     val now: OffsetDateTime = dateTimeSupplier.get()
 
-    // TODO Should we allow this only if the requester tenant has an agreement with the target tenant?
     val result: Future[Tenant] = for {
       requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       targetTenantUuid    <- tenantId.toFutureUUID
       _            <- Future.failed(VerifiedAttributeSelfVerification).whenA(requesterTenantUuid == targetTenantUuid)
+      _            <- assertAttributeVerificationAllowed(requesterTenantUuid, targetTenantUuid, seed.id)
       targetTenant <- tenantManagementService.getTenant(targetTenantUuid)
       attribute = targetTenant.attributes.flatMap(_.verified).find(_.id == seed.id)
       updatedTenant <- attribute.fold(
@@ -311,6 +314,9 @@ final case class TenantApiServiceImpl(
           logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
           verifyVerifiedAttribute409(problemOf(StatusCodes.Conflict, ex))
         case Failure(ex: VerifiedAttributeSelfVerification.type) =>
+          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
+          verifyVerifiedAttribute403(problemOf(StatusCodes.Forbidden, ex))
+        case Failure(ex: AttributeVerificationNotAllowed)        =>
           logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
           verifyVerifiedAttribute403(problemOf(StatusCodes.Forbidden, ex))
         case Failure(ex)                                         =>
@@ -394,6 +400,20 @@ final case class TenantApiServiceImpl(
       }
     }
   }
+
+  def assertAttributeVerificationAllowed(producerId: UUID, consumerId: UUID, attributeId: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Unit] = for {
+    agreements <- agreementManagementService.getAgreements(producerId, consumerId, Seq(AgreementState.PENDING))
+    eServices  <- Future.traverse(agreements.map(_.eserviceId))(catalogManagementService.getEServiceById)
+    attributeIds = eServices
+      .flatMap(_.attributes.verified)
+      .flatMap(attr => attr.single.map(_.id).toSeq ++ attr.group.traverse(_.map(_.id)).flatten)
+      .toSet
+    _ <- Future
+      .failed(AttributeVerificationNotAllowed(consumerId, attributeId))
+      .unlessA(attributeIds.contains(attributeId))
+  } yield ()
 
   def handleApiError()(implicit
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],

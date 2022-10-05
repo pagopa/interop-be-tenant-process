@@ -1,18 +1,16 @@
 package it.pagopa.interop.tenantprocess.utils
 
+import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
+import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
+import it.pagopa.interop.catalogmanagement.client.model.EService
 import it.pagopa.interop.commons.utils._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client.invoker.ApiError
-import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
-import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantAttribute, TenantDelta, TenantSeed}
+import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiServiceImpl
-import it.pagopa.interop.tenantprocess.service.{
-  AgreementProcessService,
-  AttributeRegistryManagementService,
-  TenantManagementService
-}
+import it.pagopa.interop.tenantprocess.service._
 import org.scalamock.scalatest.MockFactory
 
 import java.util.UUID
@@ -35,6 +33,8 @@ trait SpecHelper extends MockFactory with SpecData {
   val mockAttributeRegistryManagement: AttributeRegistryManagementService = mock[AttributeRegistryManagementService]
   val mockTenantManagement: TenantManagementService                       = mock[TenantManagementService]
   val mockAgreementProcess: AgreementProcessService                       = mock[AgreementProcessService]
+  val mockAgreementManagement: AgreementManagementService                 = mock[AgreementManagementService]
+  val mockCatalogManagement: CatalogManagementService                     = mock[CatalogManagementService]
 
   val mockUuidSupplier: UUIDSupplier               = mock[UUIDSupplier]
   val mockDateTimeSupplier: OffsetDateTimeSupplier = mock[OffsetDateTimeSupplier]
@@ -44,6 +44,8 @@ trait SpecHelper extends MockFactory with SpecData {
       mockAttributeRegistryManagement,
       mockTenantManagement,
       mockAgreementProcess,
+      mockAgreementManagement,
+      mockCatalogManagement,
       mockUuidSupplier,
       mockDateTimeSupplier
     )(ExecutionContext.global)
@@ -138,6 +140,21 @@ trait SpecHelper extends MockFactory with SpecData {
       .expects(consumerId, attributeId, contexts)
       .once()
       .returns(Future.unit)
+
+  def mockGetAgreements(producerId: UUID, consumerId: UUID, states: Seq[AgreementState], result: Seq[Agreement])(
+    implicit contexts: Seq[(String, String)]
+  ) = (mockAgreementManagement
+    .getAgreements(_: UUID, _: UUID, _: Seq[AgreementState])(_: Seq[(String, String)]))
+    .expects(producerId, consumerId, states, contexts)
+    .once()
+    .returns(Future.successful(result))
+
+  def mockGetEServiceById(eServiceId: UUID, result: EService)(implicit contexts: Seq[(String, String)]) =
+    (mockCatalogManagement
+      .getEServiceById(_: UUID)(_: Seq[(String, String)]))
+      .expects(eServiceId, contexts)
+      .once()
+      .returns(Future.successful(result))
 
   def mockDateTimeGet() = (() => mockDateTimeSupplier.get()).expects().returning(timestamp).once()
 

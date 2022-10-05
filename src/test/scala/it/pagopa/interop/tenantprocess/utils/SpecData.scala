@@ -14,6 +14,18 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.model._
+import it.pagopa.interop.agreementmanagement.client.model.{
+  Agreement => DependencyAgreement,
+  AgreementState => DependencyAgreementState,
+  VerifiedAttribute => DependencyVerifiedAttribute
+}
+import it.pagopa.interop.catalogmanagement.client.model.{
+  EService => CatalogEService,
+  EServiceTechnology => CatalogEServiceTechnology,
+  Attributes => CatalogAttributes,
+  Attribute => CatalogAttribute,
+  AttributeValue => CatalogAttributeValue
+}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
@@ -99,4 +111,45 @@ trait SpecData {
     name = "AttributeX",
     creationTime = timestamp
   )
+
+  def dependencyAgreement(
+    eServiceId: UUID = UUID.randomUUID(),
+    verifiedAttributeId: UUID = UUID.randomUUID()
+  ): DependencyAgreement = DependencyAgreement(
+    id = UUID.randomUUID(),
+    eserviceId = eServiceId,
+    descriptorId = UUID.randomUUID(),
+    producerId = UUID.randomUUID(),
+    consumerId = UUID.randomUUID(),
+    state = DependencyAgreementState.ACTIVE,
+    verifiedAttributes = Seq(DependencyVerifiedAttribute(verifiedAttributeId)),
+    certifiedAttributes = Nil,
+    declaredAttributes = Nil,
+    consumerDocuments = Nil,
+    createdAt = OffsetDateTime.now()
+  )
+
+  def catalogEService(id: UUID = UUID.randomUUID(), verifiedAttributeId: UUID = UUID.randomUUID()): CatalogEService =
+    CatalogEService(
+      id = id,
+      producerId = UUID.randomUUID(),
+      name = "EService",
+      description = "EService desc",
+      technology = CatalogEServiceTechnology.REST,
+      attributes = CatalogAttributes(
+        Nil,
+        Nil,
+        verified = Seq(CatalogAttribute(single = Some(CatalogAttributeValue(verifiedAttributeId, true))))
+      ),
+      descriptors = Nil
+    )
+
+  def matchingAgreementAndEService(
+    verifiedAttributeId: UUID = UUID.randomUUID()
+  ): (DependencyAgreement, CatalogEService) = {
+    val eServiceId = UUID.randomUUID()
+
+    (dependencyAgreement(eServiceId, verifiedAttributeId), catalogEService(eServiceId, verifiedAttributeId))
+  }
+
 }

@@ -29,4 +29,10 @@ object TenantProcessErrors {
   object VerifiedAttributeSelfVerification
       extends ComponentError("0006", s"Organizations are not allowed to verify own attributes")
 
+  final case class AttributeVerificationNotAllowed(consumerId: UUID, attributeId: UUID)
+      extends ComponentError(
+        "0007",
+        s"Organization is not allowed to verify attribute $attributeId for tenant $consumerId"
+      )
+
 }

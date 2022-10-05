@@ -13,8 +13,13 @@ package object service {
   type TenantManagementApi           = tenantmanagement.client.api.TenantApi
   type TenantManagementAttributesApi = tenantmanagement.client.api.AttributesApi
 
-  type AgreementProcessInvoker = agreementprocess.client.invoker.ApiInvoker
-  type AgreementProcessApi     = agreementprocess.client.api.AgreementApi
+  type AgreementProcessInvoker    = agreementprocess.client.invoker.ApiInvoker
+  type AgreementProcessApi        = agreementprocess.client.api.AgreementApi
+  type AgreementManagementInvoker = agreementmanagement.client.invoker.ApiInvoker
+  type AgreementManagementApi     = agreementmanagement.client.api.AgreementApi
+
+  type CatalogManagementInvoker = catalogmanagement.client.invoker.ApiInvoker
+  type CatalogManagementApi     = catalogmanagement.client.api.EServiceApi
 
   object AttributeRegistryManagementInvoker {
     def apply(
@@ -49,6 +54,24 @@ package object service {
 
   object AgreementProcessApi {
     def apply(baseUrl: String): AgreementProcessApi = agreementprocess.client.api.AgreementApi(baseUrl)
+  }
+
+  object AgreementManagementInvoker {
+    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): AgreementManagementInvoker =
+      agreementmanagement.client.invoker.ApiInvoker(agreementmanagement.client.api.EnumsSerializers.all, blockingEc)
+  }
+
+  object AgreementManagementApi {
+    def apply(baseUrl: String): AgreementManagementApi = agreementmanagement.client.api.AgreementApi(baseUrl)
+  }
+
+  object CatalogManagementInvoker {
+    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): CatalogManagementInvoker =
+      catalogmanagement.client.invoker.ApiInvoker(catalogmanagement.client.api.EnumsSerializers.all, blockingEc)
+  }
+
+  object CatalogManagementApi {
+    def apply(baseUrl: String): CatalogManagementApi = catalogmanagement.client.api.EServiceApi(baseUrl)
   }
 
 }
