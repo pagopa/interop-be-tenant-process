@@ -173,7 +173,25 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "fail with 403 if requester is not a Producer of a Pending agreement containing the attribute" in {}
+    "fail with 403 if requester is not a Producer of a Pending agreement containing the attribute" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val targetTenantId     = UUID.randomUUID()
+      val attributeId        = UUID.randomUUID()
+      val anotherAttributeId = UUID.randomUUID()
+
+      val (agreement, eService) = matchingAgreementAndEService(anotherAttributeId)
+
+      val seed = VerifiedTenantAttributeSeed(attributeId, VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp))
+
+      mockDateTimeGet()
+      mockGetAgreements(organizationId, targetTenantId, Seq(AgreementState.PENDING), Seq(agreement))
+      mockGetEServiceById(eService.id, eService)
+
+      Post() ~> tenantService.verifyVerifiedAttribute(targetTenantId.toString, seed) ~> check {
+        assert(status == StatusCodes.Forbidden)
+      }
+    }
 
     "fail with 409 if requester has already verified the attribute for target Tenant" in {
       implicit val context: Seq[(String, String)] = adminContext
