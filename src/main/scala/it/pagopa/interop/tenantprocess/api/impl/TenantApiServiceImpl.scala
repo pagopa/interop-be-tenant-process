@@ -186,7 +186,7 @@ final case class TenantApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
-  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, INTERNAL_ROLE) {
     logger.info(s"Creating tenant with external id ${seed.externalId} via SelfCare request")
 
     val now: OffsetDateTime = dateTimeSupplier.get()
