@@ -50,6 +50,13 @@
       "roles": [
         "admin"
       ]
+    },
+    {
+      "route": "revokeVerifiedAttribute",
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ]
     }
   ]
 }

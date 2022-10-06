@@ -298,6 +298,54 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /tenants/{tenantId}/attributes/verified/{attributeId}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - name: tenantId
+        in: path
+        description: Tenant id which attribute needs to be verified
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: attributeId
+        in: path
+        description: Attribute id to be revoked
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      tags:
+        - tenant
+      operationId: revokeVerifiedAttribute
+      description: Revoke a Verified attribute to a Tenant by the requester Tenant
+      responses:
+        '200':
+          description: Updated Tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Tenant Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Attribute already revoked for the Tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /status:
     get:
       security: []
@@ -460,7 +508,6 @@ components:
         - id
         - kind
         - assignmentTimestamp
-        - renewal
         - verifiedBy
         - revokedBy
     DeclaredTenantAttributeSeed:
