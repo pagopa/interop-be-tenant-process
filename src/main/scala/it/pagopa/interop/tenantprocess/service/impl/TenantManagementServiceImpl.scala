@@ -68,7 +68,7 @@ final case class TenantManagementServiceImpl(
       .orElse(attribute.verified.map(_.id))
       .orElse(attribute.declared.map(_.id))
       .map(_.toString())
-      .getOrElse("")
+      .getOrElse("[UNKNOWN]")
     invoker.invoke(request, s"Adding attribute $id to tenant $tenantId")
   }
 

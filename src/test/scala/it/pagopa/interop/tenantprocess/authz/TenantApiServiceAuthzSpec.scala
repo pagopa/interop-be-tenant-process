@@ -3,13 +3,13 @@ package it.pagopa.interop.tenantprocess.authz
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantprocess.api._
 import it.pagopa.interop.tenantprocess.api.impl._
-import it.pagopa.interop.tenantprocess.model.DeclaredTenantAttributeSeed
-import it.pagopa.interop.tenantprocess.utils.AuthorizedRoutes.endpoints
-import it.pagopa.interop.tenantprocess.utils.FakeDependencies.{
-  FakeAgreementProcess,
-  FakeAttributeRegistryManagement,
-  FakeTenantManagement
+import it.pagopa.interop.tenantprocess.model.{
+  DeclaredTenantAttributeSeed,
+  VerificationRenewal,
+  VerifiedTenantAttributeSeed
 }
+import it.pagopa.interop.tenantprocess.utils.AuthorizedRoutes.endpoints
+import it.pagopa.interop.tenantprocess.utils.FakeDependencies._
 import it.pagopa.interop.tenantprocess.utils.{ClusteredMUnitRouteTest, SpecData}
 
 import java.time.OffsetDateTime
@@ -18,6 +18,8 @@ import java.util.UUID
 class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
   val fakeAttributeRegistryManagement: FakeAttributeRegistryManagement = FakeAttributeRegistryManagement()
   val fakeTenantManagement: FakeTenantManagement                       = FakeTenantManagement()
+  val fakeAgreementManagement: FakeAgreementManagement                 = FakeAgreementManagement()
+  val fakeCatalogManagement: FakeCatalogManagement                     = FakeCatalogManagement()
   val fakeAgreementProcess: FakeAgreementProcess                       = FakeAgreementProcess()
   val dummyDateTimeSupplier: OffsetDateTimeSupplier                    = () => OffsetDateTime.now()
   val dummyUuidSupplier: UUIDSupplier                                  = () => UUID.randomUUID()
@@ -26,6 +28,8 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     fakeAttributeRegistryManagement,
     fakeTenantManagement,
     fakeAgreementProcess,
+    fakeAgreementManagement,
+    fakeCatalogManagement,
     dummyUuidSupplier,
     dummyDateTimeSupplier
   )
@@ -73,4 +77,26 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
       { implicit c: Seq[(String, String)] => tenantService.revokeDeclaredAttribute("attributeId") }
     )
   }
+
+  test("Tenant api should accept authorized roles for verifyVerifiedAttribute") {
+    validateAuthorization(
+      endpoints("verifyVerifiedAttribute"),
+      { implicit c: Seq[(String, String)] =>
+        tenantService.verifyVerifiedAttribute(
+          UUID.randomUUID().toString,
+          VerifiedTenantAttributeSeed(verifiedAttributeId, VerificationRenewal.AUTOMATIC_RENEWAL, None)
+        )
+      }
+    )
+  }
+
+  test("Tenant api should accept authorized roles for revokeVerifiedAttribute") {
+    validateAuthorization(
+      endpoints("revokeVerifiedAttribute"),
+      { implicit c: Seq[(String, String)] =>
+        tenantService.revokeVerifiedAttribute(UUID.randomUUID().toString, verifiedAttributeId.toString)
+      }
+    )
+  }
+
 }

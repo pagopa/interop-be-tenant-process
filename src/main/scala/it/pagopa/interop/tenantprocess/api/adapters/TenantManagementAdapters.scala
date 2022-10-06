@@ -1,27 +1,26 @@
 package it.pagopa.interop.tenantprocess.api.adapters
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import it.pagopa.interop.tenantmanagement.client.model.VerificationRenewal.{AUTOMATIC_RENEWAL, REVOKE_ON_EXPIRATION}
 import it.pagopa.interop.tenantmanagement.client.model.{
+  CertifiedTenantAttribute => DependencyCertifiedTenantAttribute,
+  Certifier => DependencyCertifier,
+  DeclaredTenantAttribute => DependencyDeclaredTenantAttribute,
+  ExternalId => DependencyExternalId,
   Problem => DependencyProblem,
   ProblemError => DependencyProblemError,
   Tenant => DependencyTenant,
-  ExternalId => DependencyExternalId,
-  TenantFeature => DependencyTenantFeature,
-  Certifier => DependencyCertifier,
   TenantAttribute => DependencyTenantAttribute,
-  DeclaredTenantAttribute => DependencyDeclaredTenantAttribute,
-  CertifiedTenantAttribute => DependencyCertifiedTenantAttribute,
-  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
-  VerificationRenewal => DependencyVerificationRenewal,
+  TenantFeature => DependencyTenantFeature,
+  TenantRevoker => DependencyTenantRevoker,
   TenantVerifier => DependencyTenantVerifier,
-  TenantRevoker => DependencyTenantRevoker
+  VerificationRenewal => DependencyVerificationRenewal,
+  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.model._
 import spray.json._
 
 import scala.util.Try
-import it.pagopa.interop.tenantmanagement.client.model.VerificationRenewal.AUTOMATIC_RENEWAL
-import it.pagopa.interop.tenantmanagement.client.model.VerificationRenewal.REVOKE_ON_EXPIRATION
 
 object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def problemErrorFormat: RootJsonFormat[DependencyProblemError] = jsonFormat2(DependencyProblemError)
@@ -85,10 +84,12 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
     def toApi: VerifiedTenantAttribute = VerifiedTenantAttribute(
       id = t.id,
       assignmentTimestamp = t.assignmentTimestamp,
-      renewal = t.renewal.toApi,
       verifiedBy = t.verifiedBy.map(_.toApi),
       revokedBy = t.revokedBy.map(_.toApi)
     )
+
+    def toTenantAttribute: DependencyTenantAttribute =
+      DependencyTenantAttribute(declared = None, certified = None, verified = Some(t))
   }
 
   implicit class DependencyVerificationRenewalWrapper(private val t: DependencyVerificationRenewal) extends AnyVal {
@@ -102,8 +103,9 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
     def toApi: TenantVerifier = TenantVerifier(
       id = t.id,
       verificationDate = t.verificationDate,
+      renewal = t.renewal.toApi,
       expirationDate = t.expirationDate,
-      extentionDate = t.extentionDate
+      extensionDate = t.extensionDate
     )
   }
 
@@ -111,8 +113,9 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
     def toApi: TenantRevoker = TenantRevoker(
       id = t.id,
       verificationDate = t.verificationDate,
+      renewal = t.renewal.toApi,
       expirationDate = t.expirationDate,
-      extentionDate = t.extentionDate,
+      extensionDate = t.extensionDate,
       revocationDate = t.revocationDate
     )
   }

@@ -6,12 +6,14 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
+import it.pagopa.interop.agreementmanagement.client.model.AgreementState
 import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdFutureUUID
 import it.pagopa.interop.commons.utils.TypeConversions._
+import it.pagopa.interop.commons.utils.errors.ComponentError
 import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{GenericError, OperationForbidden}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client
@@ -21,7 +23,10 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantFeature,
   Certifier => DependencyCertifier,
   Problem => TenantProblem,
-  Tenant => DependencyTenant
+  Tenant => DependencyTenant,
+  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
+  TenantVerifier => DependencyTenantVerifier,
+  TenantRevoker => DependencyTenantRevoker
 }
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed
@@ -42,6 +47,8 @@ final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
   tenantManagementService: TenantManagementService,
   agreementProcessService: AgreementProcessService,
+  agreementManagementService: AgreementManagementService,
+  catalogManagementService: CatalogManagementService,
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext)
@@ -273,6 +280,114 @@ final case class TenantApiServiceImpl(
     }
   }
 
+  override def verifyVerifiedAttribute(tenantId: String, seed: VerifiedTenantAttributeSeed)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = authorize(ADMIN_ROLE) {
+    logger.info(s"Verifying attribute ${seed.id} to tenant $tenantId")
+
+    val now: OffsetDateTime = dateTimeSupplier.get()
+
+    val result: Future[Tenant] = for {
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
+      targetTenantUuid    <- tenantId.toFutureUUID
+      _            <- Future.failed(VerifiedAttributeSelfVerification).whenA(requesterTenantUuid == targetTenantUuid)
+      _            <- assertAttributeVerificationAllowed(requesterTenantUuid, targetTenantUuid, seed.id)
+      targetTenant <- tenantManagementService.getTenant(targetTenantUuid)
+      attribute = targetTenant.attributes.flatMap(_.verified).find(_.id == seed.id)
+      updatedTenant <- attribute.fold(
+        tenantManagementService.addTenantAttribute(targetTenantUuid, seed.toCreateDependency(now, requesterTenantUuid))
+      )(attr =>
+        Future
+          .failed(AttributeAlreadyVerified(targetTenantUuid, requesterTenantUuid, seed.id))
+          .whenA(attr.verifiedBy.exists(_.id == requesterTenantUuid)) >>
+          tenantManagementService.updateTenantAttribute(
+            targetTenantUuid,
+            seed.id,
+            seed.toUpdateDependency(now, requesterTenantUuid, attr)
+          )
+      )
+      _             <- agreementProcessService.computeAgreementsByAttribute(targetTenantUuid, seed.id)
+    } yield updatedTenant.toApi
+
+    onComplete(result) {
+      handleApiError() orElse {
+        case Success(tenant)                                     => verifyVerifiedAttribute200(tenant)
+        case Failure(ex: AttributeAlreadyVerified)               =>
+          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
+          verifyVerifiedAttribute409(problemOf(StatusCodes.Conflict, ex))
+        case Failure(ex: VerifiedAttributeSelfVerification.type) =>
+          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
+          verifyVerifiedAttribute403(problemOf(StatusCodes.Forbidden, ex))
+        case Failure(ex: AttributeVerificationNotAllowed)        =>
+          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
+          verifyVerifiedAttribute403(problemOf(StatusCodes.Forbidden, ex))
+        case Failure(ex)                                         =>
+          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
+          internalServerError()
+      }
+    }
+  }
+
+  override def revokeVerifiedAttribute(tenantId: String, attributeId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = authorize(ADMIN_ROLE) {
+    logger.info(s"Revoking attribute $attributeId to tenant $tenantId")
+
+    val now: OffsetDateTime = dateTimeSupplier.get()
+
+    val result: Future[Tenant] = for {
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
+      targetTenantUuid    <- tenantId.toFutureUUID
+      attributeUuid       <- attributeId.toFutureUUID
+      _             <- Future.failed(VerifiedAttributeSelfRevocation).whenA(requesterTenantUuid == targetTenantUuid)
+      _             <- assertAttributeRevocationAllowed(requesterTenantUuid, targetTenantUuid, attributeUuid)
+      targetTenant  <- tenantManagementService.getTenant(targetTenantUuid)
+      attribute     <- targetTenant.attributes
+        .flatMap(_.verified)
+        .find(_.id == attributeUuid)
+        .toFuture(VerifiedAttributeNotFound(targetTenantUuid, attributeId))
+      // TODO Not sure if this is compatible with implicit verification
+      verifier      <- attribute.verifiedBy
+        .find(_.id == requesterTenantUuid)
+        .toFuture(AttributeRevocationNotAllowed(targetTenantUuid, attributeUuid))
+      _             <- Future
+        .failed(AttributeAlreadyRevoked(targetTenantUuid, requesterTenantUuid, attributeUuid))
+        .unlessA(attribute.verifiedBy.exists(_.id == requesterTenantUuid))
+        .whenA(attribute.revokedBy.exists(_.id == requesterTenantUuid))
+      updatedTenant <- tenantManagementService.updateTenantAttribute(
+        targetTenantUuid,
+        attributeUuid,
+        addRevoker(attribute, now, verifier).toTenantAttribute
+      )
+      _             <- agreementProcessService.computeAgreementsByAttribute(targetTenantUuid, attributeUuid)
+    } yield updatedTenant.toApi
+
+    onComplete(result) {
+      handleApiError() orElse {
+        case Success(tenant)                                   => revokeVerifiedAttribute200(tenant)
+        case Failure(ex: VerifiedAttributeSelfRevocation.type) =>
+          logger.error(s"Error revoking attribute $attributeId to tenant $tenantId", ex)
+          revokeVerifiedAttribute403(problemOf(StatusCodes.Forbidden, ex))
+        case Failure(ex: AttributeRevocationNotAllowed)        =>
+          logger.error(s"Error revoking attribute $attributeId to tenant $tenantId", ex)
+          revokeVerifiedAttribute403(problemOf(StatusCodes.Forbidden, ex))
+        case Failure(ex: VerifiedAttributeNotFound)            =>
+          logger.error(s"Error revoking attribute $attributeId to tenant $tenantId", ex)
+          revokeVerifiedAttribute404(problemOf(StatusCodes.NotFound, ex))
+        case Failure(ex: AttributeAlreadyRevoked)              =>
+          logger.error(s"Error revoking attribute $attributeId to tenant $tenantId", ex)
+          revokeVerifiedAttribute409(problemOf(StatusCodes.Conflict, ex))
+        case Failure(ex)                                       =>
+          logger.error(s"Error revoking attribute $attributeId to tenant $tenantId", ex)
+          internalServerError()
+      }
+    }
+  }
+
   private def createTenant[T: AdaptableSeed](seed: T, attributes: Seq[ExternalId], timestamp: OffsetDateTime)(implicit
     contexts: Seq[(String, String)]
   ): Future[DependencyTenant] =
@@ -348,6 +463,43 @@ final case class TenantApiServiceImpl(
     }
   }
 
+  def assertAttributeVerificationAllowed(producerId: UUID, consumerId: UUID, attributeId: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Unit] =
+    assertVerifiedAttributeOperationAllowed(
+      producerId,
+      consumerId,
+      attributeId,
+      Seq(AgreementState.PENDING),
+      AttributeVerificationNotAllowed(consumerId, attributeId)
+    )
+
+  def assertAttributeRevocationAllowed(producerId: UUID, consumerId: UUID, attributeId: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Unit] = assertVerifiedAttributeOperationAllowed(
+    producerId,
+    consumerId,
+    attributeId,
+    Seq(AgreementState.PENDING, AgreementState.ACTIVE, AgreementState.SUSPENDED),
+    AttributeRevocationNotAllowed(consumerId, attributeId)
+  )
+
+  def assertVerifiedAttributeOperationAllowed(
+    producerId: UUID,
+    consumerId: UUID,
+    attributeId: UUID,
+    agreementStates: Seq[AgreementState],
+    error: ComponentError
+  )(implicit contexts: Seq[(String, String)]): Future[Unit] = for {
+    agreements <- agreementManagementService.getAgreements(producerId, consumerId, agreementStates)
+    eServices  <- Future.traverse(agreements.map(_.eserviceId))(catalogManagementService.getEServiceById)
+    attributeIds = eServices
+      .flatMap(_.attributes.verified)
+      .flatMap(attr => attr.single.map(_.id).toSeq ++ attr.group.traverse(_.map(_.id)).flatten)
+      .toSet
+    _ <- Future.failed(error).unlessA(attributeIds.contains(attributeId))
+  } yield ()
+
   def handleApiError()(implicit
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     contexts: Seq[(String, String)]
@@ -360,6 +512,23 @@ final case class TenantApiServiceImpl(
       case _                  => internalServerError()
     }
   }
+
+  def addRevoker(
+    verifiedAttribute: DependencyVerifiedTenantAttribute,
+    now: OffsetDateTime,
+    verifier: DependencyTenantVerifier
+  ): DependencyVerifiedTenantAttribute =
+    verifiedAttribute.copy(
+      verifiedBy = verifiedAttribute.verifiedBy.filterNot(_.id == verifier.id),
+      revokedBy = verifiedAttribute.revokedBy :+ DependencyTenantRevoker(
+        id = verifier.id,
+        verificationDate = verifier.verificationDate,
+        renewal = verifier.renewal,
+        expirationDate = verifier.expirationDate,
+        extensionDate = verifier.extensionDate,
+        revocationDate = now
+      )
+    )
 
   def internalServerError()(implicit toEntityMarshallerProblem: ToEntityMarshaller[Problem]): StandardRoute = {
     val problem = problemOf(StatusCodes.InternalServerError, GenericError("Error while executing the request"))

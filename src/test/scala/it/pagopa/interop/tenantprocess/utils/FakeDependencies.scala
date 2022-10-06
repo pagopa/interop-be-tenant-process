@@ -1,26 +1,19 @@
 package it.pagopa.interop.tenantprocess.utils
 
+import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
 import it.pagopa.interop.attributeregistrymanagement.client.model.{Attribute, AttributeKind}
-import it.pagopa.interop.tenantmanagement.client.model.{
-  Certifier,
-  ExternalId,
-  Tenant,
-  TenantAttribute,
-  TenantDelta,
-  TenantFeature,
-  TenantSeed
-}
-import it.pagopa.interop.tenantprocess.service.{
-  AgreementProcessService,
-  AttributeRegistryManagementService,
-  TenantManagementService
-}
+import it.pagopa.interop.catalogmanagement.client.model.EService
+import it.pagopa.interop.tenantmanagement.client.model._
+import it.pagopa.interop.tenantprocess.service._
 
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Future
 
-object FakeDependencies {
+object FakeDependencies extends SpecData {
+  val verifiedAttributeId: UUID = UUID.randomUUID()
+  val (agreement, eService)     = matchingAgreementAndEService(verifiedAttributeId)
+
   case class FakeAttributeRegistryManagement() extends AttributeRegistryManagementService {
 
     override def getAttributeById(id: UUID)(implicit contexts: Seq[(String, String)]): Future[Attribute] =
@@ -84,6 +77,17 @@ object FakeDependencies {
     override def computeAgreementsByAttribute(consumerId: UUID, attributeId: UUID)(implicit
       contexts: Seq[(String, String)]
     ): Future[Unit] = Future.unit
+  }
+
+  case class FakeAgreementManagement() extends AgreementManagementService {
+    override def getAgreements(producerId: UUID, consumerId: UUID, states: Seq[AgreementState])(implicit
+      contexts: Seq[(String, String)]
+    ): Future[Seq[Agreement]] = Future.successful(Seq(agreement))
+  }
+
+  case class FakeCatalogManagement() extends CatalogManagementService {
+    override def getEServiceById(eServiceId: UUID)(implicit contexts: Seq[(String, String)]): Future[EService] =
+      Future.successful(eService)
   }
 
   val fakeTenant: Tenant = Tenant(

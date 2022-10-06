@@ -25,7 +25,7 @@ import it.pagopa.interop.tenantprocess.api.impl.{
 import it.pagopa.interop.tenantprocess.api.{HealthApi, TenantApi}
 import it.pagopa.interop.tenantprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.tenantprocess.service.impl._
-import it.pagopa.interop.tenantprocess.service._
+import it.pagopa.interop.tenantprocess.service.{AgreementManagementInvoker, AgreementManagementService, _}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
@@ -67,6 +67,8 @@ trait Dependencies {
         attributeRegistryManagement(blockingEc),
         tenantManagement(blockingEc),
         agreementProcess(blockingEc),
+        agreementManagement(blockingEc),
+        catalogManagement(blockingEc),
         uuidSupplier,
         dateTimeSupplier
       ),
@@ -93,6 +95,12 @@ trait Dependencies {
   private final val agreementProcessApi: AgreementProcessApi =
     AgreementProcessApi(ApplicationConfiguration.agreementProcessURL)
 
+  private final val agreementManagementApi: AgreementManagementApi =
+    AgreementManagementApi(ApplicationConfiguration.agreementManagementURL)
+
+  private final val catalogManagementApi: CatalogManagementApi =
+    CatalogManagementApi(ApplicationConfiguration.catalogManagementURL)
+
   private def agreementProcessInvoker(blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_]
   ): AgreementProcessInvoker =
@@ -102,6 +110,26 @@ trait Dependencies {
     actorSystem: ActorSystem[_]
   ): AgreementProcessService =
     AgreementProcessServiceImpl(agreementProcessInvoker(blockingEc), agreementProcessApi, blockingEc)
+
+  private def agreementManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): AgreementManagementInvoker =
+    AgreementManagementInvoker(blockingEc)(actorSystem.classicSystem)
+
+  def agreementManagement(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): AgreementManagementService =
+    AgreementManagementServiceImpl(agreementManagementInvoker(blockingEc), agreementManagementApi)
+
+  private def catalogManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): CatalogManagementInvoker =
+    CatalogManagementInvoker(blockingEc)(actorSystem.classicSystem)
+
+  def catalogManagement(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): CatalogManagementService =
+    CatalogManagementServiceImpl(catalogManagementInvoker(blockingEc), catalogManagementApi)
 
   private def attributeRegistryManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_]

@@ -43,6 +43,20 @@
       "roles": [
         "admin"
       ]
+    },
+    {
+      "route": "verifyVerifiedAttribute",
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ]
+    },
+    {
+      "route": "revokeVerifiedAttribute",
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ]
     }
   ]
 }
