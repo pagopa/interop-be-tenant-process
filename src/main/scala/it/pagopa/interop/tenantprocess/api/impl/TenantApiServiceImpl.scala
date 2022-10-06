@@ -23,7 +23,10 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantFeature,
   Certifier => DependencyCertifier,
   Problem => TenantProblem,
-  Tenant => DependencyTenant
+  Tenant => DependencyTenant,
+  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
+  TenantVerifier => DependencyTenantVerifier,
+  TenantRevoker => DependencyTenantRevoker
 }
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed
@@ -358,7 +361,7 @@ final case class TenantApiServiceImpl(
       updatedTenant <- tenantManagementService.updateTenantAttribute(
         targetTenantUuid,
         attributeUuid,
-        attribute.addRevoker(now, verifier).toTenantAttribute
+        addRevoker(attribute, now, verifier).toTenantAttribute
       )
       _             <- agreementProcessService.computeAgreementsByAttribute(targetTenantUuid, attributeUuid)
     } yield updatedTenant.toApi
@@ -509,6 +512,23 @@ final case class TenantApiServiceImpl(
       case _                  => internalServerError()
     }
   }
+
+  def addRevoker(
+    verifiedAttribute: DependencyVerifiedTenantAttribute,
+    now: OffsetDateTime,
+    verifier: DependencyTenantVerifier
+  ): DependencyVerifiedTenantAttribute =
+    verifiedAttribute.copy(
+      verifiedBy = verifiedAttribute.verifiedBy.filterNot(_.id == verifier.id),
+      revokedBy = verifiedAttribute.revokedBy :+ DependencyTenantRevoker(
+        id = verifier.id,
+        verificationDate = verifier.verificationDate,
+        renewal = verifier.renewal,
+        expirationDate = verifier.expirationDate,
+        extensionDate = verifier.extensionDate,
+        revocationDate = now
+      )
+    )
 
   def internalServerError()(implicit toEntityMarshallerProblem: ToEntityMarshaller[Problem]): StandardRoute = {
     val problem = problemOf(StatusCodes.InternalServerError, GenericError("Error while executing the request"))

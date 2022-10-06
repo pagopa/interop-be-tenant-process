@@ -20,7 +20,6 @@ import it.pagopa.interop.tenantmanagement.client.model.{
 import it.pagopa.interop.tenantprocess.model._
 import spray.json._
 
-import java.time.OffsetDateTime
 import scala.util.Try
 
 object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtocol {
@@ -91,19 +90,6 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
 
     def toTenantAttribute: DependencyTenantAttribute =
       DependencyTenantAttribute(declared = None, certified = None, verified = Some(t))
-
-    def addRevoker(now: OffsetDateTime, verifier: DependencyTenantVerifier): DependencyVerifiedTenantAttribute =
-      t.copy(
-        verifiedBy = t.verifiedBy.filterNot(_.id == verifier.id),
-        revokedBy = t.revokedBy :+ DependencyTenantRevoker(
-          id = verifier.id,
-          verificationDate = verifier.verificationDate,
-          renewal = verifier.renewal,
-          expirationDate = verifier.expirationDate,
-          extensionDate = verifier.extensionDate,
-          revocationDate = now
-        )
-      )
   }
 
   implicit class DependencyVerificationRenewalWrapper(private val t: DependencyVerificationRenewal) extends AnyVal {
