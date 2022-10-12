@@ -15,16 +15,17 @@ import it.pagopa.interop.tenantmanagement.client.model.{
 }
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.agreementmanagement.client.model.{
+  Stamps,
   Agreement => DependencyAgreement,
   AgreementState => DependencyAgreementState,
   VerifiedAttribute => DependencyVerifiedAttribute
 }
 import it.pagopa.interop.catalogmanagement.client.model.{
-  EService => CatalogEService,
-  EServiceTechnology => CatalogEServiceTechnology,
-  Attributes => CatalogAttributes,
   Attribute => CatalogAttribute,
-  AttributeValue => CatalogAttributeValue
+  AttributeValue => CatalogAttributeValue,
+  Attributes => CatalogAttributes,
+  EService => CatalogEService,
+  EServiceTechnology => CatalogEServiceTechnology
 }
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -126,7 +127,8 @@ trait SpecData {
     certifiedAttributes = Nil,
     declaredAttributes = Nil,
     consumerDocuments = Nil,
-    createdAt = OffsetDateTime.now()
+    createdAt = OffsetDateTime.now(),
+    stamps = Stamps()
   )
 
   def catalogEService(id: UUID = UUID.randomUUID(), verifiedAttributeId: UUID = UUID.randomUUID()): CatalogEService =
