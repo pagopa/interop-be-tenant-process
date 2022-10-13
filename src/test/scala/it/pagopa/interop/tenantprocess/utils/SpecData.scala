@@ -15,7 +15,6 @@ import it.pagopa.interop.tenantmanagement.client.model.{
 }
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.agreementmanagement.client.model.{
-  Stamps,
   Agreement => DependencyAgreement,
   AgreementState => DependencyAgreementState,
   VerifiedAttribute => DependencyVerifiedAttribute
