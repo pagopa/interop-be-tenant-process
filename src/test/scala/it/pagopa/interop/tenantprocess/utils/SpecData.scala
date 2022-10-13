@@ -15,7 +15,6 @@ import it.pagopa.interop.tenantmanagement.client.model.{
 }
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.agreementmanagement.client.model.{
-  Stamps,
   Agreement => DependencyAgreement,
   AgreementState => DependencyAgreementState,
   VerifiedAttribute => DependencyVerifiedAttribute
@@ -30,6 +29,7 @@ import it.pagopa.interop.catalogmanagement.client.model.{
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
+import it.pagopa.interop.agreementmanagement.client.model.Stamps
 
 trait SpecData {
   final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
@@ -128,7 +128,8 @@ trait SpecData {
     declaredAttributes = Nil,
     consumerDocuments = Nil,
     createdAt = OffsetDateTime.now(),
-    stamps = Stamps()
+    stamps = Stamps(),
+    rejectionReason = None
   )
 
   def catalogEService(id: UUID = UUID.randomUUID(), verifiedAttributeId: UUID = UUID.randomUUID()): CatalogEService =

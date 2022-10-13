@@ -299,14 +299,11 @@ final case class TenantApiServiceImpl(
       updatedTenant <- attribute.fold(
         tenantManagementService.addTenantAttribute(targetTenantUuid, seed.toCreateDependency(now, requesterTenantUuid))
       )(attr =>
-        Future
-          .failed(AttributeAlreadyVerified(targetTenantUuid, requesterTenantUuid, seed.id))
-          .whenA(attr.verifiedBy.exists(_.id == requesterTenantUuid)) >>
-          tenantManagementService.updateTenantAttribute(
-            targetTenantUuid,
-            seed.id,
-            seed.toUpdateDependency(now, requesterTenantUuid, attr)
-          )
+        tenantManagementService.updateTenantAttribute(
+          targetTenantUuid,
+          seed.id,
+          seed.toUpdateDependency(now, requesterTenantUuid, attr)
+        )
       )
       _             <- agreementProcessService.computeAgreementsByAttribute(targetTenantUuid, seed.id)
     } yield updatedTenant.toApi
@@ -470,7 +467,7 @@ final case class TenantApiServiceImpl(
       producerId,
       consumerId,
       attributeId,
-      Seq(AgreementState.PENDING),
+      Seq(AgreementState.PENDING, AgreementState.ACTIVE, AgreementState.SUSPENDED),
       AttributeVerificationNotAllowed(consumerId, attributeId)
     )
 
