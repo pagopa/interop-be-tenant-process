@@ -58,7 +58,12 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       mockDateTimeGet()
-      mockGetAgreements(organizationId, targetTenantId, Seq(AgreementState.PENDING), Seq(agreement))
+      mockGetAgreements(
+        organizationId,
+        targetTenantId,
+        Seq(AgreementState.PENDING, AgreementState.ACTIVE, AgreementState.SUSPENDED),
+        Seq(agreement)
+      )
       mockGetEServiceById(eService.id, eService)
       mockGetTenantById(targetTenantId, tenant)
       mockAddTenantAttribute(targetTenantId, managementSeed)
@@ -104,7 +109,12 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       mockDateTimeGet()
-      mockGetAgreements(organizationId, targetTenantId, Seq(AgreementState.PENDING), Seq(agreement))
+      mockGetAgreements(
+        organizationId,
+        targetTenantId,
+        Seq(AgreementState.PENDING, AgreementState.ACTIVE, AgreementState.SUSPENDED),
+        Seq(agreement)
+      )
       mockGetEServiceById(eService.id, eService)
       mockGetTenantById(targetTenantId, tenant)
       mockUpdateTenantAttribute(targetTenantId, seed.id, managementSeed)
@@ -155,7 +165,12 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       mockDateTimeGet()
-      mockGetAgreements(organizationId, targetTenantId, Seq(AgreementState.PENDING), Seq(agreement))
+      mockGetAgreements(
+        organizationId,
+        targetTenantId,
+        Seq(AgreementState.PENDING, AgreementState.ACTIVE, AgreementState.SUSPENDED),
+        Seq(agreement)
+      )
       mockGetEServiceById(eService.id, eService)
       mockGetTenantById(targetTenantId, tenant)
       mockUpdateTenantAttribute(targetTenantId, seed.id, managementSeed)
@@ -190,7 +205,12 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val seed = VerifiedTenantAttributeSeed(attributeId, VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp))
 
       mockDateTimeGet()
-      mockGetAgreements(organizationId, targetTenantId, Seq(AgreementState.PENDING), Seq(agreement))
+      mockGetAgreements(
+        organizationId,
+        targetTenantId,
+        Seq(AgreementState.PENDING, AgreementState.ACTIVE, AgreementState.SUSPENDED),
+        Seq(agreement)
+      )
       mockGetEServiceById(eService.id, eService)
 
       Post() ~> tenantService.verifyVerifiedAttribute(targetTenantId.toString, seed) ~> check {
@@ -219,13 +239,40 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val seed = VerifiedTenantAttributeSeed(attributeId, VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp))
 
+      val managementSeed = TenantAttribute(
+        declared = None,
+        certified = None,
+        verified = Some(
+          VerifiedTenantAttribute(
+            id = seed.id,
+            assignmentTimestamp = existingVerification.verified.get.assignmentTimestamp,
+            verifiedBy = existingVerification.verified.get.verifiedBy :+
+              TenantVerifier(
+                id = organizationId,
+                verificationDate = timestamp,
+                renewal = seed.renewal.toDependency,
+                expirationDate = seed.expirationDate,
+                extensionDate = None
+              ),
+            revokedBy = existingVerification.verified.get.revokedBy
+          )
+        )
+      )
+
       mockDateTimeGet()
-      mockGetAgreements(organizationId, targetTenantId, Seq(AgreementState.PENDING), Seq(agreement))
+      mockGetAgreements(
+        organizationId,
+        targetTenantId,
+        Seq(AgreementState.PENDING, AgreementState.ACTIVE, AgreementState.SUSPENDED),
+        Seq(agreement)
+      )
       mockGetEServiceById(eService.id, eService)
       mockGetTenantById(targetTenantId, tenant)
+      mockUpdateTenantAttribute(targetTenantId, attributeId, managementSeed)
+      mockComputeAgreementState(targetTenantId, attributeId)
 
       Post() ~> tenantService.verifyVerifiedAttribute(targetTenantId.toString, seed) ~> check {
-        assert(status == StatusCodes.Conflict)
+        assert(status == StatusCodes.OK)
       }
     }
 
