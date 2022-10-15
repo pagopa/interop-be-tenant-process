@@ -235,7 +235,7 @@ final case class TenantApiServiceImpl(
       tenantManagementService.addTenantAttribute(tenantId, seed.toDependency(now))
 
     def updateAttribute(tenantId: UUID, attribute: DependencyTenantAttribute): Future[DependencyTenant] = for {
-      declaredAttribute <- attribute.declared.toFuture(new RuntimeException())
+      declaredAttribute <- attribute.declared.toFuture(DeclaredAttributeNotFound(tenantId, seed.id.toString))
       updateSeed = attribute.copy(declared = declaredAttribute.copy(revocationTimestamp = None).some)
       updatedAttribute <- tenantManagementService.updateTenantAttribute(tenantId, declaredAttribute.id, updateSeed)
     } yield updatedAttribute
