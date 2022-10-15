@@ -26,6 +26,7 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   Tenant => DependencyTenant,
   VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
   TenantVerifier => DependencyTenantVerifier,
+  TenantAttribute => DependencyTenantAttribute,
   TenantRevoker => DependencyTenantRevoker
 }
 import it.pagopa.interop.tenantprocess.api.TenantApiService
@@ -230,10 +231,29 @@ final case class TenantApiServiceImpl(
 
     val now: OffsetDateTime = dateTimeSupplier.get()
 
+    def addAttribute(tenantId: UUID, seed: DeclaredTenantAttributeSeed): Future[DependencyTenant] =
+      tenantManagementService.addTenantAttribute(tenantId, seed.toDependency(now))
+
+    def updateAttribute(tenantId: UUID, attribute: DependencyTenantAttribute): Future[DependencyTenant] = for {
+      declaredAttribute <- attribute.declared.toFuture(DeclaredAttributeNotFound(tenantId, seed.id.toString))
+      updateSeed = attribute.copy(declared = declaredAttribute.copy(revocationTimestamp = None).some)
+      updatedAttribute <- tenantManagementService.updateTenantAttribute(tenantId, declaredAttribute.id, updateSeed)
+    } yield updatedAttribute
+
+    def upsertAttribute(tenantId: UUID, seed: DeclaredTenantAttributeSeed): Future[DependencyTenant] = for {
+      maybeAttribute <- tenantManagementService
+        .getTenantAttribute(tenantId, seed.id)
+        .map(Some(_))
+        .recover {
+          case err: TenantApiError[_] if err.code == 404 => None
+        }
+      updatedTenant  <- maybeAttribute.fold(addAttribute(tenantId, seed))(updateAttribute(tenantId, _))
+    } yield updatedTenant
+
     val result: Future[Tenant] = for {
       requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Adding declared attribute ${seed.id} to $requesterTenantUuid")
-      tenant <- tenantManagementService.addTenantAttribute(requesterTenantUuid, seed.toDependency(now))
+      tenant <- upsertAttribute(requesterTenantUuid, seed)
       _      <- agreementProcessService.computeAgreementsByAttribute(requesterTenantUuid, seed.id)
     } yield tenant.toApi
 

@@ -2,6 +2,7 @@ package it.pagopa.interop.tenantprocess.utils
 
 import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
 import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
+import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError => TenantManagementApiError}
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.catalogmanagement.client.model.EService
 import it.pagopa.interop.commons.utils._
@@ -101,6 +102,13 @@ trait SpecHelper extends MockFactory with SpecData {
     .expects(tenantId, attributeId, contexts)
     .once()
     .returns(Future.successful(result))
+
+  def mockGetTenantAttributeNotFound(tenantId: UUID, attributeId: UUID)(implicit contexts: Seq[(String, String)]) =
+    (mockTenantManagement
+      .getTenantAttribute(_: UUID, _: UUID)(_: Seq[(String, String)]))
+      .expects(tenantId, attributeId, contexts)
+      .once()
+      .returns(Future.failed(TenantManagementApiError(404, "", None)))
 
   def mockUpdateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
     contexts: Seq[(String, String)]
