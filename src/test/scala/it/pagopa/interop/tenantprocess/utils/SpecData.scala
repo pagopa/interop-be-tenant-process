@@ -55,6 +55,8 @@ trait SpecData {
     mails = Nil
   )
 
+  val fakeTenantDelta: TenantDelta = TenantDelta(selfcareId = None, features = Nil, mails = Nil)
+
   val tenantVerifier: DependencyTenantVerifier = DependencyTenantVerifier(
     id = UUID.randomUUID(),
     verificationDate = timestamp,

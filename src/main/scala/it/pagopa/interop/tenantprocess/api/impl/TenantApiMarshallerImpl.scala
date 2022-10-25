@@ -16,6 +16,8 @@ object TenantApiMarshallerImpl extends TenantApiMarshaller with SprayJsonSupport
 
   override implicit def toEntityMarshallerTenant: ToEntityMarshaller[Tenant] = sprayJsonMarshaller[Tenant]
 
+  implicit def fromEntityUnmarshallerTenant: FromEntityUnmarshaller[Tenant] = sprayJsonUnmarshaller[Tenant]
+
   override implicit def fromEntityUnmarshallerInternalTenantSeed: FromEntityUnmarshaller[InternalTenantSeed] =
     sprayJsonUnmarshaller[InternalTenantSeed]
 
