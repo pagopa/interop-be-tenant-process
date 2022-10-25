@@ -43,6 +43,7 @@ import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+import it.pagopa.interop.tenantprocess
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
@@ -60,9 +61,28 @@ final case class TenantApiServiceImpl(
   private[this] def authorize(roles: String*)(
     route: => Route
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
-    authorizeInterop(hasPermissions(roles: _*), problemOf(StatusCodes.Forbidden, OperationForbidden)) {
-      route
+    authorizeInterop(hasPermissions(roles: _*), problemOf(StatusCodes.Forbidden, OperationForbidden))(route)
+
+  override def updateTenant(id: String, tenantDelta: tenantprocess.model.TenantDelta)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = authorize(ADMIN_ROLE, INTERNAL_ROLE) {
+
+    val result: Future[Tenant] = for {
+      tenantUUID <- id.toFutureUUID
+      tenant     <- tenantManagementService.updateTenant(tenantUUID, tenantDelta.fromAPI)
+    } yield tenant.toApi
+
+    onComplete(result) {
+      handleApiError() orElse {
+        case Success(tenant) => updateTenant200(tenant)
+        case Failure(ex)     =>
+          logger.error(s"Error updating tenant with id ${id}", ex)
+          internalServerError()
+      }
     }
+  }
 
   override def internalUpsertTenant(seed: InternalTenantSeed)(implicit
     contexts: Seq[(String, String)],
@@ -194,7 +214,10 @@ final case class TenantApiServiceImpl(
 
     def updateSelfcareId(tenant: DependencyTenant): Future[DependencyTenant] = {
       def updateTenant(): Future[DependencyTenant]                     = tenantManagementService
-        .updateTenant(tenant.id, TenantDelta(selfcareId = seed.selfcareId.some, features = tenant.features))
+        .updateTenant(
+          tenant.id,
+          TenantDelta(selfcareId = seed.selfcareId.some, features = tenant.features, mails = tenant.mails)
+        )
       def verifyConflict(selfcareId: String): Future[DependencyTenant] = Future
         .failed(SelfcareIdConflict(tenant.id, selfcareId, seed.selfcareId))
         .whenA(selfcareId != seed.selfcareId)

@@ -51,7 +51,8 @@ trait SpecData {
     features = Nil,
     attributes = Nil,
     createdAt = timestamp,
-    updatedAt = None
+    updatedAt = None,
+    mails = Nil
   )
 
   val tenantVerifier: DependencyTenantVerifier = DependencyTenantVerifier(
