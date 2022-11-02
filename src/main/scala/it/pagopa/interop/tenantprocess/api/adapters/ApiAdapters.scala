@@ -29,7 +29,7 @@ import it.pagopa.interop.tenantprocess.model.{
 
 import java.time.OffsetDateTime
 import java.util.UUID
-import it.pagopa.interop.tenantmanagement.client.model.MailKind.TECH_SUPPORT_MAIL
+import it.pagopa.interop.tenantmanagement.client.model.MailKind.CONTACT_EMAIL
 
 object ApiAdapters {
 
@@ -39,7 +39,7 @@ object ApiAdapters {
 
   implicit class MailKindWrapper(private val mk: MailKind) extends AnyVal {
     def fromAPI: DependencyMailKind = mk match {
-      case MailKind.TECH_SUPPORT_MAIL => TECH_SUPPORT_MAIL
+      case MailKind.CONTACT_EMAIL => CONTACT_EMAIL
     }
   }
 

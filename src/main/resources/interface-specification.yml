@@ -450,6 +450,10 @@ components:
         updatedAt:
           type: string
           format: date-time
+        mails:
+          type: array
+          items:
+            $ref: '#/components/schemas/Mail'
       required:
         - id
         - certifier
@@ -457,6 +461,7 @@ components:
         - features
         - attributes
         - createdAt
+        - mails
     TenantFeature:
       type: object
       properties:
@@ -675,7 +680,7 @@ components:
     MailKind:
       type: string
       enum:
-        - TECH_SUPPORT_MAIL
+        - CONTACT_EMAIL
     Problem:
       properties:
         type:
