@@ -30,6 +30,7 @@ import it.pagopa.interop.tenantprocess.model.{
 import java.time.OffsetDateTime
 import java.util.UUID
 import it.pagopa.interop.tenantmanagement.client.model.MailKind.CONTACT_EMAIL
+import it.pagopa.interop.tenantprocess.model.MailSeed
 
 object ApiAdapters {
 
@@ -56,8 +57,12 @@ object ApiAdapters {
       DependencyTenantDelta(
         selfcareId = td.selfcareId,
         features = td.features.map(_.fromAPI),
-        mails = td.mails.map(_.fromAPI)
+        mails = td.mails.map(_.toDependency)
       )
+  }
+
+  implicit class MailSeedWrapper(private val ms: MailSeed) extends AnyVal {
+    def toDependency: DependencyMailSeed = DependencyMailSeed(kind = ms.kind.fromAPI, address = ms.address)
   }
 
   implicit class ExternalIdWrapper(private val id: ExternalId) extends AnyVal {

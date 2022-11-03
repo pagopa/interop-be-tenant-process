@@ -43,7 +43,7 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
   }
 
   implicit class DependencyMailWrapper(private val m: DependencyMail) extends AnyVal {
-    def toApi: Mail                = Mail(kind = m.kind.toApi, address = m.address)
+    def toApi: Mail                = Mail(kind = m.kind.toApi, address = m.address, createdAt = m.createdAt)
     def toSeed: DependencyMailSeed = DependencyMailSeed(m.kind, m.address)
   }
 
