@@ -67,8 +67,7 @@ final case class TenantApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
-  ): Route = authorize(ADMIN_ROLE, INTERNAL_ROLE) {
-
+  ): Route = authorize(ADMIN_ROLE) {
     val result: Future[Tenant] = for {
       tenantUUID <- id.toFutureUUID
       tenant     <- tenantManagementService.updateTenant(tenantUUID, tenantDelta.fromAPI)
