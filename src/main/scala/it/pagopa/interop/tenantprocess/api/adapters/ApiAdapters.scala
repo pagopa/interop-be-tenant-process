@@ -11,7 +11,7 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantFeature => DependencyTenantFeature,
   Certifier => DependencyCertifier,
   MailKind => DependencyMailKind,
-  Mail => DependencyMail,
+  MailSeed => DependencyMailSeed,
   TenantDelta => DependencyTenantDelta
 }
 import it.pagopa.interop.tenantprocess.model.VerificationRenewal._
@@ -34,7 +34,7 @@ import it.pagopa.interop.tenantmanagement.client.model.MailKind.CONTACT_EMAIL
 object ApiAdapters {
 
   implicit class MailWrapper(private val m: Mail) extends AnyVal {
-    def fromAPI: DependencyMail = DependencyMail(kind = m.kind.fromAPI, address = m.address)
+    def fromAPI: DependencyMailSeed = DependencyMailSeed(kind = m.kind.fromAPI, address = m.address)
   }
 
   implicit class MailKindWrapper(private val mk: MailKind) extends AnyVal {

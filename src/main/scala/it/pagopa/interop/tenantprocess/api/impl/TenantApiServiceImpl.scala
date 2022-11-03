@@ -215,7 +215,7 @@ final case class TenantApiServiceImpl(
       def updateTenant(): Future[DependencyTenant]                     = tenantManagementService
         .updateTenant(
           tenant.id,
-          TenantDelta(selfcareId = seed.selfcareId.some, features = tenant.features, mails = tenant.mails)
+          TenantDelta(selfcareId = seed.selfcareId.some, features = tenant.features, mails = tenant.mails.map(_.toSeed))
         )
       def verifyConflict(selfcareId: String): Future[DependencyTenant] = Future
         .failed(SelfcareIdConflict(tenant.id, selfcareId, seed.selfcareId))
