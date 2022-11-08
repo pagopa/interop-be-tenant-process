@@ -35,7 +35,8 @@ import it.pagopa.interop.tenantprocess.model.MailSeed
 object ApiAdapters {
 
   implicit class MailWrapper(private val m: Mail) extends AnyVal {
-    def fromAPI: DependencyMailSeed = DependencyMailSeed(kind = m.kind.fromAPI, address = m.address)
+    def fromAPI: DependencyMailSeed =
+      DependencyMailSeed(kind = m.kind.fromAPI, address = m.address, description = m.description)
   }
 
   implicit class MailKindWrapper(private val mk: MailKind) extends AnyVal {
@@ -62,7 +63,8 @@ object ApiAdapters {
   }
 
   implicit class MailSeedWrapper(private val ms: MailSeed) extends AnyVal {
-    def toDependency: DependencyMailSeed = DependencyMailSeed(kind = ms.kind.fromAPI, address = ms.address)
+    def toDependency: DependencyMailSeed =
+      DependencyMailSeed(kind = ms.kind.fromAPI, address = ms.address, description = ms.description)
   }
 
   implicit class ExternalIdWrapper(private val id: ExternalId) extends AnyVal {

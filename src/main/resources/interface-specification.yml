@@ -674,6 +674,8 @@ components:
           $ref: '#/components/schemas/MailKind'
         address:
           type: string
+        description:
+          type: string
       required:
         - kind
         - address
@@ -688,6 +690,8 @@ components:
         createdAt:
           type: string
           format: date-time
+        description:
+          type: string
       required:
         - kind
         - address
