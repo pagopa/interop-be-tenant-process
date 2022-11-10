@@ -58,6 +58,13 @@
       "roles": [
         "admin"
       ]
+    },
+    {
+      "route": "updateTenant",
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ]
     }
   ]
 }

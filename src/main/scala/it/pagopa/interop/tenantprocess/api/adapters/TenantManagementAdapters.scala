@@ -15,7 +15,10 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantRevoker => DependencyTenantRevoker,
   TenantVerifier => DependencyTenantVerifier,
   VerificationRenewal => DependencyVerificationRenewal,
-  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
+  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
+  Mail => DependencyMail,
+  MailKind => DependencyMailKind,
+  MailSeed => DependencyMailSeed
 }
 import it.pagopa.interop.tenantprocess.model._
 import spray.json._
@@ -34,8 +37,20 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       features = t.features.map(_.toApi),
       attributes = t.attributes.map(_.toApi),
       createdAt = t.createdAt,
-      updatedAt = t.updatedAt
+      updatedAt = t.updatedAt,
+      mails = t.mails.map(_.toApi)
     )
+  }
+
+  implicit class DependencyMailWrapper(private val m: DependencyMail) extends AnyVal {
+    def toApi: Mail                = Mail(kind = m.kind.toApi, address = m.address, createdAt = m.createdAt)
+    def toSeed: DependencyMailSeed = DependencyMailSeed(m.kind, m.address, m.description)
+  }
+
+  implicit class DependencyMailKindWrapper(private val k: DependencyMailKind) extends AnyVal {
+    def toApi: MailKind = k match {
+      case DependencyMailKind.CONTACT_EMAIL => MailKind.CONTACT_EMAIL
+    }
   }
 
   implicit class DependencyExternalIdWrapper(private val t: DependencyExternalId) extends AnyVal {

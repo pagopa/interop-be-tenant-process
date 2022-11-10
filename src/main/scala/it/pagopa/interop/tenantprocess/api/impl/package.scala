@@ -10,6 +10,10 @@ import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 package object impl extends SprayJsonSupport with DefaultJsonProtocol {
 
+  implicit def mailSeedFormat: RootJsonFormat[MailSeed]       = jsonFormat3(MailSeed)
+  implicit def mailFormat: RootJsonFormat[Mail]               = jsonFormat4(Mail)
+  implicit def tenantDeltaFormat: RootJsonFormat[TenantDelta] = jsonFormat3(TenantDelta)
+
   implicit def externalIdFormat: RootJsonFormat[ExternalId] = jsonFormat2(ExternalId)
 
   implicit def internalAttributeSeedFormat: RootJsonFormat[InternalAttributeSeed] = jsonFormat2(InternalAttributeSeed)
@@ -42,7 +46,7 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def tenantVerifierFormat: RootJsonFormat[TenantVerifier] = jsonFormat5(TenantVerifier)
   implicit def tenantRevokerFormat: RootJsonFormat[TenantRevoker]   = jsonFormat6(TenantRevoker)
 
-  implicit def tenantFormat: RootJsonFormat[Tenant]             = jsonFormat7(Tenant)
+  implicit def tenantFormat: RootJsonFormat[Tenant]             = jsonFormat8(Tenant)
   implicit def problemErrorFormat: RootJsonFormat[ProblemError] = jsonFormat2(ProblemError)
   implicit def problemFormat: RootJsonFormat[Problem]           = jsonFormat5(Problem)
 

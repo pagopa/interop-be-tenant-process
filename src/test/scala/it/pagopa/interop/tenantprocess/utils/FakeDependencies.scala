@@ -97,7 +97,8 @@ object FakeDependencies extends SpecData {
     features = Seq(TenantFeature(certifier = Some(Certifier("SOMETHING")))),
     attributes = Nil,
     createdAt = OffsetDateTime.now(),
-    updatedAt = None
+    updatedAt = None,
+    mails = Nil
   )
 
   val fakeAttribute: TenantAttribute = TenantAttribute(None, None, None)

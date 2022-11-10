@@ -188,6 +188,30 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+    post:
+      tags:
+        - tenant
+      operationId: updateTenant
+      description: Updates the tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantDelta'
+      responses:
+        '200':
+          description: Tenant updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '404':
+          description: Tenant Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /tenants/attributes/declared:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -426,6 +450,10 @@ components:
         updatedAt:
           type: string
           format: date-time
+        mails:
+          type: array
+          items:
+            $ref: '#/components/schemas/Mail'
       required:
         - id
         - certifier
@@ -433,6 +461,7 @@ components:
         - features
         - attributes
         - createdAt
+        - mails
     TenantFeature:
       type: object
       properties:
@@ -620,6 +649,57 @@ components:
       required:
         - externalId
         - selfcareId
+    TenantDelta:
+      description: Tenant Delta model
+      type: object
+      properties:
+        selfcareId:
+          type: string
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantFeature'
+        mails:
+          type: array
+          items:
+            $ref: '#/components/schemas/MailSeed'
+      required:
+        - features
+        - mails
+    MailSeed:
+      description: A specific kind of mail
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/MailKind'
+        address:
+          type: string
+        description:
+          type: string
+      required:
+        - kind
+        - address
+    Mail:
+      description: A specific kind of mail
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/MailKind'
+        address:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+      required:
+        - kind
+        - address
+        - createdAt
+    MailKind:
+      type: string
+      enum:
+        - CONTACT_EMAIL
     Problem:
       properties:
         type:

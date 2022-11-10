@@ -99,4 +99,12 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     )
   }
 
+  test("Tenant api should accept authorized roles for updateTenant") {
+    validateAuthorization(
+      endpoints("updateTenant"),
+      { implicit c: Seq[(String, String)] =>
+        tenantService.updateTenant(UUID.randomUUID().toString, fakeTenantDelta)
+      }
+    )
+  }
 }

@@ -7,20 +7,65 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantAttribute => DependencyTenantAttribute,
   TenantVerifier => DependencyTenantVerifier,
   VerificationRenewal => DependencyVerificationRenewal,
-  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
+  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
+  TenantFeature => DependencyTenantFeature,
+  Certifier => DependencyCertifier,
+  MailKind => DependencyMailKind,
+  MailSeed => DependencyMailSeed,
+  TenantDelta => DependencyTenantDelta
 }
 import it.pagopa.interop.tenantprocess.model.VerificationRenewal._
 import it.pagopa.interop.tenantprocess.model.{
   DeclaredTenantAttributeSeed,
   ExternalId,
   VerificationRenewal,
-  VerifiedTenantAttributeSeed
+  TenantFeature,
+  Certifier,
+  VerifiedTenantAttributeSeed,
+  TenantDelta,
+  Mail,
+  MailKind
 }
 
 import java.time.OffsetDateTime
 import java.util.UUID
+import it.pagopa.interop.tenantmanagement.client.model.MailKind.CONTACT_EMAIL
+import it.pagopa.interop.tenantprocess.model.MailSeed
 
 object ApiAdapters {
+
+  implicit class MailWrapper(private val m: Mail) extends AnyVal {
+    def fromAPI: DependencyMailSeed =
+      DependencyMailSeed(kind = m.kind.fromAPI, address = m.address, description = m.description)
+  }
+
+  implicit class MailKindWrapper(private val mk: MailKind) extends AnyVal {
+    def fromAPI: DependencyMailKind = mk match {
+      case MailKind.CONTACT_EMAIL => CONTACT_EMAIL
+    }
+  }
+
+  implicit class TenantFeatureWrapper(private val tf: TenantFeature) extends AnyVal {
+    def fromAPI: DependencyTenantFeature = DependencyTenantFeature(tf.certifier.map(_.fromAPI))
+  }
+
+  implicit class CertifierWrapper(private val c: Certifier) extends AnyVal {
+    def fromAPI: DependencyCertifier = DependencyCertifier(c.certifierId)
+  }
+
+  implicit class TenantDeltaWrapper(private val td: TenantDelta) extends AnyVal {
+    def fromAPI: DependencyTenantDelta =
+      DependencyTenantDelta(
+        selfcareId = td.selfcareId,
+        features = td.features.map(_.fromAPI),
+        mails = td.mails.map(_.toDependency)
+      )
+  }
+
+  implicit class MailSeedWrapper(private val ms: MailSeed) extends AnyVal {
+    def toDependency: DependencyMailSeed =
+      DependencyMailSeed(kind = ms.kind.fromAPI, address = ms.address, description = ms.description)
+  }
 
   implicit class ExternalIdWrapper(private val id: ExternalId) extends AnyVal {
     def toDependency: DependencyExternalId = DependencyExternalId(origin = id.origin, value = id.value)

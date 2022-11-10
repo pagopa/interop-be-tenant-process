@@ -441,7 +441,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val expectedTenantSeed   =
       TenantSeed(id = Some(tenantId), externalId = seed.externalId.toDependency, features = Nil, attributes = Nil)
-    val expectedTenantUpdate = TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil)
+    val expectedTenantUpdate = TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil, mails = Nil)
 
     mockDateTimeGet()
     mockUuidGet(tenantId)
@@ -467,7 +467,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       features = Seq(TenantFeature(certifier = Some(Certifier("something"))))
     )
 
-    val expectedTenantUpdate = TenantDelta(selfcareId = Some(seed.selfcareId), features = tenant.features)
+    val expectedTenantUpdate = TenantDelta(selfcareId = Some(seed.selfcareId), features = tenant.features, mails = Nil)
 
     mockDateTimeGet()
 
