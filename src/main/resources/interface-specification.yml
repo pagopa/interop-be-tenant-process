@@ -454,6 +454,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Mail'
+        name:
+          type: string
       required:
         - id
         - certifier
@@ -462,6 +464,7 @@ components:
         - attributes
         - createdAt
         - mails
+        - name
     TenantFeature:
       type: object
       properties:
