@@ -9,6 +9,7 @@ import com.typesafe.scalalogging.Logger
 import it.pagopa.interop.agreementmanagement.client.model.AgreementState
 import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdFutureUUID
@@ -24,10 +25,10 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   Certifier => DependencyCertifier,
   Problem => TenantProblem,
   Tenant => DependencyTenant,
-  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
-  TenantVerifier => DependencyTenantVerifier,
   TenantAttribute => DependencyTenantAttribute,
-  TenantRevoker => DependencyTenantRevoker
+  TenantRevoker => DependencyTenantRevoker,
+  TenantVerifier => DependencyTenantVerifier,
+  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed
@@ -35,6 +36,7 @@ import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed._
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.AttributeRegistryManagementAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.TenantManagementAdapters._
+import it.pagopa.interop.tenantprocess.api.adapters.ReadModelTenantAdapters._
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
@@ -44,6 +46,7 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import it.pagopa.interop.tenantprocess
+import it.pagopa.interop.tenantprocess.common.readmodel.ReadModelQueries
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
@@ -51,6 +54,7 @@ final case class TenantApiServiceImpl(
   agreementProcessService: AgreementProcessService,
   agreementManagementService: AgreementManagementService,
   catalogManagementService: CatalogManagementService,
+  readModel: ReadModelService,
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext)
@@ -62,6 +66,29 @@ final case class TenantApiServiceImpl(
     route: => Route
   )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
     authorizeInterop(hasPermissions(roles: _*), problemOf(StatusCodes.Forbidden, OperationForbidden))(route)
+
+  override def getProducers(name: Option[String], offset: Int, limit: Int)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerTenants: ToEntityMarshaller[Tenants]
+  ): Route = {
+    implicit val problemMarshaller: ToEntityMarshaller[Problem] = entityMarshallerProblem
+    authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE) {
+      logger.info(s"Retrieving Producers with name = $name, limit = $limit, offset = $offset")
+
+      val result: Future[Tenants] = for {
+        result <- ReadModelQueries.listProducers(name, offset, limit)(readModel)
+      } yield Tenants(tenants = result.results.map(_.toApi), totalCount = result.totalCount)
+
+      onComplete(result) {
+        case Success(response) => getProducers200(response)
+        case Failure(ex)       =>
+          val message = s"Retrieving Producers with name = $name, limit = $limit, offset = $offset"
+          logger.error(message, ex)
+          val error   = problemOf(StatusCodes.InternalServerError, GenericError(message))
+          complete(error.status, error)
+      }
+    }
+  }
 
   override def updateTenant(id: String, tenantDelta: tenantprocess.model.TenantDelta)(implicit
     contexts: Seq[(String, String)],
@@ -77,7 +104,7 @@ final case class TenantApiServiceImpl(
       handleApiError() orElse {
         case Success(tenant) => updateTenant200(tenant)
         case Failure(ex)     =>
-          logger.error(s"Error updating tenant with id ${id}", ex)
+          logger.error(s"Error updating tenant with id $id", ex)
           internalServerError()
       }
     }
