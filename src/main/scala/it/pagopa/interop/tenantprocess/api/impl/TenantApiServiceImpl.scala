@@ -99,7 +99,8 @@ final case class TenantApiServiceImpl(
       logger.info(s"Retrieving Consumers with name = $name, limit = $limit, offset = $offset")
 
       val result: Future[Tenants] = for {
-        result <- ReadModelQueries.listConsumers(name, offset, limit)(readModel)
+        requesterId <- getOrganizationIdFutureUUID(contexts)
+        result      <- ReadModelQueries.listConsumers(name, requesterId, offset, limit)(readModel)
       } yield Tenants(tenants = result.results.map(_.toApi), totalCount = result.totalCount)
 
       onComplete(result) {
