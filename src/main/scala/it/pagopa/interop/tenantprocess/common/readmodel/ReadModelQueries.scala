@@ -17,7 +17,7 @@ object ReadModelQueries {
   def listProducers(name: Option[String], offset: Int, limit: Int)(
     readModel: ReadModelService
   )(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentTenant]] = {
-    val query = listProducersFilters(name)
+    val query = listTenantsFilters(name)
 
     for {
       // Using aggregate to perform case insensitive sorting
@@ -54,7 +54,7 @@ object ReadModelQueries {
   def listConsumers(name: Option[String], offset: Int, limit: Int)(
     readModel: ReadModelService
   )(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentTenant]] = {
-    val query = listConsumersFilters(name)
+    val query = listTenantsFilters(name)
 
     for {
       // Using aggregate to perform case insensitive sorting
@@ -88,13 +88,7 @@ object ReadModelQueries {
     } yield PaginatedResult(results = tenants, totalCount = count.headOption.map(_.totalCount).getOrElse(0))
   }
 
-  def listProducersFilters(name: Option[String]): Bson = {
-    val nameFilter = name.map(Filters.regex("data.name", _, "i"))
-
-    mapToVarArgs(nameFilter.toList)(Filters.and).getOrElse(Filters.empty())
-  }
-
-  def listConsumersFilters(name: Option[String]): Bson = {
+  def listTenantsFilters(name: Option[String]): Bson = {
     val nameFilter = name.map(Filters.regex("data.name", _, "i"))
 
     mapToVarArgs(nameFilter.toList)(Filters.and).getOrElse(Filters.empty())
