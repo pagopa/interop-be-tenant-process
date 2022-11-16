@@ -90,6 +90,29 @@ final case class TenantApiServiceImpl(
     }
   }
 
+  override def getConsumers(name: Option[String], offset: Int, limit: Int)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerTenants: ToEntityMarshaller[Tenants]
+  ): Route = {
+    implicit val problemMarshaller: ToEntityMarshaller[Problem] = entityMarshallerProblem
+    authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE) {
+      logger.info(s"Retrieving Consumers with name = $name, limit = $limit, offset = $offset")
+
+      val result: Future[Tenants] = for {
+        result <- ReadModelQueries.listConsumers(name, offset, limit)(readModel)
+      } yield Tenants(tenants = result.results.map(_.toApi), totalCount = result.totalCount)
+
+      onComplete(result) {
+        case Success(response) => getConsumers200(response)
+        case Failure(ex)       =>
+          val message = s"Retrieving Consumers with name = $name, limit = $limit, offset = $offset"
+          logger.error(message, ex)
+          val error   = problemOf(StatusCodes.InternalServerError, GenericError(message))
+          complete(error.status, error)
+      }
+    }
+  }
+
   override def updateTenant(id: String, tenantDelta: tenantprocess.model.TenantDelta)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
