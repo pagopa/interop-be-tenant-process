@@ -194,6 +194,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tenants'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /producers:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -229,6 +235,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tenants'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /tenants/{id}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
