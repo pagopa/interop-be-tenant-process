@@ -44,7 +44,8 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       id = Some(tenantId),
       externalId = seed.externalId.toDependency,
       features = Nil,
-      attributes = Seq(expectedAttribute1, expectedAttribute2)
+      attributes = Seq(expectedAttribute1, expectedAttribute2),
+      name = "test_name"
     )
 
     mockDateTimeGet()
@@ -188,7 +189,8 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       id = Some(newTenantId),
       externalId = seed.externalId.toDependency,
       features = Nil,
-      attributes = Seq(expectedAttribute1, expectedAttribute2)
+      attributes = Seq(expectedAttribute1, expectedAttribute2),
+      name = "test_name"
     )
 
     mockDateTimeGet()
@@ -440,7 +442,13 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val tenant   = dependencyTenant.copy(id = tenantId)
 
     val expectedTenantSeed   =
-      TenantSeed(id = Some(tenantId), externalId = seed.externalId.toDependency, features = Nil, attributes = Nil)
+      TenantSeed(
+        id = Some(tenantId),
+        externalId = seed.externalId.toDependency,
+        features = Nil,
+        attributes = Nil,
+        name = "test_name"
+      )
     val expectedTenantUpdate = TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil, mails = Nil)
 
     mockDateTimeGet()

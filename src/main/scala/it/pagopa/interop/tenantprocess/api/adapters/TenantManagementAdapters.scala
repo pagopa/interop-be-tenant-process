@@ -38,7 +38,8 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       attributes = t.attributes.map(_.toApi),
       createdAt = t.createdAt,
       updatedAt = t.updatedAt,
-      mails = t.mails.map(_.toApi)
+      mails = t.mails.map(_.toApi),
+      name = t.name
     )
   }
 

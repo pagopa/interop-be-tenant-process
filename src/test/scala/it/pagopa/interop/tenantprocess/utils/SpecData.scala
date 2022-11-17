@@ -38,11 +38,11 @@ trait SpecData {
   val m2mAttributeSeed: M2MAttributeSeed           = M2MAttributeSeed(s"m2m-attribute-${UUID.randomUUID()}")
 
   val internalTenantSeed: InternalTenantSeed =
-    InternalTenantSeed(ExternalId("IPA", s"tenant-${UUID.randomUUID()}"), Seq(internalAttributeSeed))
+    InternalTenantSeed(ExternalId("IPA", s"tenant-${UUID.randomUUID()}"), Seq(internalAttributeSeed), "test_name")
   val m2mTenantSeed: M2MTenantSeed           =
-    M2MTenantSeed(ExternalId("IPA", s"tenant-${UUID.randomUUID()}"), Seq(m2mAttributeSeed))
+    M2MTenantSeed(ExternalId("IPA", s"tenant-${UUID.randomUUID()}"), Seq(m2mAttributeSeed), "test_name")
   val selfcareTenantSeed: SelfcareTenantSeed =
-    SelfcareTenantSeed(ExternalId("IPA", s"tenant-${UUID.randomUUID()}"), UUID.randomUUID().toString)
+    SelfcareTenantSeed(ExternalId("IPA", s"tenant-${UUID.randomUUID()}"), UUID.randomUUID().toString, "test_name")
 
   val dependencyTenant: DependencyTenant = DependencyTenant(
     id = UUID.randomUUID(),
@@ -52,7 +52,8 @@ trait SpecData {
     attributes = Nil,
     createdAt = timestamp,
     updatedAt = None,
-    mails = Nil
+    mails = Nil,
+    name = "test_name"
   )
 
   val fakeTenantDelta: TenantDelta = TenantDelta(selfcareId = None, features = Nil, mails = Nil)

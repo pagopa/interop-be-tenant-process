@@ -17,12 +17,12 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def externalIdFormat: RootJsonFormat[ExternalId] = jsonFormat2(ExternalId)
 
   implicit def internalAttributeSeedFormat: RootJsonFormat[InternalAttributeSeed] = jsonFormat2(InternalAttributeSeed)
-  implicit def internalTenantSeedFormat: RootJsonFormat[InternalTenantSeed]       = jsonFormat2(InternalTenantSeed)
+  implicit def internalTenantSeedFormat: RootJsonFormat[InternalTenantSeed]       = jsonFormat3(InternalTenantSeed)
 
   implicit def m2mAttributeSeedFormat: RootJsonFormat[M2MAttributeSeed] = jsonFormat1(M2MAttributeSeed)
-  implicit def m2mTenantSeedFormat: RootJsonFormat[M2MTenantSeed]       = jsonFormat2(M2MTenantSeed)
+  implicit def m2mTenantSeedFormat: RootJsonFormat[M2MTenantSeed]       = jsonFormat3(M2MTenantSeed)
 
-  implicit def selfcareTenantSeedFormat: RootJsonFormat[SelfcareTenantSeed] = jsonFormat2(SelfcareTenantSeed)
+  implicit def selfcareTenantSeedFormat: RootJsonFormat[SelfcareTenantSeed] = jsonFormat3(SelfcareTenantSeed)
 
   implicit def certifierFormat: RootJsonFormat[Certifier]             = jsonFormat1(Certifier)
   implicit def tenantFeatureFormat: RootJsonFormat[TenantFeature]     = jsonFormat1(TenantFeature)
@@ -46,7 +46,7 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def tenantVerifierFormat: RootJsonFormat[TenantVerifier] = jsonFormat5(TenantVerifier)
   implicit def tenantRevokerFormat: RootJsonFormat[TenantRevoker]   = jsonFormat6(TenantRevoker)
 
-  implicit def tenantFormat: RootJsonFormat[Tenant]             = jsonFormat8(Tenant)
+  implicit def tenantFormat: RootJsonFormat[Tenant]             = jsonFormat9(Tenant)
   implicit def problemErrorFormat: RootJsonFormat[ProblemError] = jsonFormat2(ProblemError)
   implicit def problemFormat: RootJsonFormat[Problem]           = jsonFormat5(Problem)
 
