@@ -98,7 +98,8 @@ object FakeDependencies extends SpecData {
     attributes = Nil,
     createdAt = OffsetDateTime.now(),
     updatedAt = None,
-    mails = Nil
+    mails = Nil,
+    name = "test_name"
   )
 
   val fakeAttribute: TenantAttribute = TenantAttribute(None, None, None)

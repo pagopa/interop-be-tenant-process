@@ -536,6 +536,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Mail'
+        name:
+          type: string
       required:
         - id
         - certifier
@@ -544,6 +546,7 @@ components:
         - attributes
         - createdAt
         - mails
+        - name
     Tenants:
       type: object
       properties:
@@ -717,9 +720,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InternalAttributeSeed'
+        name:
+          type: string
       required:
         - externalId
         - certifiedAttributes
+        - name
     M2MTenantSeed:
       description: Tenant Seed model
       type: object
@@ -730,9 +736,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/M2MAttributeSeed'
+        name:
+          type: string
       required:
         - externalId
         - certifiedAttributes
+        - name
     SelfcareTenantSeed:
       description: Tenant Seed model
       type: object
@@ -741,9 +750,12 @@ components:
           $ref: '#/components/schemas/ExternalId'
         selfcareId:
           type: string
+        name:
+          type: string
       required:
         - externalId
         - selfcareId
+        - name
     TenantDelta:
       description: Tenant Delta model
       type: object
