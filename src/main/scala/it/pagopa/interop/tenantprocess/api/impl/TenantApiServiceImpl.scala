@@ -76,7 +76,7 @@ final case class TenantApiServiceImpl(
 
     val result: Future[Tenants] = for {
       result <- ReadModelQueries.listProducers(name, offset, limit)(readModel)
-    } yield Tenants(tenants = result.results.map(_.toApi), totalCount = result.totalCount)
+    } yield Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount)
 
     onComplete(result) {
       case Success(response) => getProducers200(response)
@@ -98,7 +98,7 @@ final case class TenantApiServiceImpl(
     val result: Future[Tenants] = for {
       requesterId <- getOrganizationIdFutureUUID(contexts)
       result      <- ReadModelQueries.listConsumers(name, requesterId, offset, limit)(readModel)
-    } yield Tenants(tenants = result.results.map(_.toApi), totalCount = result.totalCount)
+    } yield Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount)
 
     onComplete(result) {
       case Success(response) => getConsumers200(response)

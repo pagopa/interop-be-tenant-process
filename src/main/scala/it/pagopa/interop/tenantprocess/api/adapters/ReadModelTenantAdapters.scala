@@ -12,6 +12,7 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
   implicit class PersistentTenantWrapper(private val t: PersistentTenant) extends AnyVal {
     def toApi: Tenant = Tenant(
       id = t.id,
+      name = t.name,
       selfcareId = t.selfcareId,
       externalId = t.externalId.toApi,
       features = t.features.map(_.toApi),

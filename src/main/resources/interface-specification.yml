@@ -550,7 +550,7 @@ components:
     Tenants:
       type: object
       properties:
-        tenants:
+        results:
           type: array
           items:
             $ref: '#/components/schemas/Tenant'
@@ -558,7 +558,7 @@ components:
           type: integer
           format: int32
       required:
-        - tenants
+        - results
         - totalCount
     TenantFeature:
       type: object
