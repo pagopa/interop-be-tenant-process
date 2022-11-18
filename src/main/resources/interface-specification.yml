@@ -159,6 +159,47 @@ paths:
             schema:
               $ref: '#/components/schemas/SelfcareTenantSeed'
         required: true
+  /consumers:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - in: query
+        name: name
+        schema:
+          type: string
+      - in: query
+        name: offset
+        required: true
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      - in: query
+        name: limit
+        required: true
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 50
+    get:
+      tags:
+        - tenant
+      operationId: getConsumers
+      description: Retrieve Tenants that are subscribed to at least one EService
+      responses:
+        '200':
+          description: Tenants retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenants'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /producers:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -194,6 +235,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tenants'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /tenants/{id}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -489,6 +536,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Mail'
+        name:
+          type: string
       required:
         - id
         - certifier
@@ -497,10 +546,11 @@ components:
         - attributes
         - createdAt
         - mails
+        - name
     Tenants:
       type: object
       properties:
-        tenants:
+        results:
           type: array
           items:
             $ref: '#/components/schemas/Tenant'
@@ -508,7 +558,7 @@ components:
           type: integer
           format: int32
       required:
-        - tenants
+        - results
         - totalCount
     TenantFeature:
       type: object
@@ -670,9 +720,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InternalAttributeSeed'
+        name:
+          type: string
       required:
         - externalId
         - certifiedAttributes
+        - name
     M2MTenantSeed:
       description: Tenant Seed model
       type: object
@@ -683,9 +736,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/M2MAttributeSeed'
+        name:
+          type: string
       required:
         - externalId
         - certifiedAttributes
+        - name
     SelfcareTenantSeed:
       description: Tenant Seed model
       type: object
@@ -694,9 +750,12 @@ components:
           $ref: '#/components/schemas/ExternalId'
         selfcareId:
           type: string
+        name:
+          type: string
       required:
         - externalId
         - selfcareId
+        - name
     TenantDelta:
       description: Tenant Delta model
       type: object

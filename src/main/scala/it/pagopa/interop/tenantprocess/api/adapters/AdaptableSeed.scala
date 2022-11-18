@@ -16,16 +16,34 @@ object AdaptableSeed {
 
   implicit val internalAdaptable: AdaptableSeed[InternalTenantSeed] = new AdaptableSeed[InternalTenantSeed] {
     def toDependencySeed(a: InternalTenantSeed, id: UUID, attributes: Seq[TenantAttribute]): TenantSeed =
-      TenantSeed(id = Some(id), externalId = a.externalId.toDependency, features = Nil, attributes = attributes)
+      TenantSeed(
+        id = Some(id),
+        externalId = a.externalId.toDependency,
+        features = Nil,
+        attributes = attributes,
+        name = a.name
+      )
   }
 
   implicit val m2mAdaptable: AdaptableSeed[M2MTenantSeed] = new AdaptableSeed[M2MTenantSeed] {
     def toDependencySeed(a: M2MTenantSeed, id: UUID, attributes: Seq[TenantAttribute]): TenantSeed =
-      TenantSeed(id = Some(id), externalId = a.externalId.toDependency, features = Nil, attributes = attributes)
+      TenantSeed(
+        id = Some(id),
+        externalId = a.externalId.toDependency,
+        features = Nil,
+        attributes = attributes,
+        name = a.name
+      )
   }
 
   implicit val selfcareAdaptable: AdaptableSeed[SelfcareTenantSeed] = new AdaptableSeed[SelfcareTenantSeed] {
     def toDependencySeed(a: SelfcareTenantSeed, id: UUID, attributes: Seq[TenantAttribute]): TenantSeed =
-      TenantSeed(id = Some(id), externalId = a.externalId.toDependency, features = Nil, attributes = attributes)
+      TenantSeed(
+        id = Some(id),
+        externalId = a.externalId.toDependency,
+        features = Nil,
+        attributes = attributes,
+        name = a.name
+      )
   }
 }
