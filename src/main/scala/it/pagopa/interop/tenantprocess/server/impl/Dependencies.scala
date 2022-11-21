@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.directives.SecurityDirectives
 import com.atlassian.oai.validator.report.ValidationReport
 import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
@@ -45,6 +46,8 @@ trait Dependencies {
     )
     .toFuture
 
+  val readModelService: ReadModelService = new ReadModelService(ApplicationConfiguration.readModelConfig)
+
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
       problemOf(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report))
@@ -69,6 +72,7 @@ trait Dependencies {
         agreementProcess(blockingEc),
         agreementManagement(blockingEc),
         catalogManagement(blockingEc),
+        readModelService,
         uuidSupplier,
         dateTimeSupplier
       ),

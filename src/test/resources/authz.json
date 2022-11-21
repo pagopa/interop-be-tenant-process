@@ -1,6 +1,24 @@
 {
   "endpoints": [
     {
+      "route": "getProducers",
+      "verb": "GET",
+      "roles": [
+        "admin",
+        "api",
+        "security"
+      ]
+    },
+    {
+      "route": "getConsumers",
+      "verb": "GET",
+      "roles": [
+        "admin",
+        "api",
+        "security"
+      ]
+    },
+    {
       "route": "internalUpsertTenant",
       "verb": "POST",
       "roles": [

@@ -1,5 +1,7 @@
 package it.pagopa.interop.tenantprocess.authz
 
+import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantprocess.api._
 import it.pagopa.interop.tenantprocess.api.impl._
@@ -21,6 +23,12 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
   val fakeAgreementManagement: FakeAgreementManagement                 = FakeAgreementManagement()
   val fakeCatalogManagement: FakeCatalogManagement                     = FakeCatalogManagement()
   val fakeAgreementProcess: FakeAgreementProcess                       = FakeAgreementProcess()
+  val dummyReadModel: ReadModelService                                 = new ReadModelService(
+    ReadModelConfig(
+      "mongodb://localhost/?socketTimeoutMS=1&serverSelectionTimeoutMS=1&connectTimeoutMS=1&&autoReconnect=false&keepAlive=false",
+      "db"
+    )
+  )
   val dummyDateTimeSupplier: OffsetDateTimeSupplier                    = () => OffsetDateTime.now()
   val dummyUuidSupplier: UUIDSupplier                                  = () => UUID.randomUUID()
 
@@ -30,9 +38,24 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     fakeAgreementProcess,
     fakeAgreementManagement,
     fakeCatalogManagement,
+    dummyReadModel,
     dummyUuidSupplier,
     dummyDateTimeSupplier
   )
+
+  test("Tenant api should accept authorized roles for getProducers") {
+    validateAuthorization(
+      endpoints("getProducers"),
+      { implicit c: Seq[(String, String)] => tenantService.getProducers(None, 0, 0) }
+    )
+  }
+
+  test("Tenant api should accept authorized roles for getConsumers") {
+    validateAuthorization(
+      endpoints("getConsumers"),
+      { implicit c: Seq[(String, String)] => tenantService.getConsumers(None, 0, 0) }
+    )
+  }
 
   test("Tenant api should accept authorized roles for internalUpsertTenant") {
     validateAuthorization(
