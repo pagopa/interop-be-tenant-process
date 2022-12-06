@@ -62,7 +62,12 @@ final case class TenantManagementServiceImpl(
       tenantDelta = payload,
       xForwardedFor = ip
     )(BearerToken(bearerToken))
-    invoker.invoke(request, s"Updating tenant with id $tenantId")
+    invoker
+      .invoke(request, s"Updating tenant with id $tenantId")
+      .recoverWith {
+        case err: ApiError[_] if err.code == 404 =>
+          Future.failed(TenantByIdNotFound(tenantId))
+      }
   }
 
   override def addTenantAttribute(tenantId: UUID, attribute: TenantAttribute)(implicit
