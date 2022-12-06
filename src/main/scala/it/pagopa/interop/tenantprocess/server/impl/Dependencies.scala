@@ -13,20 +13,20 @@ import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.interop.commons.utils.TypeConversions._
+import it.pagopa.interop.commons.utils.errors.{Problem => CommonProblem}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.tenantprocess.api.impl.{
   HealthApiMarshallerImpl,
   HealthServiceApiImpl,
   TenantApiMarshallerImpl,
-  TenantApiServiceImpl,
-  entityMarshallerProblem,
-  problemOf
+  TenantApiServiceImpl
 }
 import it.pagopa.interop.tenantprocess.api.{HealthApi, TenantApi}
 import it.pagopa.interop.tenantprocess.common.system.ApplicationConfiguration
+import it.pagopa.interop.tenantprocess.error.Handlers.serviceCode
 import it.pagopa.interop.tenantprocess.service.impl._
-import it.pagopa.interop.tenantprocess.service.{AgreementManagementInvoker, AgreementManagementService, _}
+import it.pagopa.interop.tenantprocess.service._
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
@@ -50,8 +50,8 @@ trait Dependencies {
 
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
-      problemOf(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report))
-    complete(error.status, error)(entityMarshallerProblem)
+      CommonProblem(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report), serviceCode)
+    complete(error.status, error)
   }
 
   val healthApi: HealthApi = new HealthApi(
@@ -91,10 +91,14 @@ trait Dependencies {
   private final val tenantManagementAttributesApi: TenantManagementAttributesApi =
     TenantManagementAttributesApi(ApplicationConfiguration.tenantManagementURL)
 
-  def tenantManagement(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): TenantManagementService =
-    TenantManagementServiceImpl(tenantManagementInvoker(blockingEc), tenantManagementApi, tenantManagementAttributesApi)
+  def tenantManagement(
+    blockingEc: ExecutionContextExecutor
+  )(implicit actorSystem: ActorSystem[_]): TenantManagementService =
+    TenantManagementServiceImpl(
+      tenantManagementInvoker(blockingEc),
+      tenantManagementApi,
+      tenantManagementAttributesApi
+    )(blockingEc)
 
   private final val agreementProcessApi: AgreementProcessApi =
     AgreementProcessApi(ApplicationConfiguration.agreementProcessURL)
@@ -149,6 +153,6 @@ trait Dependencies {
     AttributeRegistryManagementServiceImpl(
       attributeRegistryManagementInvoker(blockingEc),
       attributeRegistryManagementApi
-    )
+    )(blockingEc)
 
 }

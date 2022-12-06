@@ -270,7 +270,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeByExternalIdNotFound(certifierId, code)
 
     Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
-      assert(status == StatusCodes.BadRequest)
+      assert(status == StatusCodes.NotFound)
     }
   }
 
