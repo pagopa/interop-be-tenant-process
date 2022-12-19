@@ -34,7 +34,7 @@ import it.pagopa.interop.tenantprocess.api.adapters.AttributeRegistryManagementA
 import it.pagopa.interop.tenantprocess.api.adapters.ReadModelTenantAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.TenantManagementAdapters._
 import it.pagopa.interop.tenantprocess.common.readmodel.ReadModelQueries
-import it.pagopa.interop.tenantprocess.error.Handlers._
+import it.pagopa.interop.tenantprocess.error.ResponseHandlers._
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
@@ -42,7 +42,6 @@ import it.pagopa.interop.tenantprocess.service._
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Success
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
@@ -72,7 +71,7 @@ final case class TenantApiServiceImpl(
       .map(result => Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount))
 
     onComplete(result) {
-      handleProducersRetrieveError(operationLabel) orElse { case Success(response) => getProducers200(response) }
+      getProducersResponse[Tenants](operationLabel)(getProducers200)
     }
   }
 
@@ -90,7 +89,7 @@ final case class TenantApiServiceImpl(
     } yield Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount)
 
     onComplete(result) {
-      handleConsumersRetrieveError(operationLabel) orElse { case Success(response) => getConsumers200(response) }
+      getConsumersResponse[Tenants](operationLabel)(getConsumers200)
     }
   }
 
@@ -108,7 +107,7 @@ final case class TenantApiServiceImpl(
     } yield tenant.toApi
 
     onComplete(result) {
-      handleTenantUpdateError(operationLabel) orElse { case Success(tenant) => updateTenant200(tenant) }
+      updateTenantResponse[Tenant](operationLabel)(updateTenant200)
     }
   }
 
@@ -131,7 +130,7 @@ final case class TenantApiServiceImpl(
     } yield tenant.toApi
 
     onComplete(result) {
-      handleInternalTenantUpsertError(operationLabel) orElse { case Success(tenant) => internalUpsertTenant200(tenant) }
+      internalUpsertTenantResponse[Tenant](operationLabel)(internalUpsertTenant200)
     }
   }
 
@@ -163,7 +162,7 @@ final case class TenantApiServiceImpl(
       } yield tenant.toApi
 
       onComplete(result) {
-        handleM2MTenantUpsertError(operationLabel) orElse { case Success(tenant) => m2mUpsertTenant200(tenant) }
+        m2mUpsertTenantResponse[Tenant](operationLabel)(m2mUpsertTenant200)
       }
     }
 
@@ -200,7 +199,7 @@ final case class TenantApiServiceImpl(
     } yield ()
 
     onComplete(result) {
-      handleM2MTenantRevokeError(operationLabel) orElse { case Success(()) => m2mRevokeAttribute204 }
+      m2mRevokeAttributeResponse[Unit](operationLabel)(_ => m2mRevokeAttribute204)
     }
   }
 
@@ -239,7 +238,7 @@ final case class TenantApiServiceImpl(
     } yield updatedTenant.toApi
 
     onComplete(result) {
-      handleSelfcareTenantUpsertError(operationLabel) orElse { case Success(tenant) => selfcareUpsertTenant200(tenant) }
+      selfcareUpsertTenantResponse[Tenant](operationLabel)(selfcareUpsertTenant200)
     }
   }
 
@@ -280,9 +279,7 @@ final case class TenantApiServiceImpl(
     } yield tenant.toApi
 
     onComplete(result) {
-      handleDeclaredAttributeAdditionError(operationLabel) orElse { case Success(tenant) =>
-        addDeclaredAttribute200(tenant)
-      }
+      addDeclaredAttributeResponse[Tenant](operationLabel)(addDeclaredAttribute200)
     }
   }
 
@@ -310,9 +307,7 @@ final case class TenantApiServiceImpl(
     } yield tenant.toApi
 
     onComplete(result) {
-      handleDeclaredAttributeRevokeError(operationLabel) orElse { case Success(tenant) =>
-        revokeDeclaredAttribute200(tenant)
-      }
+      revokeDeclaredAttributeResponse[Tenant](operationLabel)(revokeDeclaredAttribute200)
     }
   }
 
@@ -346,9 +341,7 @@ final case class TenantApiServiceImpl(
     } yield updatedTenant.toApi
 
     onComplete(result) {
-      handleVerifiedAttributeVerificationError(operationLabel) orElse { case Success(tenant) =>
-        verifyVerifiedAttribute200(tenant)
-      }
+      verifyVerifiedAttributeResponse[Tenant](operationLabel)(verifyVerifiedAttribute200)
     }
   }
 
@@ -390,9 +383,7 @@ final case class TenantApiServiceImpl(
     } yield updatedTenant.toApi
 
     onComplete(result) {
-      handleVerifiedAttributeRevokeError(operationLabel) orElse { case Success(tenant) =>
-        revokeVerifiedAttribute200(tenant)
-      }
+      revokeVerifiedAttributeResponse[Tenant](operationLabel)(revokeVerifiedAttribute200)
     }
   }
 
@@ -464,7 +455,7 @@ final case class TenantApiServiceImpl(
     } yield tenant.toApi
 
     onComplete(result) {
-      handleTenantRetrieveError(operationLabel) orElse { case Success(tenant) => getTenant200(tenant) }
+      getTenantResponse[Tenant](operationLabel)(getTenant200)
     }
   }
 

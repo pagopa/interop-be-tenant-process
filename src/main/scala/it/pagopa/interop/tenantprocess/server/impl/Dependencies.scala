@@ -24,7 +24,7 @@ import it.pagopa.interop.tenantprocess.api.impl.{
 }
 import it.pagopa.interop.tenantprocess.api.{HealthApi, TenantApi}
 import it.pagopa.interop.tenantprocess.common.system.ApplicationConfiguration
-import it.pagopa.interop.tenantprocess.error.Handlers.serviceCode
+import it.pagopa.interop.tenantprocess.error.ResponseHandlers.serviceCode
 import it.pagopa.interop.tenantprocess.service.impl._
 import it.pagopa.interop.tenantprocess.service._
 
