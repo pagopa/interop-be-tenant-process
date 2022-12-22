@@ -3,8 +3,13 @@ package it.pagopa.interop.tenantprocess.service.impl
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.withHeaders
-import it.pagopa.interop.tenantmanagement.client.invoker.BearerToken
+import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError, BearerToken}
 import it.pagopa.interop.tenantmanagement.client.model._
+import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
+  TenantAttributeNotFound,
+  TenantByIdNotFound,
+  TenantNotFound
+}
 import it.pagopa.interop.tenantprocess.service.{
   TenantManagementApi,
   TenantManagementAttributesApi,
@@ -13,13 +18,14 @@ import it.pagopa.interop.tenantprocess.service.{
 }
 
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 final case class TenantManagementServiceImpl(
   invoker: TenantManagementInvoker,
   tenantApi: TenantManagementApi,
   attributeApi: TenantManagementAttributesApi
-) extends TenantManagementService {
+)(implicit ec: ExecutionContext)
+    extends TenantManagementService {
 
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
@@ -39,7 +45,12 @@ final case class TenantManagementServiceImpl(
       val request = tenantApi.getTenant(xCorrelationId = correlationId, tenantId = tenantId, xForwardedFor = ip)(
         BearerToken(bearerToken)
       )
-      invoker.invoke(request, s"Retrieving tenant with id $tenantId")
+      invoker
+        .invoke(request, s"Retrieving tenant with id $tenantId")
+        .recoverWith {
+          case err: ApiError[_] if err.code == 404 =>
+            Future.failed(TenantByIdNotFound(tenantId))
+        }
   }
 
   override def updateTenant(tenantId: UUID, payload: TenantDelta)(implicit
@@ -51,7 +62,12 @@ final case class TenantManagementServiceImpl(
       tenantDelta = payload,
       xForwardedFor = ip
     )(BearerToken(bearerToken))
-    invoker.invoke(request, s"Updating tenant with id $tenantId")
+    invoker
+      .invoke(request, s"Updating tenant with id $tenantId")
+      .recoverWith {
+        case err: ApiError[_] if err.code == 404 =>
+          Future.failed(TenantByIdNotFound(tenantId))
+      }
   }
 
   override def addTenantAttribute(tenantId: UUID, attribute: TenantAttribute)(implicit
@@ -93,7 +109,12 @@ final case class TenantManagementServiceImpl(
         code = externalId.value,
         xForwardedFor = ip
       )(BearerToken(bearerToken))
-      invoker.invoke(request, s"Retrieving tenant with origin ${externalId.origin} and code ${externalId.value}")
+      invoker
+        .invoke(request, s"Retrieving tenant with origin ${externalId.origin} and code ${externalId.value}")
+        .recoverWith {
+          case err: ApiError[_] if err.code == 404 =>
+            Future.failed(TenantNotFound(externalId.origin, externalId.value))
+        }
     }
 
   override def getTenantAttribute(tenantId: UUID, attributeId: UUID)(implicit
@@ -105,6 +126,11 @@ final case class TenantManagementServiceImpl(
       attributeId = attributeId,
       xForwardedFor = ip
     )(BearerToken(bearerToken))
-    invoker.invoke(request, s"Retrieving attribute $attributeId for tenant $tenantId")
+    invoker
+      .invoke(request, s"Retrieving attribute $attributeId for tenant $tenantId")
+      .recoverWith {
+        case err: ApiError[_] if err.code == 404 =>
+          Future.failed(TenantAttributeNotFound(tenantId, attributeId))
+      }
   }
 }

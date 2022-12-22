@@ -1,13 +1,11 @@
 package it.pagopa.interop.tenantprocess.api.impl
 
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directives.{complete, onComplete}
-import akka.http.scaladsl.server.{Route, StandardRoute}
+import akka.http.scaladsl.server.Directives.onComplete
+import akka.http.scaladsl.server.Route
 import cats.implicits._
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.agreementmanagement.client.model.AgreementState
-import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.jwt._
@@ -15,17 +13,15 @@ import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLo
 import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdFutureUUID
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.ComponentError
-import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.{GenericError, OperationForbidden}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError => TenantApiError}
 import it.pagopa.interop.tenantmanagement.client.model.{
-  TenantDelta,
   TenantFeature,
   Certifier => DependencyCertifier,
-  Problem => TenantProblem,
   Tenant => DependencyTenant,
   TenantAttribute => DependencyTenantAttribute,
+  TenantDelta => DependencyTenantDelta,
   TenantRevoker => DependencyTenantRevoker,
   TenantVerifier => DependencyTenantVerifier,
   VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
@@ -35,8 +31,10 @@ import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed
 import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed._
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.AttributeRegistryManagementAdapters._
-import it.pagopa.interop.tenantprocess.api.adapters.TenantManagementAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.ReadModelTenantAdapters._
+import it.pagopa.interop.tenantprocess.api.adapters.TenantManagementAdapters._
+import it.pagopa.interop.tenantprocess.common.readmodel.ReadModelQueries
+import it.pagopa.interop.tenantprocess.error.ResponseHandlers._
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
@@ -44,9 +42,6 @@ import it.pagopa.interop.tenantprocess.service._
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
-import it.pagopa.interop.tenantprocess
-import it.pagopa.interop.tenantprocess.common.readmodel.ReadModelQueries
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
@@ -60,31 +55,23 @@ final case class TenantApiServiceImpl(
 )(implicit ec: ExecutionContext)
     extends TenantApiService {
 
-  private val logger = Logger.takingImplicit[ContextFieldsToLog](this.getClass)
-
-  private[this] def authorize(roles: String*)(
-    route: => Route
-  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
-    authorizeInterop(hasPermissions(roles: _*), problemOf(StatusCodes.Forbidden, OperationForbidden))(route)
+  private implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
+    Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   override def getProducers(name: Option[String], offset: Int, limit: Int)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerTenants: ToEntityMarshaller[Tenants],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE) {
-    logger.info(s"Retrieving Producers with name = $name, limit = $limit, offset = $offset")
+    val operationLabel = s"Retrieving Producers with name = $name, limit = $limit, offset = $offset"
+    logger.info(operationLabel)
 
-    val result: Future[Tenants] = for {
-      result <- ReadModelQueries.listProducers(name, offset, limit)(readModel)
-    } yield Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount)
+    val result: Future[Tenants] = ReadModelQueries
+      .listProducers(name, offset, limit)(readModel)
+      .map(result => Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount))
 
     onComplete(result) {
-      case Success(response) => getProducers200(response)
-      case Failure(ex)       =>
-        val message = s"Retrieving Producers with name = $name, limit = $limit, offset = $offset"
-        logger.error(message, ex)
-        val error   = problemOf(StatusCodes.InternalServerError, GenericError(message))
-        complete(error.status, error)
+      getProducersResponse[Tenants](operationLabel)(getProducers200)
     }
   }
 
@@ -93,7 +80,8 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerTenants: ToEntityMarshaller[Tenants],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE) {
-    logger.info(s"Retrieving Consumers with name = $name, limit = $limit, offset = $offset")
+    val operationLabel = s"Retrieving Consumers with name = $name, limit = $limit, offset = $offset"
+    logger.info(operationLabel)
 
     val result: Future[Tenants] = for {
       requesterId <- getOrganizationIdFutureUUID(contexts)
@@ -101,32 +89,25 @@ final case class TenantApiServiceImpl(
     } yield Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount)
 
     onComplete(result) {
-      case Success(response) => getConsumers200(response)
-      case Failure(ex)       =>
-        val message = s"Retrieving Consumers with name = $name, limit = $limit, offset = $offset"
-        logger.error(message, ex)
-        val error   = problemOf(StatusCodes.InternalServerError, GenericError(message))
-        complete(error.status, error)
+      getConsumersResponse[Tenants](operationLabel)(getConsumers200)
     }
   }
 
-  override def updateTenant(id: String, tenantDelta: tenantprocess.model.TenantDelta)(implicit
+  override def updateTenant(id: String, tenantDelta: TenantDelta)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(ADMIN_ROLE) {
+    val operationLabel = s"Updating Tenant $id"
+    logger.info(operationLabel)
+
     val result: Future[Tenant] = for {
       tenantUUID <- id.toFutureUUID
       tenant     <- tenantManagementService.updateTenant(tenantUUID, tenantDelta.fromAPI)
     } yield tenant.toApi
 
     onComplete(result) {
-      handleApiError() orElse {
-        case Success(tenant) => updateTenant200(tenant)
-        case Failure(ex)     =>
-          logger.error(s"Error updating tenant with id $id", ex)
-          internalServerError()
-      }
+      updateTenantResponse[Tenant](operationLabel)(updateTenant200)
     }
   }
 
@@ -135,7 +116,8 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(INTERNAL_ROLE) {
-    logger.info(s"Creating tenant with external id ${seed.externalId} via internal request")
+    val operationLabel = s"Creating tenant with external id ${seed.externalId} via internal request"
+    logger.info(operationLabel)
 
     val now: OffsetDateTime = dateTimeSupplier.get()
 
@@ -148,13 +130,7 @@ final case class TenantApiServiceImpl(
     } yield tenant.toApi
 
     onComplete(result) {
-      handleApiError() orElse {
-        case Success(tenant) =>
-          internalUpsertTenant200(tenant)
-        case Failure(ex)     =>
-          logger.error(s"Error creating tenant with external id ${seed.externalId} via internal request", ex)
-          internalServerError()
-      }
+      internalUpsertTenantResponse[Tenant](operationLabel)(internalUpsertTenant200)
     }
   }
 
@@ -164,7 +140,8 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route =
     authorize(M2M_ROLE) {
-      logger.info(s"Creating tenant with external id ${seed.externalId} via m2m request")
+      val operationLabel = s"Creating tenant with external id ${seed.externalId} via m2m request"
+      logger.info(operationLabel)
 
       val now: OffsetDateTime = dateTimeSupplier.get()
 
@@ -185,16 +162,7 @@ final case class TenantApiServiceImpl(
       } yield tenant.toApi
 
       onComplete(result) {
-        handleApiError() orElse {
-          case Success(tenant)                    =>
-            m2mUpsertTenant200(tenant)
-          case Failure(ex: TenantIsNotACertifier) =>
-            logger.error(s"Error creating tenant with external id ${seed.externalId} via m2m request", ex)
-            m2mUpsertTenant403(problemOf(StatusCodes.Forbidden, ex))
-          case Failure(ex)                        =>
-            logger.error(s"Error creating tenant with external id ${seed.externalId} via m2m request", ex)
-            internalServerError()
-        }
+        m2mUpsertTenantResponse[Tenant](operationLabel)(m2mUpsertTenant200)
       }
     }
 
@@ -202,7 +170,8 @@ final case class TenantApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(M2M_ROLE) {
-    logger.info(s"Revoking attribute $code from tenant ($origin,$externalId) via m2m request")
+    val operationLabel = s"Revoking attribute $code from tenant ($origin,$externalId) via m2m request"
+    logger.info(operationLabel)
 
     val result: Future[Unit] = for {
       requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
@@ -214,14 +183,10 @@ final case class TenantApiServiceImpl(
       attributeIdToRevoke <- attributeRegistryManagementService
         .getAttributeByExternalCode(certifierId, code)
         .map(_.id)
-        .recoverWith {
-          case x: AttributeRegistryApiError[_] if x.code < 500 =>
-            Future.failed(CertifiedAttributeNotFound(origin, certifierId))
-        }
       attributeToModify   <- tenantToModify.attributes
         .mapFilter(_.certified)
         .find(_.id == attributeIdToRevoke)
-        .toFuture(CertifiedAttributeNotFound(origin, certifierId))
+        .toFuture(CertifiedAttributeNotFoundInTenant(tenantToModify.id, origin, code))
       modifiedAttribute = attributeToModify.copy(revocationTimestamp = dateTimeSupplier.get().some)
       () <- tenantManagementService
         .updateTenantAttribute(
@@ -234,18 +199,7 @@ final case class TenantApiServiceImpl(
     } yield ()
 
     onComplete(result) {
-      handleApiError() orElse {
-        case Success(())                             => m2mRevokeAttribute204
-        case Failure(ex: TenantIsNotACertifier)      =>
-          logger.error(s"Error revoking attribute $code from tenant ($origin,$externalId) via m2m request", ex)
-          m2mRevokeAttribute403(problemOf(StatusCodes.Forbidden, ex))
-        case Failure(ex: CertifiedAttributeNotFound) =>
-          logger.error(s"Error revoking attribute $code from tenant ($origin,$externalId) via m2m request", ex)
-          m2mRevokeAttribute400(problemOf(StatusCodes.BadRequest, ex))
-        case Failure(ex)                             =>
-          logger.error(s"Error revoking attribute $code from tenant ($origin,$externalId) via m2m request", ex)
-          internalServerError()
-      }
+      m2mRevokeAttributeResponse[Unit](operationLabel)(_ => m2mRevokeAttribute204)
     }
   }
 
@@ -254,7 +208,8 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, INTERNAL_ROLE) {
-    logger.info(s"Creating tenant with external id ${seed.externalId} via SelfCare request")
+    val operationLabel = s"Creating tenant with external id ${seed.externalId} via SelfCare request"
+    logger.info(operationLabel)
 
     val now: OffsetDateTime = dateTimeSupplier.get()
 
@@ -262,7 +217,11 @@ final case class TenantApiServiceImpl(
       def updateTenant(): Future[DependencyTenant]                     = tenantManagementService
         .updateTenant(
           tenant.id,
-          TenantDelta(selfcareId = seed.selfcareId.some, features = tenant.features, mails = tenant.mails.map(_.toSeed))
+          DependencyTenantDelta(
+            selfcareId = seed.selfcareId.some,
+            features = tenant.features,
+            mails = tenant.mails.map(_.toSeed)
+          )
         )
       def verifyConflict(selfcareId: String): Future[DependencyTenant] = Future
         .failed(SelfcareIdConflict(tenant.id, selfcareId, seed.selfcareId))
@@ -279,15 +238,7 @@ final case class TenantApiServiceImpl(
     } yield updatedTenant.toApi
 
     onComplete(result) {
-      handleApiError() orElse {
-        case Success(tenant)                 => selfcareUpsertTenant200(tenant)
-        case Failure(ex: SelfcareIdConflict) =>
-          logger.error(s"Error creating tenant with external id ${seed.externalId} via SelfCare request", ex)
-          selfcareUpsertTenant409(problemOf(StatusCodes.Conflict, ex))
-        case Failure(ex)                     =>
-          logger.error(s"Error creating tenant with external id ${seed.externalId} via SelfCare request", ex)
-          internalServerError()
-      }
+      selfcareUpsertTenantResponse[Tenant](operationLabel)(selfcareUpsertTenant200)
     }
   }
 
@@ -296,7 +247,8 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(ADMIN_ROLE) {
-    logger.info(s"Adding declared attribute ${seed.id} to requester tenant")
+    val operationLabel = s"Adding declared attribute ${seed.id} to requester tenant"
+    logger.info(operationLabel)
 
     val now: OffsetDateTime = dateTimeSupplier.get()
 
@@ -327,12 +279,7 @@ final case class TenantApiServiceImpl(
     } yield tenant.toApi
 
     onComplete(result) {
-      handleApiError() orElse {
-        case Success(tenant) => addDeclaredAttribute200(tenant)
-        case Failure(ex)     =>
-          logger.error(s"Error adding declared attribute ${seed.id} to requester tenant", ex)
-          internalServerError()
-      }
+      addDeclaredAttributeResponse[Tenant](operationLabel)(addDeclaredAttribute200)
     }
   }
 
@@ -341,7 +288,8 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(ADMIN_ROLE) {
-    logger.info(s"Revoking declared attribute $attributeId to requester tenant")
+    val operationLabel = s"Revoking declared attribute $attributeId to requester tenant"
+    logger.info(operationLabel)
 
     val now: OffsetDateTime = dateTimeSupplier.get()
 
@@ -350,22 +298,16 @@ final case class TenantApiServiceImpl(
       _ = logger.info(s"Revoking declared attribute $attributeId to $requesterTenantUuid")
       attributeUuid     <- attributeId.toFutureUUID
       attribute         <- tenantManagementService.getTenantAttribute(requesterTenantUuid, attributeUuid)
-      declaredAttribute <- attribute.declared.toFuture(DeclaredAttributeNotFound(requesterTenantUuid, attributeId))
+      declaredAttribute <- attribute.declared.toFuture(
+        DeclaredAttributeNotFoundInTenant(requesterTenantUuid, attributeUuid)
+      )
       revokedAttribute = declaredAttribute.copy(revocationTimestamp = now.some).toTenantAttribute
       tenant <- tenantManagementService.updateTenantAttribute(requesterTenantUuid, attributeUuid, revokedAttribute)
       _      <- agreementProcessService.computeAgreementsByAttribute(requesterTenantUuid, attributeUuid)
     } yield tenant.toApi
 
     onComplete(result) {
-      handleApiError() orElse {
-        case Success(tenant)                        => revokeDeclaredAttribute200(tenant)
-        case Failure(ex: DeclaredAttributeNotFound) =>
-          logger.error(s"Error revoking declared attribute $attributeId to requester tenant", ex)
-          revokeDeclaredAttribute404(problemOf(StatusCodes.NotFound, ex))
-        case Failure(ex)                            =>
-          logger.error(s"Error revoking declared attribute $attributeId to requester tenant", ex)
-          internalServerError()
-      }
+      revokeDeclaredAttributeResponse[Tenant](operationLabel)(revokeDeclaredAttribute200)
     }
   }
 
@@ -374,7 +316,8 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(ADMIN_ROLE) {
-    logger.info(s"Verifying attribute ${seed.id} to tenant $tenantId")
+    val operationLabel = s"Verifying attribute ${seed.id} to tenant $tenantId"
+    logger.info(operationLabel)
 
     val now: OffsetDateTime = dateTimeSupplier.get()
 
@@ -398,21 +341,7 @@ final case class TenantApiServiceImpl(
     } yield updatedTenant.toApi
 
     onComplete(result) {
-      handleApiError() orElse {
-        case Success(tenant)                                     => verifyVerifiedAttribute200(tenant)
-        case Failure(ex: AttributeAlreadyVerified)               =>
-          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
-          verifyVerifiedAttribute409(problemOf(StatusCodes.Conflict, ex))
-        case Failure(ex: VerifiedAttributeSelfVerification.type) =>
-          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
-          verifyVerifiedAttribute403(problemOf(StatusCodes.Forbidden, ex))
-        case Failure(ex: AttributeVerificationNotAllowed)        =>
-          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
-          verifyVerifiedAttribute403(problemOf(StatusCodes.Forbidden, ex))
-        case Failure(ex)                                         =>
-          logger.error(s"Error verifying attribute ${seed.id} to tenant $tenantId", ex)
-          internalServerError()
-      }
+      verifyVerifiedAttributeResponse[Tenant](operationLabel)(verifyVerifiedAttribute200)
     }
   }
 
@@ -421,7 +350,8 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(ADMIN_ROLE) {
-    logger.info(s"Revoking attribute $attributeId to tenant $tenantId")
+    val operationLabel = s"Revoking attribute $attributeId to tenant $tenantId"
+    logger.info(operationLabel)
 
     val now: OffsetDateTime = dateTimeSupplier.get()
 
@@ -435,7 +365,7 @@ final case class TenantApiServiceImpl(
       attribute     <- targetTenant.attributes
         .flatMap(_.verified)
         .find(_.id == attributeUuid)
-        .toFuture(VerifiedAttributeNotFound(targetTenantUuid, attributeId))
+        .toFuture(VerifiedAttributeNotFoundInTenant(targetTenantUuid, attributeUuid))
       // TODO Not sure if this is compatible with implicit verification
       verifier      <- attribute.verifiedBy
         .find(_.id == requesterTenantUuid)
@@ -453,24 +383,7 @@ final case class TenantApiServiceImpl(
     } yield updatedTenant.toApi
 
     onComplete(result) {
-      handleApiError() orElse {
-        case Success(tenant)                                   => revokeVerifiedAttribute200(tenant)
-        case Failure(ex: VerifiedAttributeSelfRevocation.type) =>
-          logger.error(s"Error revoking attribute $attributeId to tenant $tenantId", ex)
-          revokeVerifiedAttribute403(problemOf(StatusCodes.Forbidden, ex))
-        case Failure(ex: AttributeRevocationNotAllowed)        =>
-          logger.error(s"Error revoking attribute $attributeId to tenant $tenantId", ex)
-          revokeVerifiedAttribute403(problemOf(StatusCodes.Forbidden, ex))
-        case Failure(ex: VerifiedAttributeNotFound)            =>
-          logger.error(s"Error revoking attribute $attributeId to tenant $tenantId", ex)
-          revokeVerifiedAttribute404(problemOf(StatusCodes.NotFound, ex))
-        case Failure(ex: AttributeAlreadyRevoked)              =>
-          logger.error(s"Error revoking attribute $attributeId to tenant $tenantId", ex)
-          revokeVerifiedAttribute409(problemOf(StatusCodes.Conflict, ex))
-        case Failure(ex)                                       =>
-          logger.error(s"Error revoking attribute $attributeId to tenant $tenantId", ex)
-          internalServerError()
-      }
+      revokeVerifiedAttributeResponse[Tenant](operationLabel)(revokeVerifiedAttribute200)
     }
   }
 
@@ -533,19 +446,16 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, M2M_ROLE, SECURITY_ROLE) {
-    logger.info(s"Retrieving tenant $id")
+    val operationLabel = s"Retrieving tenant $id"
+    logger.info(operationLabel)
+
     val result: Future[Tenant] = for {
       uuid   <- id.toFutureUUID
       tenant <- tenantManagementService.getTenant(uuid)
     } yield tenant.toApi
 
     onComplete(result) {
-      handleApiError() orElse {
-        case Success(tenant) => getTenant200(tenant)
-        case Failure(ex)     =>
-          logger.error(s"Error while retrieving tenant $id", ex)
-          internalServerError()
-      }
+      getTenantResponse[Tenant](operationLabel)(getTenant200)
     }
   }
 
@@ -586,19 +496,6 @@ final case class TenantApiServiceImpl(
     _ <- Future.failed(error).unlessA(attributeIds.contains(attributeId))
   } yield ()
 
-  def handleApiError()(implicit
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    contexts: Seq[(String, String)]
-  ): PartialFunction[Try[_], StandardRoute] = { case Failure(err: TenantApiError[_]) =>
-    logger.error(s"Error received from tenant Management - ${err.responseContent}")
-
-    err.responseContent match {
-      case Some(body: String) =>
-        TenantProblem.fromString(body).fold(_ => internalServerError(), problem => complete(problem.status, problem))
-      case _                  => internalServerError()
-    }
-  }
-
   def addRevoker(
     verifiedAttribute: DependencyVerifiedTenantAttribute,
     now: OffsetDateTime,
@@ -615,9 +512,4 @@ final case class TenantApiServiceImpl(
         revocationDate = now
       )
     )
-
-  def internalServerError()(implicit toEntityMarshallerProblem: ToEntityMarshaller[Problem]): StandardRoute = {
-    val problem = problemOf(StatusCodes.InternalServerError, GenericError("Error while executing the request"))
-    complete(problem.status, problem)
-  }
 }

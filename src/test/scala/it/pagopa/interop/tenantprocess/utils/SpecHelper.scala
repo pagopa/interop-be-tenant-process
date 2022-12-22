@@ -1,7 +1,6 @@
 package it.pagopa.interop.tenantprocess.utils
 
 import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
-import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiError => AttributeRegistryApiError}
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError => TenantManagementApiError}
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.catalogmanagement.client.model.EService
@@ -13,6 +12,7 @@ import it.pagopa.interop.tenantmanagement.client.invoker.ApiError
 import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiServiceImpl
+import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.RegistryAttributeNotFound
 import it.pagopa.interop.tenantprocess.service._
 import org.scalamock.scalatest.MockFactory
 
@@ -142,7 +142,7 @@ trait SpecHelper extends MockFactory with SpecData {
       .getAttributeByExternalCode(_: String, _: String)(_: Seq[(String, String)]))
       .expects(origin, value, contexts)
       .once()
-      .returns(Future.failed(AttributeRegistryApiError(code = 404, message = "Not Found", responseContent = None)))
+      .returns(Future.failed(RegistryAttributeNotFound(origin, value)))
 
   def mockGetAttributeById(id: UUID, result: Attribute)(implicit contexts: Seq[(String, String)]) =
     (mockAttributeRegistryManagement
