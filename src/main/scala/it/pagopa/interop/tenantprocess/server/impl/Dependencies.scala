@@ -29,7 +29,7 @@ import it.pagopa.interop.tenantprocess.service.impl._
 import it.pagopa.interop.tenantprocess.service._
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 trait Dependencies {
