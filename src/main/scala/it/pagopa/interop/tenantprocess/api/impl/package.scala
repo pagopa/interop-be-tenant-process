@@ -47,7 +47,7 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def tenantFormat: RootJsonFormat[Tenant]             = jsonFormat9(Tenant)
   implicit def tenantsFormat: RootJsonFormat[Tenants]           = jsonFormat2(Tenants)
   implicit def problemErrorFormat: RootJsonFormat[ProblemError] = jsonFormat2(ProblemError)
-  implicit def problemFormat: RootJsonFormat[Problem]           = jsonFormat5(Problem)
+  implicit def problemFormat: RootJsonFormat[Problem]           = jsonFormat6(Problem)
 
   final val entityMarshallerProblem: ToEntityMarshaller[Problem] = sprayJsonMarshaller[Problem]
 
