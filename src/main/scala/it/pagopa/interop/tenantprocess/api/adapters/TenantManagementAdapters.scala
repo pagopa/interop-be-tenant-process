@@ -7,27 +7,21 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   Certifier => DependencyCertifier,
   DeclaredTenantAttribute => DependencyDeclaredTenantAttribute,
   ExternalId => DependencyExternalId,
-  Problem => DependencyProblem,
-  ProblemError => DependencyProblemError,
+  Mail => DependencyMail,
+  MailKind => DependencyMailKind,
+  MailSeed => DependencyMailSeed,
   Tenant => DependencyTenant,
   TenantAttribute => DependencyTenantAttribute,
   TenantFeature => DependencyTenantFeature,
   TenantRevoker => DependencyTenantRevoker,
   TenantVerifier => DependencyTenantVerifier,
   VerificationRenewal => DependencyVerificationRenewal,
-  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
-  Mail => DependencyMail,
-  MailKind => DependencyMailKind,
-  MailSeed => DependencyMailSeed
+  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.model._
 import spray.json._
 
-import scala.util.Try
-
 object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit def problemErrorFormat: RootJsonFormat[DependencyProblemError] = jsonFormat2(DependencyProblemError)
-  implicit def problemFormat: RootJsonFormat[DependencyProblem]           = jsonFormat5(DependencyProblem)
 
   implicit class DependencyTenantWrapper(private val t: DependencyTenant) extends AnyVal {
     def toApi: Tenant = Tenant(
@@ -134,28 +128,6 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       extensionDate = t.extensionDate,
       revocationDate = t.revocationDate
     )
-  }
-
-  implicit class ProblemObjectWrapper(private val t: DependencyProblem.type) extends AnyVal {
-    def fromString(body: String): Try[Problem] =
-      Try(body.parseJson.convertTo[DependencyProblem]).map(problem =>
-        Problem(
-          `type` = problem.`type`,
-          status = problem.status,
-          title = problem.title,
-          detail = problem.detail,
-          errors = problem.errors.map(_.toApi)
-        )
-      )
-  }
-
-  implicit class ProblemWrapper(private val t: DependencyProblem) extends AnyVal {
-    def toApi: Problem =
-      Problem(`type` = t.`type`, status = t.status, title = t.title, detail = t.detail, errors = t.errors.map(_.toApi))
-  }
-
-  implicit class ProblemErrorWrapper(private val t: DependencyProblemError) extends AnyVal {
-    def toApi: ProblemError = ProblemError(code = t.code, detail = t.detail)
   }
 
 }
