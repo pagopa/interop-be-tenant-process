@@ -766,18 +766,11 @@ components:
       description: Tenant Delta model
       type: object
       properties:
-        selfcareId:
-          type: string
-        features:
-          type: array
-          items:
-            $ref: '#/components/schemas/TenantFeature'
         mails:
           type: array
           items:
             $ref: '#/components/schemas/MailSeed'
       required:
-        - features
         - mails
     MailSeed:
       description: A specific kind of mail
