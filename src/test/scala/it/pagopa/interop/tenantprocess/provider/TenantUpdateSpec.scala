@@ -15,6 +15,7 @@ import it.pagopa.interop.tenantprocess.model.Tenant
 import it.pagopa.interop.tenantmanagement.client.model
 import it.pagopa.interop.tenantprocess.model.MailSeed
 import it.pagopa.interop.tenantprocess.model.MailKind
+
 import java.time.OffsetDateTime
 
 class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest {
@@ -23,12 +24,18 @@ class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRou
     implicit val contexts: Seq[(String, String)] = adminContext
 
     val tenantId: UUID           = UUID.randomUUID()
-    val tenantDelta: TenantDelta = TenantDelta(selfcareId = "paperino".some, features = Nil, mails = Nil)
+    val tenantDelta: TenantDelta = TenantDelta(mails = Nil)
 
+    val tenantManagement: model.Tenant            = dependencyTenant
     val tenantThatManagementReturns: model.Tenant = dependencyTenant
     val expected: Tenant                          = tenantThatManagementReturns.toApi
 
-    mockUpdateTenant(tenantId, tenantDelta.fromAPI, tenantThatManagementReturns)
+    mockGetTenantById(tenantId, tenantManagement)
+    mockUpdateTenant(
+      tenantId,
+      tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features),
+      tenantThatManagementReturns
+    )
 
     Post() ~> tenantService.updateTenant(tenantId.toString(), tenantDelta) ~> check {
       assert(status == StatusCodes.OK)
@@ -40,12 +47,11 @@ class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRou
     implicit val contexts: Seq[(String, String)] = adminContext
 
     val tenantId: UUID           = UUID.randomUUID()
-    val tenantDelta: TenantDelta = TenantDelta(
-      selfcareId = "paperino".some,
-      features = Nil,
-      mails = MailSeed(kind = MailKind.CONTACT_EMAIL, address = "foo@bar.com", description = "awe".some) :: Nil
+    val tenantDelta: TenantDelta = TenantDelta(mails =
+      MailSeed(kind = MailKind.CONTACT_EMAIL, address = "foo@bar.com", description = "awe".some) :: Nil
     )
 
+    val tenantManagement: model.Tenant            = dependencyTenant
     val tenantThatManagementReturns: model.Tenant =
       dependencyTenant.copy(mails =
         model.Mail(
@@ -57,7 +63,12 @@ class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRou
       )
     val expected: Tenant                          = tenantThatManagementReturns.toApi
 
-    mockUpdateTenant(tenantId, tenantDelta.fromAPI, tenantThatManagementReturns)
+    mockGetTenantById(tenantId, tenantManagement)
+    mockUpdateTenant(
+      tenantId,
+      tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features),
+      tenantThatManagementReturns
+    )
 
     Post() ~> tenantService.updateTenant(tenantId.toString(), tenantDelta) ~> check {
       assert(status == StatusCodes.OK)

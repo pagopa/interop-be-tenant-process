@@ -54,12 +54,8 @@ object ApiAdapters {
   }
 
   implicit class TenantDeltaWrapper(private val td: TenantDelta) extends AnyVal {
-    def fromAPI: DependencyTenantDelta =
-      DependencyTenantDelta(
-        selfcareId = td.selfcareId,
-        features = td.features.map(_.fromAPI),
-        mails = td.mails.map(_.toDependency)
-      )
+    def fromAPI(selfcareId: Option[String], features: Seq[DependencyTenantFeature]): DependencyTenantDelta =
+      DependencyTenantDelta(selfcareId, features, mails = td.mails.map(_.toDependency))
   }
 
   implicit class MailSeedWrapper(private val ms: MailSeed) extends AnyVal {

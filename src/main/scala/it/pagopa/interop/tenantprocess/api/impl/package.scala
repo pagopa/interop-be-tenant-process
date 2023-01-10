@@ -10,7 +10,7 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit def mailSeedFormat: RootJsonFormat[MailSeed]       = jsonFormat3(MailSeed)
   implicit def mailFormat: RootJsonFormat[Mail]               = jsonFormat4(Mail)
-  implicit def tenantDeltaFormat: RootJsonFormat[TenantDelta] = jsonFormat3(TenantDelta)
+  implicit def tenantDeltaFormat: RootJsonFormat[TenantDelta] = jsonFormat1(TenantDelta)
 
   implicit def externalIdFormat: RootJsonFormat[ExternalId] = jsonFormat2(ExternalId)
 
