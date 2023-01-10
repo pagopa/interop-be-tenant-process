@@ -104,9 +104,10 @@ final case class TenantApiServiceImpl(
     val result: Future[Tenant] = for {
       tenantUUID       <- id.toFutureUUID
       tenantManagement <- tenantManagementService.getTenant(tenantUUID)
-      selfcareId = tenantManagement.selfcareId
-      features   = tenantManagement.features
-      tenant <- tenantManagementService.updateTenant(tenantUUID, tenantDelta.fromAPI(selfcareId, features))
+      tenant           <- tenantManagementService.updateTenant(
+        tenantUUID,
+        tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features)
+      )
     } yield tenant.toApi
 
     onComplete(result) {
