@@ -15,7 +15,6 @@ import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.ComponentError
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client
-import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError => TenantApiError}
 import it.pagopa.interop.tenantmanagement.client.model.{
   TenantFeature,
   Certifier => DependencyCertifier,
@@ -269,9 +268,7 @@ final case class TenantApiServiceImpl(
       maybeAttribute <- tenantManagementService
         .getTenantAttribute(tenantId, seed.id)
         .map(Some(_))
-        .recover {
-          case err: TenantApiError[_] if err.code == 404 => None
-        }
+        .recover { case _: TenantAttributeNotFound => None }
       updatedTenant  <- maybeAttribute.fold(addAttribute(tenantId, seed))(updateAttribute(tenantId, _))
     } yield updatedTenant
 
@@ -441,9 +438,10 @@ final case class TenantApiServiceImpl(
     Future.traverse(attributes)(a => attributeRegistryManagementService.getAttributeByExternalCode(a.origin, a.value))
 
   private def findTenant(id: ExternalId)(implicit contexts: Seq[(String, String)]): Future[Option[DependencyTenant]] =
-    tenantManagementService.getTenantByExternalId(id.toDependency).map(_.some).recover {
-      case err: TenantApiError[_] if err.code == 404 => None
-    }
+    tenantManagementService
+      .getTenantByExternalId(id.toDependency)
+      .map(_.some)
+      .recover { case _: TenantNotFound => None }
 
   override def getTenant(id: String)(implicit
     contexts: Seq[(String, String)],

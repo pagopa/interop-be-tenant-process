@@ -1,18 +1,20 @@
 package it.pagopa.interop.tenantprocess.utils
 
 import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
-import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError => TenantManagementApiError}
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.catalogmanagement.client.model.EService
 import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.utils._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.tenantmanagement.client.invoker.ApiError
 import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiServiceImpl
-import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.RegistryAttributeNotFound
+import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
+  RegistryAttributeNotFound,
+  TenantAttributeNotFound,
+  TenantNotFound
+}
 import it.pagopa.interop.tenantprocess.service._
 import org.scalamock.scalatest.MockFactory
 
@@ -79,7 +81,7 @@ trait SpecHelper extends MockFactory with SpecData {
       .getTenantByExternalId(_: ExternalId)(_: Seq[(String, String)]))
       .expects(externalId, contexts)
       .once()
-      .returns(Future.failed(ApiError(code = 404, message = "Not Found", responseContent = None)))
+      .returns(Future.failed(TenantNotFound(externalId.origin, externalId.value)))
 
   def mockCreateTenant(seed: TenantSeed, result: Tenant)(implicit contexts: Seq[(String, String)]) =
     (mockTenantManagement
@@ -117,7 +119,7 @@ trait SpecHelper extends MockFactory with SpecData {
       .getTenantAttribute(_: UUID, _: UUID)(_: Seq[(String, String)]))
       .expects(tenantId, attributeId, contexts)
       .once()
-      .returns(Future.failed(TenantManagementApiError(404, "", None)))
+      .returns(Future.failed(TenantAttributeNotFound(tenantId, attributeId)))
 
   def mockUpdateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
     contexts: Seq[(String, String)]
