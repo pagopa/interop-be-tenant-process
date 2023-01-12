@@ -2,6 +2,7 @@ package it.pagopa.interop.tenantprocess.authz
 
 import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.commons.utils.ORGANIZATION_ID_CLAIM
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantprocess.api._
 import it.pagopa.interop.tenantprocess.api.impl._
@@ -126,7 +127,7 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     validateAuthorization(
       endpoints("updateTenant"),
       { implicit c: Seq[(String, String)] =>
-        tenantService.updateTenant(UUID.randomUUID().toString, fakeTenantDelta)
+        tenantService.updateTenant(c.find(_._1 == ORGANIZATION_ID_CLAIM).get.toString, fakeTenantDelta)
       }
     )
   }

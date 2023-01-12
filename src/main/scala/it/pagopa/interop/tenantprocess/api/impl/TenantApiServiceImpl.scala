@@ -12,7 +12,7 @@ import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdFutureUUID
 import it.pagopa.interop.commons.utils.TypeConversions._
-import it.pagopa.interop.commons.utils.errors.ComponentError
+import it.pagopa.interop.commons.utils.errors.{ComponentError, GenericComponentErrors}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client
 import it.pagopa.interop.tenantmanagement.client.model.{
@@ -102,6 +102,8 @@ final case class TenantApiServiceImpl(
 
     val result: Future[Tenant] = for {
       tenantUUID       <- id.toFutureUUID
+      requesterId      <- getOrganizationIdFutureUUID(contexts)
+      _                <- assertRequesterAllowed(requesterId, tenantUUID)
       tenantManagement <- tenantManagementService.getTenant(tenantUUID)
       tenant           <- tenantManagementService.updateTenant(
         tenantUUID,
@@ -514,4 +516,8 @@ final case class TenantApiServiceImpl(
         revocationDate = now
       )
     )
+
+  private def assertRequesterAllowed(requesterId: UUID, resourceId: UUID): Future[Unit] =
+    Future.failed(GenericComponentErrors.OperationForbidden).unlessA(resourceId == requesterId)
+
 }
