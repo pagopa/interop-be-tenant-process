@@ -3,16 +3,17 @@ package it.pagopa.interop.tenantprocess.provider
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import cats.implicits._
+import it.pagopa.interop.commons.utils.USER_ROLES
 import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters.ExternalIdWrapper
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import it.pagopa.interop.tenantprocess.model.{InternalAttributeSeed, M2MAttributeSeed}
+import it.pagopa.interop.tenantprocess.provider.TenantCreationSpec._
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
-import TenantCreationSpec._
 
-import java.util.UUID
 import java.time.OffsetDateTime
+import java.util.UUID
 
 class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest {
 
@@ -467,7 +468,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
   "SelfCare request - Update of an existing tenant must succeed if SelfCare ID is not set" in {
     implicit val context: Seq[(String, String)] = selfcareContext
 
-    val tenantId = UUID.randomUUID()
+    val tenantId = organizationId
     val seed     = selfcareTenantSeed
     val tenant   = dependencyTenant.copy(
       id = tenantId,
@@ -490,7 +491,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
   "SelfCare request - Update should not be performed if existing SelfCare ID is equal to the request" in {
     implicit val context: Seq[(String, String)] = selfcareContext
 
-    val tenantId   = UUID.randomUUID()
+    val tenantId   = organizationId
     val selfcareId = UUID.randomUUID().toString
     val seed       = selfcareTenantSeed.copy(selfcareId = selfcareId)
     val tenant     = dependencyTenant.copy(
@@ -511,7 +512,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
   "SelfCare request - Must fail if existing SelfCare ID is different from request" in {
     implicit val context: Seq[(String, String)] = selfcareContext
 
-    val tenantId           = UUID.randomUUID()
+    val tenantId           = organizationId
     val existingSelfcareId = UUID.randomUUID().toString
     val newSelfcareId      = UUID.randomUUID().toString
     val seed               = selfcareTenantSeed.copy(selfcareId = newSelfcareId)
@@ -527,6 +528,51 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.Conflict)
+    }
+  }
+
+  "SelfCare request - Must fail if requester does not belong to Tenant" in {
+    implicit val context: Seq[(String, String)] = selfcareContext
+
+    val tenantId           = UUID.randomUUID()
+    val existingSelfcareId = UUID.randomUUID().toString
+    val newSelfcareId      = UUID.randomUUID().toString
+    val seed               = selfcareTenantSeed.copy(selfcareId = newSelfcareId)
+    val tenant             = dependencyTenant.copy(
+      id = tenantId,
+      selfcareId = Some(existingSelfcareId),
+      features = Seq(TenantFeature(certifier = Some(Certifier("something"))))
+    )
+
+    mockDateTimeGet()
+
+    mockGetTenantByExternalId(seed.externalId.toDependency, tenant)
+
+    Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
+      assert(status == StatusCodes.Forbidden)
+    }
+  }
+
+  "SelfCare request - Must succeed requested with Internal Role" in {
+    implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, USER_ROLES -> "internal")
+
+    val tenantId = UUID.randomUUID()
+    val seed     = selfcareTenantSeed
+    val tenant   = dependencyTenant.copy(
+      id = tenantId,
+      selfcareId = None,
+      features = Seq(TenantFeature(certifier = Some(Certifier("something"))))
+    )
+
+    val expectedTenantUpdate = TenantDelta(selfcareId = Some(seed.selfcareId), features = tenant.features, mails = Nil)
+
+    mockDateTimeGet()
+
+    mockGetTenantByExternalId(seed.externalId.toDependency, tenant)
+    mockUpdateTenant(tenantId, expectedTenantUpdate)
+
+    Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
+      assert(status == StatusCodes.OK)
     }
   }
 

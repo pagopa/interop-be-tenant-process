@@ -13,7 +13,7 @@ import it.pagopa.interop.tenantprocess.model.{
 }
 import it.pagopa.interop.tenantprocess.utils.AuthorizedRoutes.endpoints
 import it.pagopa.interop.tenantprocess.utils.FakeDependencies._
-import it.pagopa.interop.tenantprocess.utils.{ClusteredMUnitRouteTest, SpecData}
+import it.pagopa.interop.tenantprocess.utils.{ClusteredMUnitRouteTest, FakeDependencies, SpecData}
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -75,7 +75,11 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
   test("Tenant api should accept authorized roles for selfcareUpsertTenant") {
     validateAuthorization(
       endpoints("selfcareUpsertTenant"),
-      { implicit c: Seq[(String, String)] => tenantService.selfcareUpsertTenant(selfcareTenantSeed) }
+      { c: Seq[(String, String)] =>
+        implicit val contextWithOrgId: Seq[(String, String)] =
+          c.filter(_._1 != ORGANIZATION_ID_CLAIM) :+ ORGANIZATION_ID_CLAIM -> FakeDependencies.fakeTenant.id.toString
+        tenantService.selfcareUpsertTenant(selfcareTenantSeed)
+      }
     )
   }
 
