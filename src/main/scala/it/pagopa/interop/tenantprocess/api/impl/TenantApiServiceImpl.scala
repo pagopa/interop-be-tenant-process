@@ -10,9 +10,9 @@ import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdFutureUUID
+import it.pagopa.interop.commons.utils.AkkaUtils.{getOrganizationIdFutureUUID, getUserRolesListFuture}
 import it.pagopa.interop.commons.utils.TypeConversions._
-import it.pagopa.interop.commons.utils.errors.ComponentError
+import it.pagopa.interop.commons.utils.errors.{ComponentError, GenericComponentErrors}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.client
 import it.pagopa.interop.tenantmanagement.client.model.{
@@ -102,6 +102,7 @@ final case class TenantApiServiceImpl(
 
     val result: Future[Tenant] = for {
       tenantUUID       <- id.toFutureUUID
+      _                <- assertResourceAllowed(tenantUUID)
       tenantManagement <- tenantManagementService.getTenant(tenantUUID)
       tenant           <- tenantManagementService.updateTenant(
         tenantUUID,
@@ -236,6 +237,7 @@ final case class TenantApiServiceImpl(
 
     val result: Future[Tenant] = for {
       existingTenant <- findTenant(seed.externalId)
+      _              <- existingTenant.traverse(t => assertResourceAllowed(t.id))
       tenant         <- existingTenant.fold(createTenant(seed, Nil, now))(Future.successful)
       updatedTenant  <- updateSelfcareId(tenant)
     } yield updatedTenant.toApi
@@ -514,4 +516,14 @@ final case class TenantApiServiceImpl(
         revocationDate = now
       )
     )
+
+  private def assertRequesterAllowed(resourceId: UUID)(requesterId: UUID): Future[Unit] =
+    Future.failed(GenericComponentErrors.OperationForbidden).unlessA(resourceId == requesterId)
+
+  private def assertResourceAllowed(resourceId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] = for {
+    roles <- getUserRolesListFuture(contexts)
+    _     <- (getOrganizationIdFutureUUID(contexts) >>= assertRequesterAllowed(resourceId)).unlessA(
+      roles.contains(INTERNAL_ROLE)
+    )
+  } yield ()
 }
