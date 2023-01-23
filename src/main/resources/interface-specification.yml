@@ -491,6 +491,7 @@ components:
       properties:
         origin:
           type: string
+          maxLength: 64
         value:
           type: string
       required:
@@ -501,8 +502,10 @@ components:
       properties:
         origin:
           type: string
+          maxLength: 64
         code:
           type: string
+          maxLength: 30
       required:
         - origin
         - code
@@ -758,6 +761,7 @@ components:
           type: string
         name:
           type: string
+          maxLength: 60
       required:
         - externalId
         - selfcareId
@@ -780,8 +784,10 @@ components:
           $ref: '#/components/schemas/MailKind'
         address:
           type: string
+          maxLength: 30
         description:
           type: string
+          maxLength: 250
       required:
         - kind
         - address
@@ -793,11 +799,13 @@ components:
           $ref: '#/components/schemas/MailKind'
         address:
           type: string
+          maxLength: 30
         createdAt:
           type: string
           format: date-time
         description:
           type: string
+          maxLength: 250
       required:
         - kind
         - address
