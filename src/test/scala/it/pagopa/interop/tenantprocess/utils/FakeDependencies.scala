@@ -3,12 +3,15 @@ package it.pagopa.interop.tenantprocess.utils
 import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
 import it.pagopa.interop.attributeregistrymanagement.client.model.{Attribute, AttributeKind}
 import it.pagopa.interop.catalogmanagement.client.model.EService
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.service._
+import org.mongodb.scala.bson.conversions.Bson
+import spray.json.JsonReader
 
 import java.time.OffsetDateTime
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object FakeDependencies extends SpecData {
   val verifiedAttributeId: UUID = UUID.randomUUID()
@@ -88,6 +91,25 @@ object FakeDependencies extends SpecData {
   case class FakeCatalogManagement() extends CatalogManagementService {
     override def getEServiceById(eServiceId: UUID)(implicit contexts: Seq[(String, String)]): Future[EService] =
       Future.successful(eService)
+  }
+
+  class FakeReadModelService extends ReadModelService {
+    override def findOne[T](collectionName: String, filter: Bson)(implicit
+      evidence$1: JsonReader[T],
+      ec: ExecutionContext
+    ): Future[Option[T]] = Future.successful(None)
+    override def find[T](collectionName: String, filter: Bson, offset: Int, limit: Int)(implicit
+      evidence$2: JsonReader[T],
+      ec: ExecutionContext
+    ): Future[Seq[T]] = Future.successful(Nil)
+    override def find[T](collectionName: String, filter: Bson, projection: Bson, offset: Int, limit: Int)(implicit
+      evidence$3: JsonReader[T],
+      ec: ExecutionContext
+    ): Future[Seq[T]] = Future.successful(Nil)
+    override def aggregate[T](collectionName: String, pipeline: Seq[Bson], offset: Int, limit: Int)(implicit
+      evidence$4: JsonReader[T],
+      ec: ExecutionContext
+    ): Future[Seq[T]] = Future.successful(Nil)
   }
 
   val fakeTenant: Tenant = Tenant(

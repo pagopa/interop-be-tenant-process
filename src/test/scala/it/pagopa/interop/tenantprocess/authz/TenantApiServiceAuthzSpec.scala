@@ -1,6 +1,5 @@
 package it.pagopa.interop.tenantprocess.authz
 
-import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.utils.ORGANIZATION_ID_CLAIM
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
@@ -24,12 +23,7 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
   val fakeAgreementManagement: FakeAgreementManagement                 = FakeAgreementManagement()
   val fakeCatalogManagement: FakeCatalogManagement                     = FakeCatalogManagement()
   val fakeAgreementProcess: FakeAgreementProcess                       = FakeAgreementProcess()
-  val dummyReadModel: ReadModelService                                 = new ReadModelService(
-    ReadModelConfig(
-      "mongodb://localhost/?socketTimeoutMS=1&serverSelectionTimeoutMS=1&connectTimeoutMS=1&&autoReconnect=false&keepAlive=false",
-      "db"
-    )
-  )
+  val dummyReadModel: ReadModelService                                 = new FakeReadModelService
   val dummyDateTimeSupplier: OffsetDateTimeSupplier                    = () => OffsetDateTime.now()
   val dummyUuidSupplier: UUIDSupplier                                  = () => UUID.randomUUID()
 
