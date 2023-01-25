@@ -26,7 +26,12 @@ trait SpecHelper extends MockFactory with SpecData {
   val organizationId: UUID = UUID.randomUUID()
 
   val selfcareContext: Seq[(String, String)] =
-    Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> UUID.randomUUID().toString)
+    Seq(
+      "bearer"              -> bearerToken,
+      USER_ROLES            -> "admin",
+      UID                   -> UUID.randomUUID().toString,
+      ORGANIZATION_ID_CLAIM -> organizationId.toString
+    )
   val m2mContext: Seq[(String, String)]      =
     Seq("bearer" -> bearerToken, USER_ROLES -> "m2m", ORGANIZATION_ID_CLAIM -> organizationId.toString)
   val internalContext: Seq[(String, String)] =

@@ -4,6 +4,7 @@ import cats.syntax.all._
 import akka.http.scaladsl.model.StatusCodes
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import it.pagopa.interop.commons.utils.ORGANIZATION_ID_CLAIM
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters._
@@ -23,7 +24,7 @@ class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRou
   "Tenant updated should not alter the tenant management behaviour when no mails" in {
     implicit val contexts: Seq[(String, String)] = adminContext
 
-    val tenantId: UUID           = UUID.randomUUID()
+    val tenantId: UUID           = organizationId
     val tenantDelta: TenantDelta = TenantDelta(mails = Nil)
 
     val tenantManagement: model.Tenant            = dependencyTenant
@@ -37,7 +38,7 @@ class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRou
       tenantThatManagementReturns
     )
 
-    Post() ~> tenantService.updateTenant(tenantId.toString(), tenantDelta) ~> check {
+    Post() ~> tenantService.updateTenant(tenantId.toString, tenantDelta) ~> check {
       assert(status == StatusCodes.OK)
       assert(entityAs[Tenant] == expected)
     }
@@ -46,7 +47,7 @@ class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRou
   "Tenant updated should not alter the tenant management behaviour when there are mails" in {
     implicit val contexts: Seq[(String, String)] = adminContext
 
-    val tenantId: UUID           = UUID.randomUUID()
+    val tenantId: UUID           = organizationId
     val tenantDelta: TenantDelta = TenantDelta(mails =
       MailSeed(kind = MailKind.CONTACT_EMAIL, address = "foo@bar.com", description = "awe".some) :: Nil
     )
@@ -70,9 +71,21 @@ class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRou
       tenantThatManagementReturns
     )
 
-    Post() ~> tenantService.updateTenant(tenantId.toString(), tenantDelta) ~> check {
+    Post() ~> tenantService.updateTenant(tenantId.toString, tenantDelta) ~> check {
       assert(status == StatusCodes.OK)
       assert(entityAs[Tenant] == expected)
+    }
+  }
+
+  "Tenant updated should not be allowed be user not belonging to the Tenant" in {
+    implicit val contexts: Seq[(String, String)] =
+      adminContext.filter(_._1 != ORGANIZATION_ID_CLAIM) :+ ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString
+
+    val tenantId: UUID           = UUID.randomUUID()
+    val tenantDelta: TenantDelta = TenantDelta(mails = Nil)
+
+    Post() ~> tenantService.updateTenant(tenantId.toString, tenantDelta) ~> check {
+      assert(status == StatusCodes.Forbidden)
     }
   }
 }
