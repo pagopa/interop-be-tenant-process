@@ -3,7 +3,6 @@ package it.pagopa.interop.tenantprocess.utils
 import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
 import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
 import it.pagopa.interop.catalogmanagement.client.model.EService
-import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.utils._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
@@ -46,12 +45,7 @@ trait SpecHelper extends MockFactory with SpecData {
   val mockAgreementManagement: AgreementManagementService                 = mock[AgreementManagementService]
   val mockCatalogManagement: CatalogManagementService                     = mock[CatalogManagementService]
 
-  val mockReadModel: ReadModelService              = new ReadModelService(
-    ReadModelConfig(
-      "mongodb://localhost/?socketTimeoutMS=1&serverSelectionTimeoutMS=1&connectTimeoutMS=1&&autoReconnect=false&keepAlive=false",
-      "db"
-    )
-  )
+  val mockReadModel: ReadModelService              = mock[ReadModelService]
   val mockUuidSupplier: UUIDSupplier               = mock[UUIDSupplier]
   val mockDateTimeSupplier: OffsetDateTimeSupplier = mock[OffsetDateTimeSupplier]
 
