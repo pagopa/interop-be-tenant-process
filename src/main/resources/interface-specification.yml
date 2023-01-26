@@ -491,6 +491,8 @@ components:
       properties:
         origin:
           type: string
+          minLength: 3
+          maxLength: 64
         value:
           type: string
       required:
@@ -501,8 +503,12 @@ components:
       properties:
         origin:
           type: string
+          minLength: 3
+          maxLength: 64
         code:
           type: string
+          minLength: 3
+          maxLength: 30
       required:
         - origin
         - code
@@ -511,6 +517,8 @@ components:
       properties:
         code:
           type: string
+          minLength: 3
+          maxLength: 30
       required:
         - code
     Tenant:
@@ -728,6 +736,8 @@ components:
             $ref: '#/components/schemas/InternalAttributeSeed'
         name:
           type: string
+          minLength: 5
+          maxLength: 60
       required:
         - externalId
         - certifiedAttributes
@@ -744,6 +754,8 @@ components:
             $ref: '#/components/schemas/M2MAttributeSeed'
         name:
           type: string
+          minLength: 5
+          maxLength: 60
       required:
         - externalId
         - certifiedAttributes
@@ -758,6 +770,8 @@ components:
           type: string
         name:
           type: string
+          minLength: 5
+          maxLength: 60
       required:
         - externalId
         - selfcareId
@@ -780,8 +794,12 @@ components:
           $ref: '#/components/schemas/MailKind'
         address:
           type: string
+          minLength: 5
+          maxLength: 320
         description:
           type: string
+          minLength: 10
+          maxLength: 250
       required:
         - kind
         - address
@@ -793,11 +811,13 @@ components:
           $ref: '#/components/schemas/MailKind'
         address:
           type: string
+          maxLength: 30
         createdAt:
           type: string
           format: date-time
         description:
           type: string
+          maxLength: 250
       required:
         - kind
         - address
