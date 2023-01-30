@@ -110,6 +110,8 @@ object FakeDependencies extends SpecData {
       evidence$4: JsonReader[T],
       ec: ExecutionContext
     ): Future[Seq[T]] = Future.successful(Nil)
+
+    override def close(): Unit = ()
   }
 
   val fakeTenant: Tenant = Tenant(

@@ -26,6 +26,13 @@
       ]
     },
     {
+      "route": "internalRevokeCertifiedAttribute",
+      "verb": "DELETE",
+      "roles": [
+        "internal"
+      ]
+    },
+    {
       "route": "m2mUpsertTenant",
       "verb": "POST",
       "roles": [
