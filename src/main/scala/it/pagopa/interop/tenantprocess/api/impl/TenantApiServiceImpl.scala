@@ -14,15 +14,16 @@ import it.pagopa.interop.commons.utils.AkkaUtils.{getOrganizationIdFutureUUID, g
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.{ComponentError, GenericComponentErrors}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.tenantmanagement.client
 import it.pagopa.interop.tenantmanagement.client.model.{
-  TenantFeature,
+  TenantFeature => DependencyTenantFeature,
   Certifier => DependencyCertifier,
+  ExternalId => DependencyExternalId,
   Tenant => DependencyTenant,
   TenantAttribute => DependencyTenantAttribute,
   TenantDelta => DependencyTenantDelta,
   TenantRevoker => DependencyTenantRevoker,
   TenantVerifier => DependencyTenantVerifier,
+  CertifiedTenantAttribute => DependencyCertifiedTenantAttribute,
   VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.api.TenantApiService
@@ -152,7 +153,8 @@ final case class TenantApiServiceImpl(
       def validateCertifierTenant: Future[DependencyCertifier] = for {
         requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
         requesterTenant     <- tenantManagementService.getTenant(requesterTenantUuid)
-        maybeCertifier = requesterTenant.features.collectFirst { case TenantFeature(Some(certifier)) => certifier }
+        maybeCertifier = requesterTenant.features
+          .collectFirst { case DependencyTenantFeature(Some(certifier)) => certifier }
         certifier <- maybeCertifier.toFuture(TenantIsNotACertifier(requesterTenantUuid))
       } yield certifier
 
@@ -183,23 +185,14 @@ final case class TenantApiServiceImpl(
       certifierId         <- requesterTenant.features
         .collectFirstSome(_.certifier.map(_.certifierId))
         .toFuture(TenantIsNotACertifier(requesterTenantUuid))
-      tenantToModify      <- tenantManagementService.getTenantByExternalId(client.model.ExternalId(origin, externalId))
-      attributeIdToRevoke <- attributeRegistryManagementService
-        .getAttributeByExternalCode(certifierId, code)
-        .map(_.id)
-      attributeToModify   <- tenantToModify.attributes
-        .mapFilter(_.certified)
-        .find(_.id == attributeIdToRevoke)
-        .toFuture(CertifiedAttributeNotFoundInTenant(tenantToModify.id, origin, code))
-      modifiedAttribute = attributeToModify.copy(revocationTimestamp = dateTimeSupplier.get().some)
-      () <- tenantManagementService
-        .updateTenantAttribute(
-          tenantToModify.id,
-          attributeToModify.id,
-          client.model.TenantAttribute(certified = modifiedAttribute.some)
-        )
-        .void
-      _  <- agreementProcessService.computeAgreementsByAttribute(tenantToModify.id, attributeIdToRevoke)
+      result              <- revokeCertifiedAttribute(
+        tenantOrigin = origin,
+        tenantExternalId = externalId,
+        attributeOrigin = certifierId,
+        attributeExternalId = code
+      )
+      (tenant, attribute) = result
+      _ <- agreementProcessService.computeAgreementsByAttribute(tenant.id, attribute.id)
     } yield ()
 
     onComplete(result) {
@@ -246,6 +239,33 @@ final case class TenantApiServiceImpl(
       selfcareUpsertTenantResponse[Tenant](operationLabel)(selfcareUpsertTenant200)
     }
   }
+
+  override def internalRevokeCertifiedAttribute(
+    tenantOrigin: String,
+    tenantExternalId: String,
+    attributeOrigin: String,
+    attributeExternalId: String
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
+    authorize(INTERNAL_ROLE) {
+      val operationLabel =
+        s"Revoking certified attribute ($attributeOrigin/$attributeExternalId) from tenant ($tenantOrigin/$tenantExternalId)"
+      logger.info(operationLabel)
+
+      val result: Future[Unit] = for {
+        result <- revokeCertifiedAttribute(
+          tenantOrigin = tenantOrigin,
+          tenantExternalId = tenantExternalId,
+          attributeOrigin = attributeOrigin,
+          attributeExternalId = attributeExternalId
+        )
+        (tenant, attribute) = result
+        _ <- agreementProcessService.computeAgreementsByAttribute(tenant.id, attribute.id)
+      } yield ()
+
+      onComplete(result) {
+        internalRevokeCertifiedAttributeResponse[Unit](operationLabel)(_ => internalRevokeCertifiedAttribute204)
+      }
+    }
 
   override def addDeclaredAttribute(seed: DeclaredTenantAttributeSeed)(implicit
     contexts: Seq[(String, String)],
@@ -422,7 +442,7 @@ final case class TenantApiServiceImpl(
         // Note: the filter considers revocationTimestamp the only field that can change.
         //       If more fields would be updated in the future, this filter must be revisited
         .mapFilter(_.certified.filter(a => existingAttributesIds.contains(a.id) && a.revocationTimestamp.nonEmpty))
-        .map(c => (c.id, client.model.TenantAttribute(certified = c.copy(revocationTimestamp = None).some)))
+        .map(c => (c.id, DependencyTenantAttribute(certified = c.copy(revocationTimestamp = None).some)))
       ()            <- Future
         .traverse(reactivateTenantAttributes) { case (id, a) =>
           tenantManagementService.updateTenantAttribute(tenant.id, id, a)
@@ -463,7 +483,32 @@ final case class TenantApiServiceImpl(
     }
   }
 
-  def assertAttributeVerificationAllowed(producerId: UUID, consumerId: UUID, attributeId: UUID)(implicit
+  private def revokeCertifiedAttribute(
+    tenantOrigin: String,
+    tenantExternalId: String,
+    attributeOrigin: String,
+    attributeExternalId: String
+  )(implicit contexts: Seq[(String, String)]): Future[(DependencyTenant, DependencyCertifiedTenantAttribute)] = for {
+    tenantToModify      <- tenantManagementService.getTenantByExternalId(
+      DependencyExternalId(tenantOrigin, tenantExternalId)
+    )
+    attributeIdToRevoke <- attributeRegistryManagementService
+      .getAttributeByExternalCode(attributeOrigin, attributeExternalId)
+      .map(_.id)
+    attributeToModify   <- tenantToModify.attributes
+      .mapFilter(_.certified)
+      .find(_.id == attributeIdToRevoke)
+      .toFuture(CertifiedAttributeNotFoundInTenant(tenantToModify.id, attributeOrigin, attributeExternalId))
+    modifiedAttribute = attributeToModify.copy(revocationTimestamp = dateTimeSupplier.get().some)
+    updatedTenant <- tenantManagementService
+      .updateTenantAttribute(
+        tenantToModify.id,
+        attributeToModify.id,
+        DependencyTenantAttribute(certified = modifiedAttribute.some)
+      )
+  } yield (updatedTenant, attributeToModify)
+
+  private def assertAttributeVerificationAllowed(producerId: UUID, consumerId: UUID, attributeId: UUID)(implicit
     contexts: Seq[(String, String)]
   ): Future[Unit] =
     assertVerifiedAttributeOperationAllowed(
@@ -474,7 +519,7 @@ final case class TenantApiServiceImpl(
       AttributeVerificationNotAllowed(consumerId, attributeId)
     )
 
-  def assertAttributeRevocationAllowed(producerId: UUID, consumerId: UUID, attributeId: UUID)(implicit
+  private def assertAttributeRevocationAllowed(producerId: UUID, consumerId: UUID, attributeId: UUID)(implicit
     contexts: Seq[(String, String)]
   ): Future[Unit] = assertVerifiedAttributeOperationAllowed(
     producerId,
@@ -484,7 +529,7 @@ final case class TenantApiServiceImpl(
     AttributeRevocationNotAllowed(consumerId, attributeId)
   )
 
-  def assertVerifiedAttributeOperationAllowed(
+  private def assertVerifiedAttributeOperationAllowed(
     producerId: UUID,
     consumerId: UUID,
     attributeId: UUID,
@@ -500,7 +545,7 @@ final case class TenantApiServiceImpl(
     _ <- Future.failed(error).unlessA(attributeIds.contains(attributeId))
   } yield ()
 
-  def addRevoker(
+  private def addRevoker(
     verifiedAttribute: DependencyVerifiedTenantAttribute,
     now: OffsetDateTime,
     verifier: DependencyTenantVerifier
