@@ -784,8 +784,8 @@ components:
             $ref: '#/components/schemas/InternalAttributeSeed'
         name:
           type: string
-          minLength: 5
-          maxLength: 60
+          minLength: 1
+          maxLength: 500
       required:
         - externalId
         - certifiedAttributes
@@ -802,8 +802,8 @@ components:
             $ref: '#/components/schemas/M2MAttributeSeed'
         name:
           type: string
-          minLength: 5
-          maxLength: 60
+          minLength: 1
+          maxLength: 500
       required:
         - externalId
         - certifiedAttributes
@@ -818,8 +818,8 @@ components:
           type: string
         name:
           type: string
-          minLength: 5
-          maxLength: 60
+          minLength: 1
+          maxLength: 500
       required:
         - externalId
         - selfcareId
