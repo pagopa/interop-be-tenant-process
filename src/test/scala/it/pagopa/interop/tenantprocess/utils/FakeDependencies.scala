@@ -110,6 +110,9 @@ object FakeDependencies extends SpecData {
       evidence$4: JsonReader[T],
       ec: ExecutionContext
     ): Future[Seq[T]] = Future.successful(Nil)
+    def aggregateRaw[T: JsonReader](collectionName: String, pipeline: Seq[Bson], offset: Int, limit: Int)(implicit
+      ec: ExecutionContext
+    ): Future[Seq[T]] = Future.successful(Nil)
 
     override def close(): Unit = ()
   }
