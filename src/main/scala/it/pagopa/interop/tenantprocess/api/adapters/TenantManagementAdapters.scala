@@ -11,6 +11,7 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   MailKind => DependencyMailKind,
   MailSeed => DependencyMailSeed,
   Tenant => DependencyTenant,
+  TenantKind => DependencyTenantKind,
   TenantAttribute => DependencyTenantAttribute,
   TenantFeature => DependencyTenantFeature,
   TenantRevoker => DependencyTenantRevoker,
@@ -33,8 +34,17 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       createdAt = t.createdAt,
       updatedAt = t.updatedAt,
       mails = t.mails.map(_.toApi),
-      name = t.name
+      name = t.name,
+      kind = t.kind.map(_.toApi)
     )
+  }
+
+  implicit class DependencyTenantKindWrapper(private val dtk: DependencyTenantKind) extends AnyVal {
+    def toApi: TenantKind = dtk match {
+      case DependencyTenantKind.PA      => TenantKind.PA
+      case DependencyTenantKind.GSP     => TenantKind.GSP
+      case DependencyTenantKind.PRIVATE => TenantKind.PRIVATE
+    }
   }
 
   implicit class DependencyMailWrapper(private val m: DependencyMail) extends AnyVal {

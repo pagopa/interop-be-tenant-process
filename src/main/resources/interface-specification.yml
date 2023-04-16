@@ -600,6 +600,8 @@ components:
             $ref: '#/components/schemas/Mail'
         name:
           type: string
+        kind:
+          $ref: '#/components/schemas/TenantKind'  
       required:
         - id
         - certifier
@@ -609,6 +611,12 @@ components:
         - createdAt
         - mails
         - name
+    TenantKind:
+      type: string
+      enum:
+        - PA
+        - PRIVATE
+        - GSP
     Tenants:
       type: object
       properties:

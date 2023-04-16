@@ -37,12 +37,18 @@ trait SpecData {
   val internalAttributeSeed: InternalAttributeSeed = InternalAttributeSeed("IPA", s"int-attribute-${UUID.randomUUID()}")
   val m2mAttributeSeed: M2MAttributeSeed           = M2MAttributeSeed(s"m2m-attribute-${UUID.randomUUID()}")
 
-  val internalTenantSeed: InternalTenantSeed =
+  val internalTenantSeed: InternalTenantSeed       =
     InternalTenantSeed(ExternalId("IPA", s"tenant-${UUID.randomUUID()}"), Seq(internalAttributeSeed), "test_name")
-  val m2mTenantSeed: M2MTenantSeed           =
+  val internalTenantSeedNotIpa: InternalTenantSeed =
+    InternalTenantSeed(ExternalId("NOT_IPA", s"tenant-${UUID.randomUUID()}"), Seq(internalAttributeSeed), "test_name")
+  val m2mTenantSeed: M2MTenantSeed                 =
     M2MTenantSeed(ExternalId("IPA", s"tenant-${UUID.randomUUID()}"), Seq(m2mAttributeSeed), "test_name")
-  val selfcareTenantSeed: SelfcareTenantSeed =
+  val m2mTenantSeedNotIpa: M2MTenantSeed           =
+    M2MTenantSeed(ExternalId("NOT_IPA", s"tenant-${UUID.randomUUID()}"), Seq(m2mAttributeSeed), "test_name")
+  val selfcareTenantSeed: SelfcareTenantSeed       =
     SelfcareTenantSeed(ExternalId("IPA", s"tenant-${UUID.randomUUID()}"), UUID.randomUUID().toString, "test_name")
+  val selfcareTenantSeedNotIpa: SelfcareTenantSeed =
+    SelfcareTenantSeed(ExternalId("NOT_IPA", s"tenant-${UUID.randomUUID()}"), UUID.randomUUID().toString, "test_name")
 
   val dependencyTenant: DependencyTenant = DependencyTenant(
     id = UUID.randomUUID(),
@@ -53,7 +59,21 @@ trait SpecData {
     createdAt = timestamp,
     updatedAt = None,
     mails = Nil,
-    name = "test_name"
+    name = "test_name",
+    kind = None
+  )
+
+  val dependencyTenantNotIPA: DependencyTenant = DependencyTenant(
+    id = UUID.randomUUID(),
+    selfcareId = None,
+    externalId = DependencyExternalId("NOT_IPA", "org"),
+    features = Nil,
+    attributes = Nil,
+    createdAt = timestamp,
+    updatedAt = None,
+    mails = Nil,
+    name = "test_name",
+    kind = None
   )
 
   val fakeTenantDelta: TenantDelta = TenantDelta(mails = Nil)
