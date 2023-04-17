@@ -58,9 +58,12 @@ final case class TenantApiServiceImpl(
 )(implicit ec: ExecutionContext)
     extends TenantApiService {
 
-  private val IPA: String = "IPA"
-  private val SAG: String = "SAG"
-  private val L37: String = "L37"
+  // Enti Pubblici
+  private val PUBLIC_ADMINISTRATIONS_IDENTIFIER: String           = "IPA"
+  // Stazioni Appaltanti Gestori di Pubblici Servizi
+  private val CONTRACT_AUTHORITY_PUBLIC_SERVICES_MANAGERS: String = "SAG"
+  // Gestori di Pubblici Servizi
+  private val PUBLIC_SERVICES_MANAGERS: String                    = "L37"
 
   private implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
@@ -489,10 +492,13 @@ final case class TenantApiServiceImpl(
 
   private def getTenantKind(attributes: Seq[ExternalId], externalId: ExternalId): TenantKind = {
     externalId.origin match {
-      case IPA if (attributes.exists(attr => attr.origin == IPA && (attr.value == L37 || attr.value == SAG))) =>
+      case PUBLIC_ADMINISTRATIONS_IDENTIFIER
+          if (attributes.exists(attr =>
+            attr.origin == PUBLIC_ADMINISTRATIONS_IDENTIFIER && (attr.value == PUBLIC_SERVICES_MANAGERS || attr.value == CONTRACT_AUTHORITY_PUBLIC_SERVICES_MANAGERS)
+          )) =>
         TenantKind.GSP
-      case IPA => TenantKind.PA
-      case _   => TenantKind.PRIVATE
+      case PUBLIC_ADMINISTRATIONS_IDENTIFIER => TenantKind.PA
+      case _                                 => TenantKind.PRIVATE
     }
   }
 
