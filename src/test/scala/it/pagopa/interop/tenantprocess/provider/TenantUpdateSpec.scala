@@ -34,7 +34,7 @@ class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRou
     mockGetTenantById(tenantId, tenantManagement)
     mockUpdateTenant(
       tenantId,
-      tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features),
+      tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features, kind = model.TenantKind.PA),
       tenantThatManagementReturns
     )
 
@@ -67,7 +67,7 @@ class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRou
     mockGetTenantById(tenantId, tenantManagement)
     mockUpdateTenant(
       tenantId,
-      tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features),
+      tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features, kind = model.TenantKind.PA),
       tenantThatManagementReturns
     )
 

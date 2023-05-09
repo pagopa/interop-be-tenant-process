@@ -11,6 +11,7 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantFeature => DependencyTenantFeature,
   Certifier => DependencyCertifier,
   MailKind => DependencyMailKind,
+  TenantKind => DependencyTenantKind,
   MailSeed => DependencyMailSeed,
   TenantDelta => DependencyTenantDelta
 }
@@ -24,7 +25,8 @@ import it.pagopa.interop.tenantprocess.model.{
   VerifiedTenantAttributeSeed,
   TenantDelta,
   Mail,
-  MailKind
+  MailKind,
+  TenantKind
 }
 
 import java.time.OffsetDateTime
@@ -37,6 +39,14 @@ object ApiAdapters {
   implicit class MailWrapper(private val m: Mail) extends AnyVal {
     def fromAPI: DependencyMailSeed =
       DependencyMailSeed(kind = m.kind.fromAPI, address = m.address, description = m.description)
+  }
+
+  implicit class TenantKindWrapper(private val tk: TenantKind) extends AnyVal {
+    def fromAPI: DependencyTenantKind = tk match {
+      case TenantKind.PA      => DependencyTenantKind.PA
+      case TenantKind.PRIVATE => DependencyTenantKind.PRIVATE
+      case TenantKind.GSP     => DependencyTenantKind.GSP
+    }
   }
 
   implicit class MailKindWrapper(private val mk: MailKind) extends AnyVal {
@@ -54,8 +64,12 @@ object ApiAdapters {
   }
 
   implicit class TenantDeltaWrapper(private val td: TenantDelta) extends AnyVal {
-    def fromAPI(selfcareId: Option[String], features: Seq[DependencyTenantFeature]): DependencyTenantDelta =
-      DependencyTenantDelta(selfcareId, features, mails = td.mails.map(_.toDependency))
+    def fromAPI(
+      selfcareId: Option[String],
+      features: Seq[DependencyTenantFeature],
+      kind: DependencyTenantKind
+    ): DependencyTenantDelta =
+      DependencyTenantDelta(selfcareId, features, mails = td.mails.map(_.toDependency), kind)
   }
 
   implicit class MailSeedWrapper(private val ms: MailSeed) extends AnyVal {

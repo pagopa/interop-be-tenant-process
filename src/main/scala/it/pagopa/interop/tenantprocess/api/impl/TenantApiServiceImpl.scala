@@ -14,6 +14,7 @@ import it.pagopa.interop.commons.utils.AkkaUtils.{getOrganizationIdFutureUUID, g
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.{ComponentError, GenericComponentErrors}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
+import it.pagopa.interop.attributeregistrymanagement.client.model.{Attribute => AttributeRegistry}
 import it.pagopa.interop.tenantmanagement.client.model.{
   TenantFeature => DependencyTenantFeature,
   Certifier => DependencyCertifier,
@@ -21,6 +22,7 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   Tenant => DependencyTenant,
   TenantAttribute => DependencyTenantAttribute,
   TenantDelta => DependencyTenantDelta,
+  TenantKind => DependencyTenantKind,
   TenantRevoker => DependencyTenantRevoker,
   TenantVerifier => DependencyTenantVerifier,
   CertifiedTenantAttribute => DependencyCertifiedTenantAttribute,
@@ -30,6 +32,7 @@ import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed
 import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed._
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters._
+import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters.ExternalIdWrapper
 import it.pagopa.interop.tenantprocess.api.adapters.AttributeRegistryManagementAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.ReadModelTenantAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.TenantManagementAdapters._
@@ -54,6 +57,13 @@ final case class TenantApiServiceImpl(
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext)
     extends TenantApiService {
+
+  // Enti Pubblici
+  private val PUBLIC_ADMINISTRATIONS_IDENTIFIER: String           = "IPA"
+  // Stazioni Appaltanti Gestori di Pubblici Servizi
+  private val CONTRACT_AUTHORITY_PUBLIC_SERVICES_MANAGERS: String = "SAG"
+  // Gestori di Pubblici Servizi
+  private val PUBLIC_SERVICES_MANAGERS: String                    = "L37"
 
   private implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
@@ -105,9 +115,12 @@ final case class TenantApiServiceImpl(
       tenantUUID       <- id.toFutureUUID
       _                <- assertResourceAllowed(tenantUUID)
       tenantManagement <- tenantManagementService.getTenant(tenantUUID)
+      tenantKind       <- tenantManagement.kind.fold(
+        getTenantKindLoadingCertifiedAttributes(tenantManagement.attributes, tenantManagement.externalId)
+      )(Future.successful)
       tenant           <- tenantManagementService.updateTenant(
         tenantUUID,
-        tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features)
+        tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features, tenantKind)
       )
     } yield tenant.toApi
 
@@ -129,9 +142,9 @@ final case class TenantApiServiceImpl(
     val result: Future[Tenant] = for {
       existingTenant <- findTenant(seed.externalId)
       attributesIds = seed.certifiedAttributes.map(a => ExternalId(a.origin, a.code))
-      tenant <- existingTenant.fold(createTenant(seed, attributesIds, now))(
-        updateTenantCertifiedAttributes(attributesIds, now)
-      )
+      tenant <- existingTenant.fold(
+        createTenant(seed, attributesIds, now, getTenantKind(attributesIds, seed.externalId).fromAPI)
+      )(updateTenantCertifiedAttributes(attributesIds, now))
     } yield tenant.toApi
 
     onComplete(result) {
@@ -162,9 +175,9 @@ final case class TenantApiServiceImpl(
         certifier      <- validateCertifierTenant
         existingTenant <- findTenant(seed.externalId)
         attributesId = seed.certifiedAttributes.map(a => ExternalId(certifier.certifierId, a.code))
-        tenant <- existingTenant.fold(createTenant(seed, attributesId, now))(
-          updateTenantCertifiedAttributes(attributesId, now)
-        )
+        tenant <- existingTenant.fold(
+          createTenant(seed, attributesId, now, getTenantKind(attributesId, seed.externalId).fromAPI)
+        )(updateTenantCertifiedAttributes(attributesId, now))
       } yield tenant.toApi
 
       onComplete(result) {
@@ -210,14 +223,15 @@ final case class TenantApiServiceImpl(
 
     val now: OffsetDateTime = dateTimeSupplier.get()
 
-    def updateSelfcareId(tenant: DependencyTenant): Future[DependencyTenant] = {
+    def updateSelfcareId(tenant: DependencyTenant, kind: DependencyTenantKind): Future[DependencyTenant] = {
       def updateTenant(): Future[DependencyTenant]                     = tenantManagementService
         .updateTenant(
           tenant.id,
           DependencyTenantDelta(
             selfcareId = seed.selfcareId.some,
             features = tenant.features,
-            mails = tenant.mails.map(_.toSeed)
+            mails = tenant.mails.map(_.toSeed),
+            kind = kind
           )
         )
       def verifyConflict(selfcareId: String): Future[DependencyTenant] = Future
@@ -231,8 +245,10 @@ final case class TenantApiServiceImpl(
     val result: Future[Tenant] = for {
       existingTenant <- findTenant(seed.externalId)
       _              <- existingTenant.traverse(t => assertResourceAllowed(t.id))
-      tenant         <- existingTenant.fold(createTenant(seed, Nil, now))(Future.successful)
-      updatedTenant  <- updateSelfcareId(tenant)
+      tenant         <- existingTenant
+        .fold(createTenant(seed, Nil, now, getTenantKind(Nil, seed.externalId).fromAPI))(Future.successful)
+      tenantKind     <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
+      updatedTenant  <- updateSelfcareId(tenant, tenantKind)
     } yield updatedTenant.toApi
 
     onComplete(result) {
@@ -410,14 +426,17 @@ final case class TenantApiServiceImpl(
     }
   }
 
-  private def createTenant[T: AdaptableSeed](seed: T, attributes: Seq[ExternalId], timestamp: OffsetDateTime)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[DependencyTenant] =
+  private def createTenant[T: AdaptableSeed](
+    seed: T,
+    attributes: Seq[ExternalId],
+    timestamp: OffsetDateTime,
+    kind: DependencyTenantKind
+  )(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] =
     for {
       attributes <- getAttributes(attributes)
       dependencyAttributes = attributes.map(_.toCertifiedSeed(timestamp))
       tenantId             = uuidSupplier.get()
-      tenant <- tenantManagementService.createTenant(toDependency(seed, tenantId, dependencyAttributes))
+      tenant <- tenantManagementService.createTenant(toDependency(seed, tenantId, dependencyAttributes, kind))
     } yield tenant
 
   private def updateTenantCertifiedAttributes(attributes: Seq[ExternalId], timestamp: OffsetDateTime)(
@@ -425,6 +444,18 @@ final case class TenantApiServiceImpl(
   )(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] = {
     def computeAgreements(attributesIds: Seq[UUID]): Future[Seq[Unit]] =
       Future.traverse(attributesIds)(agreementProcessService.computeAgreementsByAttribute(tenant.id, _))
+
+    def updateTenant(tenant: DependencyTenant, kind: DependencyTenantKind): Future[DependencyTenant] =
+      tenantManagementService
+        .updateTenant(
+          tenant.id,
+          DependencyTenantDelta(
+            selfcareId = tenant.selfcareId,
+            features = tenant.features,
+            mails = tenant.mails.map(_.toSeed),
+            kind = kind
+          )
+        )
 
     for {
       attributes <- getAttributes(attributes)
@@ -449,9 +480,55 @@ final case class TenantApiServiceImpl(
         }
         .void
       updatedTenant <- tenantManagementService.getTenant(tenant.id)
+      tenantKind    <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
+      updatedTenant <- updatedTenant.kind match {
+        case Some(x) if (x == tenantKind) => Future.successful(updatedTenant)
+        case _                            => updateTenant(updatedTenant, tenantKind)
+      }
       _             <- computeAgreements(newAttributes.map(_.id))
       _             <- computeAgreements(reactivateTenantAttributes.map { case (id, _) => id })
     } yield updatedTenant
+  }
+
+  private def getTenantKind(attributes: Seq[ExternalId], externalId: ExternalId): TenantKind = {
+    externalId.origin match {
+      case PUBLIC_ADMINISTRATIONS_IDENTIFIER
+          if (attributes.exists(attr =>
+            attr.origin == PUBLIC_ADMINISTRATIONS_IDENTIFIER && (attr.value == PUBLIC_SERVICES_MANAGERS || attr.value == CONTRACT_AUTHORITY_PUBLIC_SERVICES_MANAGERS)
+          )) =>
+        TenantKind.GSP
+      case PUBLIC_ADMINISTRATIONS_IDENTIFIER => TenantKind.PA
+      case _                                 => TenantKind.PRIVATE
+    }
+  }
+
+  private def getTenantKindLoadingCertifiedAttributes(
+    attributes: Seq[DependencyTenantAttribute],
+    externalId: DependencyExternalId
+  )(implicit contexts: Seq[(String, String)]): Future[DependencyTenantKind] = {
+
+    def getCertifiedAttributesIds(attributes: Seq[DependencyTenantAttribute]): Seq[UUID] = for {
+      attributes <- attributes
+      certified  <- attributes.certified
+    } yield certified.id
+
+    def convertAttributes(attributes: Seq[Attribute]): Seq[ExternalId] = for {
+      attributes <- attributes
+      origin     <- attributes.origin
+      code       <- attributes.code
+    } yield ExternalId(origin, code)
+
+    def getDependencyAttributes(attributes: Seq[UUID])(implicit
+      contexts: Seq[(String, String)]
+    ): Future[Seq[AttributeRegistry]] =
+      Future.traverse(attributes)(attributeRegistryManagementService.getAttributeById)
+
+    for {
+      attributesIds <- Future.successful(getCertifiedAttributesIds(attributes))
+      attrs         <- getDependencyAttributes(attributesIds)
+      extIds     = convertAttributes(attrs)
+      tenantKind = getTenantKind(extIds, externalId.toApi)
+    } yield tenantKind.fromAPI
   }
 
   private def getAttributes(attributes: Seq[ExternalId])(implicit
@@ -506,6 +583,20 @@ final case class TenantApiServiceImpl(
         attributeToModify.id,
         DependencyTenantAttribute(certified = modifiedAttribute.some)
       )
+    tenantKind    <- getTenantKindLoadingCertifiedAttributes(updatedTenant.attributes, updatedTenant.externalId)
+    updatedTenant <- updatedTenant.kind match {
+      case Some(x) if (x == tenantKind) => Future.successful(updatedTenant)
+      case _                            =>
+        tenantManagementService.updateTenant(
+          updatedTenant.id,
+          DependencyTenantDelta(
+            selfcareId = updatedTenant.selfcareId,
+            features = updatedTenant.features,
+            mails = updatedTenant.mails.map(_.toSeed),
+            kind = tenantKind
+          )
+        )
+    }
   } yield (updatedTenant, attributeToModify)
 
   private def assertAttributeVerificationAllowed(producerId: UUID, consumerId: UUID, attributeId: UUID)(implicit
