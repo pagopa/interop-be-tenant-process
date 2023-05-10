@@ -71,7 +71,7 @@ object TenantProcessErrors {
   final case class OrganizationNotFoundInVerifiers(requesterId: UUID, tenantId: UUID, attributeId: UUID)
       extends ComponentError(
         "0017",
-        s"Oragnization $requesterId not found in verifier for Tenant $tenantId and attribute $attributeId"
+        s"Organization $requesterId not found in verifier for Tenant $tenantId and attribute $attributeId"
       )
 
 }

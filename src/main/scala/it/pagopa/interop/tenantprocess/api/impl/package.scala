@@ -33,10 +33,12 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def verifiedTenantAttributeFormat: RootJsonFormat[VerifiedTenantAttribute]   =
     jsonFormat4(VerifiedTenantAttribute)
 
-  implicit def declaredTenantAttributeSeedFormat: RootJsonFormat[DeclaredTenantAttributeSeed] =
+  implicit def declaredTenantAttributeSeedFormat: RootJsonFormat[DeclaredTenantAttributeSeed]             =
     jsonFormat1(DeclaredTenantAttributeSeed)
-  implicit def verifiedTenantAttributeSeedFormat: RootJsonFormat[VerifiedTenantAttributeSeed] =
+  implicit def verifiedTenantAttributeSeedFormat: RootJsonFormat[VerifiedTenantAttributeSeed]             =
     jsonFormat3(VerifiedTenantAttributeSeed)
+  implicit def updateVerifiedTenantAttributeSeedFormat: RootJsonFormat[UpdateVerifiedTenantAttributeSeed] =
+    jsonFormat2(UpdateVerifiedTenantAttributeSeed)
 
   implicit def verificationRenewalFormat: RootJsonFormat[VerificationRenewal] =
     VerificationRenewal.VerificationRenewalFormat

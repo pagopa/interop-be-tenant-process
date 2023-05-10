@@ -85,7 +85,7 @@
       ]
     },
     {
-      "route": "updateRenewalStrategyVerifiedAttribute",
+      "route": "updateVerifiedAttribute",
       "verb": "POST",
       "roles": [
         "admin"

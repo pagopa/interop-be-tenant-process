@@ -8,7 +8,8 @@ import it.pagopa.interop.tenantprocess.api.impl._
 import it.pagopa.interop.tenantprocess.model.{
   DeclaredTenantAttributeSeed,
   VerificationRenewal,
-  VerifiedTenantAttributeSeed
+  VerifiedTenantAttributeSeed,
+  UpdateVerifiedTenantAttributeSeed
 }
 import it.pagopa.interop.tenantprocess.utils.AuthorizedRoutes.endpoints
 import it.pagopa.interop.tenantprocess.utils.FakeDependencies._
@@ -128,13 +129,14 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     )
   }
 
-  test("Tenant api should accept authorized roles for updateRenewalStrategyVerifiedAttribute") {
+  test("Tenant api should accept authorized roles for updateVerifiedAttribute") {
     validateAuthorization(
-      endpoints("updateRenewalStrategyVerifiedAttribute"),
+      endpoints("updateVerifiedAttribute"),
       { implicit c: Seq[(String, String)] =>
-        tenantService.updateRenewalStrategyVerifiedAttribute(
+        tenantService.updateVerifiedAttribute(
           UUID.randomUUID().toString,
-          VerifiedTenantAttributeSeed(verifiedAttributeId, VerificationRenewal.AUTOMATIC_RENEWAL, None)
+          UUID.randomUUID().toString,
+          UpdateVerifiedTenantAttributeSeed(VerificationRenewal.AUTOMATIC_RENEWAL, None)
         )
       }
     )

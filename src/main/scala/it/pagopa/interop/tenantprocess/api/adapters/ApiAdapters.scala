@@ -23,6 +23,7 @@ import it.pagopa.interop.tenantprocess.model.{
   TenantFeature,
   Certifier,
   VerifiedTenantAttributeSeed,
+  UpdateVerifiedTenantAttributeSeed,
   TenantDelta,
   Mail,
   MailKind,
@@ -120,6 +121,33 @@ object ApiAdapters {
       certified = None,
       verified = DependencyVerifiedTenantAttribute(
         id = seed.id,
+        assignmentTimestamp = attribute.assignmentTimestamp,
+        verifiedBy = attribute.verifiedBy :+
+          DependencyTenantVerifier(
+            id = requesterId,
+            verificationDate = now,
+            renewal = seed.renewal.toDependency,
+            expirationDate = seed.expirationDate,
+            extensionDate = None
+          ),
+        revokedBy = attribute.revokedBy
+      ).some
+    )
+  }
+
+  implicit class UpdateVerifiedTenantAttributeSeedWrapper(private val seed: UpdateVerifiedTenantAttributeSeed)
+      extends AnyVal {
+
+    def toUpdateDependency(
+      attributeUuiId: UUID,
+      now: OffsetDateTime,
+      requesterId: UUID,
+      attribute: DependencyVerifiedTenantAttribute
+    ): DependencyTenantAttribute = DependencyTenantAttribute(
+      declared = None,
+      certified = None,
+      verified = DependencyVerifiedTenantAttribute(
+        id = attributeUuiId,
         assignmentTimestamp = attribute.assignmentTimestamp,
         verifiedBy = attribute.verifiedBy.filterNot(_.id == requesterId) :+
           DependencyTenantVerifier(
