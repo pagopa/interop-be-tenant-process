@@ -121,7 +121,7 @@ object ApiAdapters {
       verified = DependencyVerifiedTenantAttribute(
         id = seed.id,
         assignmentTimestamp = attribute.assignmentTimestamp,
-        verifiedBy = attribute.verifiedBy :+
+        verifiedBy = attribute.verifiedBy.filterNot(_.id == requesterId) :+
           DependencyTenantVerifier(
             id = requesterId,
             verificationDate = now,

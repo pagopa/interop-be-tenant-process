@@ -384,6 +384,43 @@ final case class TenantApiServiceImpl(
     }
   }
 
+  override def updateRenewalStrategyVerifiedAttribute(tenantId: String, seed: VerifiedTenantAttributeSeed)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = authorize(ADMIN_ROLE) {
+    val operationLabel = s"Verifying attribute ${seed.id} to tenant $tenantId"
+    logger.info(operationLabel)
+
+    val now: OffsetDateTime = dateTimeSupplier.get()
+
+    val result: Future[Tenant] = for {
+      requesterUuid <- getOrganizationIdFutureUUID(contexts)
+      tenantUuid    <- tenantId.toFutureUUID
+      _             <- seed.expirationDate match {
+        case Some(value) if (value.isBefore(now)) => Future.failed(ExpirationDateCannotBeInThePast(value))
+        case _                                    => Future.successful(())
+      }
+      tenant        <- tenantManagementService.getTenant(tenantUuid)
+      attribute     <- tenant.attributes
+        .flatMap(_.verified)
+        .find(_.id == seed.id)
+        .toFuture(VerifiedAttributeNotFoundInTenant(tenantUuid, seed.id))
+      _             <- attribute.verifiedBy
+        .find(_.id == requesterUuid)
+        .toFuture(OrganizationNotFoundInVerifiers(requesterUuid, tenantUuid, attribute.id))
+      updatedTenant <- tenantManagementService.updateTenantAttribute(
+        tenantUuid,
+        seed.id,
+        seed.toUpdateDependency(now, tenantUuid, attribute)
+      )
+    } yield updatedTenant.toApi
+
+    onComplete(result) {
+      updateRenewalStrategyVerifiedAttributeResponse[Tenant](operationLabel)(updateRenewalStrategyVerifiedAttribute200)
+    }
+  }
+
   override def revokeVerifiedAttribute(tenantId: String, attributeId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
