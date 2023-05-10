@@ -85,6 +85,13 @@
       ]
     },
     {
+      "route": "updateRenewalStrategyVerifiedAttribute",
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ]
+    },
+    {
       "route": "updateTenant",
       "verb": "POST",
       "roles": [
