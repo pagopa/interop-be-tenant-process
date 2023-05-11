@@ -104,7 +104,7 @@ object ApiAdapters {
               verificationDate = now,
               renewal = seed.renewal.toDependency,
               expirationDate = seed.expirationDate,
-              extensionDate = seed.expirationDate.orElse(None)
+              extensionDate = seed.expirationDate
             )
           ),
           revokedBy = Nil
