@@ -774,7 +774,6 @@ components:
           type: string
           format: date-time
       required:
-        - id
         - renewal    
     VerificationRenewal:
       type: string
