@@ -53,7 +53,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
                 verificationDate = timestamp,
                 renewal = seed.renewal.toDependency,
                 expirationDate = seed.expirationDate,
-                extensionDate = None
+                extensionDate = seed.expirationDate
               )
             ),
             revokedBy = Nil
