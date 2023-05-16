@@ -3,6 +3,7 @@ package it.pagopa.interop.tenantprocess.error
 import it.pagopa.interop.commons.utils.errors.ComponentError
 
 import java.util.UUID
+import java.time.OffsetDateTime
 
 object TenantProcessErrors {
   final case class TenantIsNotACertifier(tenantId: UUID)
@@ -63,5 +64,14 @@ object TenantProcessErrors {
 
   final case class TenantAttributeNotFound(tenantId: UUID, attributeId: UUID)
       extends ComponentError("0015", s"Attribute $attributeId not found for Tenant $tenantId")
+
+  final case class ExpirationDateCannotBeInThePast(date: OffsetDateTime)
+      extends ComponentError("0016", s"Expiration date $date cannot be in the past")
+
+  final case class OrganizationNotFoundInVerifiers(requesterId: UUID, tenantId: UUID, attributeId: UUID)
+      extends ComponentError(
+        "0017",
+        s"Organization $requesterId not found in verifier for Tenant $tenantId and attribute $attributeId"
+      )
 
 }

@@ -11,7 +11,11 @@ import it.pagopa.interop.tenantmanagement.client.model.{
 }
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters.VerificationRenewalWrapper
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
-import it.pagopa.interop.tenantprocess.model.{VerificationRenewal, VerifiedTenantAttributeSeed}
+import it.pagopa.interop.tenantprocess.model.{
+  VerificationRenewal,
+  VerifiedTenantAttributeSeed,
+  UpdateVerifiedTenantAttributeSeed
+}
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -275,7 +279,135 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
         assert(status == StatusCodes.OK)
       }
     }
+  }
 
+  "Verified attribute update strategy" should {
+    "succeed" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val targetTenantId = UUID.randomUUID()
+      val attributeId    = UUID.randomUUID()
+
+      val existingVerifier     = tenantVerifier.copy(id = organizationId, verificationDate = timestamp.minusDays(2))
+      val existingVerification =
+        dependencyVerifiedTenantAttribute(
+          attributeId,
+          assignmentTimestamp = timestamp.minusDays(1),
+          verifiedBy = Seq(existingVerifier)
+        )
+      val tenant               = dependencyTenant.copy(
+        id = targetTenantId,
+        attributes = Seq(dependencyCertifiedTenantAttribute, dependencyDeclaredTenantAttribute, existingVerification)
+      )
+
+      val seed =
+        UpdateVerifiedTenantAttributeSeed(VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp.plusDays(10)))
+
+      val managementSeed = TenantAttribute(
+        declared = None,
+        certified = None,
+        verified = Some(
+          VerifiedTenantAttribute(
+            id = attributeId,
+            assignmentTimestamp = existingVerification.verified.get.assignmentTimestamp,
+            verifiedBy = existingVerification.verified.get.verifiedBy.filterNot(_.id == organizationId) :+
+              TenantVerifier(
+                id = organizationId,
+                verificationDate = timestamp,
+                renewal = seed.renewal.toDependency,
+                expirationDate = seed.expirationDate,
+                extensionDate = None
+              ),
+            revokedBy = existingVerification.verified.get.revokedBy
+          )
+        )
+      )
+
+      mockDateTimeGet()
+
+      mockGetTenantById(targetTenantId, tenant)
+      mockUpdateTenantAttribute(targetTenantId, attributeId, managementSeed)
+
+      Post() ~> tenantService.updateVerifiedAttribute(targetTenantId.toString, attributeId.toString, seed) ~> check {
+        assert(status == StatusCodes.OK)
+      }
+    }
+
+    "fail if expiration date is in the past" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val targetTenantId = UUID.randomUUID()
+      val attributeId    = UUID.randomUUID()
+
+      val seed =
+        UpdateVerifiedTenantAttributeSeed(VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp.minusDays(2)))
+
+      mockDateTimeGet()
+
+      Post() ~> tenantService.updateVerifiedAttribute(targetTenantId.toString, attributeId.toString, seed) ~> check {
+        assert(status == StatusCodes.BadRequest)
+      }
+    }
+
+    "fail if Requester is not a previous verifier of verified attribute" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val targetTenantId = UUID.randomUUID()
+      val attributeId    = UUID.randomUUID()
+
+      val existingVerifier     = tenantVerifier.copy(id = UUID.randomUUID(), verificationDate = timestamp.minusDays(2))
+      val existingVerification =
+        dependencyVerifiedTenantAttribute(
+          attributeId,
+          assignmentTimestamp = timestamp.minusDays(1),
+          verifiedBy = Seq(existingVerifier)
+        )
+      val tenant               = dependencyTenant.copy(
+        id = targetTenantId,
+        attributes = Seq(dependencyCertifiedTenantAttribute, dependencyDeclaredTenantAttribute, existingVerification)
+      )
+
+      val seed =
+        UpdateVerifiedTenantAttributeSeed(VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp.plusDays(10)))
+
+      mockDateTimeGet()
+
+      mockGetTenantById(targetTenantId, tenant)
+
+      Post() ~> tenantService.updateVerifiedAttribute(targetTenantId.toString, attributeId.toString, seed) ~> check {
+        assert(status == StatusCodes.Forbidden)
+      }
+    }
+
+    "fail if verified attribute is not present in Tenant" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val targetTenantId = UUID.randomUUID()
+      val attributeId    = UUID.randomUUID()
+
+      val existingVerifier     = tenantVerifier.copy(id = UUID.randomUUID(), verificationDate = timestamp.minusDays(2))
+      val existingVerification =
+        dependencyVerifiedTenantAttribute(
+          UUID.randomUUID(),
+          assignmentTimestamp = timestamp.minusDays(1),
+          verifiedBy = Seq(existingVerifier)
+        )
+      val tenant               = dependencyTenant.copy(
+        id = targetTenantId,
+        attributes = Seq(dependencyCertifiedTenantAttribute, dependencyDeclaredTenantAttribute, existingVerification)
+      )
+
+      val seed =
+        UpdateVerifiedTenantAttributeSeed(VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp.plusDays(10)))
+
+      mockDateTimeGet()
+
+      mockGetTenantById(targetTenantId, tenant)
+
+      Post() ~> tenantService.updateVerifiedAttribute(targetTenantId.toString, attributeId.toString, seed) ~> check {
+        assert(status == StatusCodes.NotFound)
+      }
+    }
   }
 
   "Verified attribute revocation" should {

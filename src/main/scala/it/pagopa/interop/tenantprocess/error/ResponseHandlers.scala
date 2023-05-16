@@ -133,6 +133,17 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex)                                       => internalServerError(ex, logMessage)
     }
 
+  def updateVerifiedAttributeResponse[T](logMessage: String)(
+    success: T => Route
+  )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
+    result match {
+      case Success(s)                                     => success(s)
+      case Failure(ex: ExpirationDateCannotBeInThePast)   => badRequest(ex, logMessage)
+      case Failure(ex: OrganizationNotFoundInVerifiers)   => forbidden(ex, logMessage)
+      case Failure(ex: VerifiedAttributeNotFoundInTenant) => notFound(ex, logMessage)
+      case Failure(ex)                                    => internalServerError(ex, logMessage)
+    }
+
   def getTenantResponse[T](logMessage: String)(
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
