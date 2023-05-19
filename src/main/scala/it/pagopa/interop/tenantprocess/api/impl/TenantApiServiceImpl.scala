@@ -414,7 +414,7 @@ final case class TenantApiServiceImpl(
       updatedTenant  <- tenantManagementService.updateTenantAttribute(
         tenantUuid,
         attributeUuiId,
-        seed.toUpdateDependency(attributeUuiId, now, requesterUuid, attribute, oldVerifier.renewal)
+        seed.toUpdateDependency(attributeUuiId, now, requesterUuid, attribute, oldVerifier)
       )
     } yield updatedTenant.toApi
 

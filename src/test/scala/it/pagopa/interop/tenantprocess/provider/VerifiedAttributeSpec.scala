@@ -335,7 +335,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "succeed with new expirationDate and extensionDate" in {
+    "succeed with new extensionDate" in {
       implicit val context: Seq[(String, String)] = adminContext
 
       val targetTenantId = UUID.randomUUID()
@@ -353,10 +353,10 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
         attributes = Seq(dependencyCertifiedTenantAttribute, dependencyDeclaredTenantAttribute, existingVerification)
       )
 
-      val (newExpirationDate, newExtensionDate) = (Some(timestamp.plusDays(10)), Some(timestamp.plusDays(30)))
+      val newExtensionDate = Some(timestamp.plusDays(30))
 
       val seed =
-        UpdateVerifiedTenantAttributeSeed(None, newExpirationDate, newExtensionDate)
+        UpdateVerifiedTenantAttributeSeed(None, None, newExtensionDate)
 
       val managementSeed = TenantAttribute(
         declared = None,
@@ -370,7 +370,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
                 id = organizationId,
                 verificationDate = timestamp,
                 renewal = existingVerifier.renewal,
-                expirationDate = newExpirationDate,
+                expirationDate = None,
                 extensionDate = newExtensionDate
               ),
             revokedBy = existingVerification.verified.get.revokedBy
