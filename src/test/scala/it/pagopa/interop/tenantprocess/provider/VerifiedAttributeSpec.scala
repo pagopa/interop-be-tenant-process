@@ -370,7 +370,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
                 id = organizationId,
                 verificationDate = timestamp,
                 renewal = existingVerifier.renewal,
-                expirationDate = None,
+                expirationDate = existingVerifier.expirationDate,
                 extensionDate = newExtensionDate
               ),
             revokedBy = existingVerification.verified.get.revokedBy
