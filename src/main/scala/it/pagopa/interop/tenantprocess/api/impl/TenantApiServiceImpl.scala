@@ -408,13 +408,13 @@ final case class TenantApiServiceImpl(
         .flatMap(_.verified)
         .find(_.id == attributeUuiId)
         .toFuture(VerifiedAttributeNotFoundInTenant(tenantUuid, attributeUuiId))
-      _              <- attribute.verifiedBy
+      oldVerifier    <- attribute.verifiedBy
         .find(_.id == requesterUuid)
         .toFuture(OrganizationNotFoundInVerifiers(requesterUuid, tenantUuid, attribute.id))
       updatedTenant  <- tenantManagementService.updateTenantAttribute(
         tenantUuid,
         attributeUuiId,
-        seed.toUpdateDependency(attributeUuiId, now, requesterUuid, attribute)
+        seed.toUpdateDependency(attributeUuiId, now, requesterUuid, attribute, oldVerifier.renewal)
       )
     } yield updatedTenant.toApi
 

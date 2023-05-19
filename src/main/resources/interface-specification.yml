@@ -510,7 +510,7 @@ paths:
       tags:
         - tenant
       operationId: updateVerifiedAttribute
-      description: Update renewal strategy attribute to a Tenant by the requester Tenant
+      description: Update renewal strategy and extensionDate attribute to a Tenant by the requester Tenant
       requestBody:
         content:
           application/json:
@@ -773,8 +773,9 @@ components:
         expirationDate:
           type: string
           format: date-time
-      required:
-        - renewal    
+        extensionDate:
+          type: string
+          format: date-time
     VerificationRenewal:
       type: string
       enum:

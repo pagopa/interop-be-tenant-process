@@ -142,7 +142,8 @@ object ApiAdapters {
       attributeUuiId: UUID,
       now: OffsetDateTime,
       requesterId: UUID,
-      attribute: DependencyVerifiedTenantAttribute
+      attribute: DependencyVerifiedTenantAttribute,
+      oldRenewal: DependencyVerificationRenewal
     ): DependencyTenantAttribute = DependencyTenantAttribute(
       declared = None,
       certified = None,
@@ -153,9 +154,12 @@ object ApiAdapters {
           DependencyTenantVerifier(
             id = requesterId,
             verificationDate = now,
-            renewal = seed.renewal.toDependency,
+            renewal = seed.renewal.map(_.toDependency).getOrElse(oldRenewal),
             expirationDate = seed.expirationDate,
-            extensionDate = None
+            extensionDate = seed.renewal match {
+              case Some(_) => None
+              case None    => seed.extensionDate
+            }
           ),
         revokedBy = attribute.revokedBy
       ).some
