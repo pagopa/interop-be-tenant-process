@@ -702,7 +702,7 @@ final case class TenantApiServiceImpl(
     )
   } yield ()
 
-  override def updateVerifiedAttributeExtensionDate(tenantId: String, attributeId: String)(implicit
+  override def updateVerifiedAttributeExtensionDate(tenantId: String, attributeId: String, verifierId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
@@ -710,39 +710,35 @@ final case class TenantApiServiceImpl(
     val operationLabel = s"Update extension date of attribute ${attributeId} for tenant $tenantId"
     logger.info(operationLabel)
 
-    val now: OffsetDateTime = dateTimeSupplier.get()
-
     val result: Future[Tenant] = for {
-      requesterUuid  <- getOrganizationIdFutureUUID(contexts)
+      verifierUuid   <- verifierId.toFutureUUID
       tenantUuid     <- tenantId.toFutureUUID
-      attributeUuiId <- attributeId.toFutureUUID
+      attributeUuid  <- attributeId.toFutureUUID
       tenant         <- tenantManagementService.getTenant(tenantUuid)
       attribute      <- tenant.attributes
         .flatMap(_.verified)
-        .find(_.id == attributeUuiId)
-        .toFuture(VerifiedAttributeNotFoundInTenant(tenantUuid, attributeUuiId))
+        .find(_.id == attributeUuid)
+        .toFuture(VerifiedAttributeNotFoundInTenant(tenantUuid, attributeUuid))
       oldVerifier    <- attribute.verifiedBy
-        .find(_.id == requesterUuid)
-        .toFuture(OrganizationNotFoundInVerifiers(requesterUuid, tenantUuid, attribute.id))
+        .find(_.id == verifierUuid)
+        .toFuture(OrganizationNotFoundInVerifiers(verifierUuid, tenantUuid, attribute.id))
       expirationDate <- oldVerifier.expirationDate.toFuture(
         ExpirationDateNotFoundInVerifier(tenantUuid, attribute.id, oldVerifier.id)
       )
-      extensionDate  <- oldVerifier.extensionDate.toFuture(
-        ExtensionDateNotFoundInVerifier(tenantUuid, attribute.id, oldVerifier.id)
-      )
-      updatedTenant  <- tenantManagementService.updateTenantAttribute(
+      extensionDate = oldVerifier.extensionDate.getOrElse(expirationDate)
+      updatedTenant <- tenantManagementService.updateTenantAttribute(
         tenantUuid,
-        attributeUuiId,
+        attributeUuid,
         DependencyTenantAttribute(
           declared = None,
           certified = None,
           verified = DependencyVerifiedTenantAttribute(
-            id = attributeUuiId,
+            id = attributeUuid,
             assignmentTimestamp = attribute.assignmentTimestamp,
-            verifiedBy = attribute.verifiedBy.filterNot(_.id == requesterUuid) :+
+            verifiedBy = attribute.verifiedBy.filterNot(_.id == verifierUuid) :+
               DependencyTenantVerifier(
-                id = requesterUuid,
-                verificationDate = now,
+                id = verifierUuid,
+                verificationDate = oldVerifier.verificationDate,
                 renewal = oldVerifier.renewal,
                 expirationDate = oldVerifier.expirationDate,
                 extensionDate = extensionDate.plus(Duration.between(oldVerifier.verificationDate, expirationDate)).some

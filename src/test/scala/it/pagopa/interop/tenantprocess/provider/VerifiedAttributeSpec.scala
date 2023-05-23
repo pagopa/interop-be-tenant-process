@@ -413,7 +413,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   "Verified attribute update extensionDate" should {
     "succeed" in {
-      implicit val context: Seq[(String, String)] = m2mContext
+      implicit val context: Seq[(String, String)] = internalContext
 
       val targetTenantId = UUID.randomUUID()
       val attributeId    = UUID.randomUUID()
@@ -429,8 +429,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
         id = targetTenantId,
         attributes = Seq(dependencyCertifiedTenantAttribute, dependencyDeclaredTenantAttribute, existingVerification)
       )
-
-      val managementSeed = TenantAttribute(
+      val managementSeed       = TenantAttribute(
         declared = None,
         certified = None,
         verified = Some(
@@ -452,22 +451,20 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
           )
         )
       )
-
-      mockDateTimeGet()
-
       mockGetTenantById(targetTenantId, tenant)
       mockUpdateTenantAttribute(targetTenantId, attributeId, managementSeed)
 
       Post() ~> tenantService.updateVerifiedAttributeExtensionDate(
         targetTenantId.toString,
-        attributeId.toString
+        attributeId.toString,
+        organizationId.toString
       ) ~> check {
         assert(status == StatusCodes.OK)
       }
     }
 
     "fail if Requester is not a previous verifier of verified attribute" in {
-      implicit val context: Seq[(String, String)] = m2mContext
+      implicit val context: Seq[(String, String)] = internalContext
 
       val targetTenantId = UUID.randomUUID()
       val attributeId    = UUID.randomUUID()
@@ -484,20 +481,19 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
         attributes = Seq(dependencyCertifiedTenantAttribute, dependencyDeclaredTenantAttribute, existingVerification)
       )
 
-      mockDateTimeGet()
-
       mockGetTenantById(targetTenantId, tenant)
 
       Post() ~> tenantService.updateVerifiedAttributeExtensionDate(
         targetTenantId.toString,
-        attributeId.toString
+        attributeId.toString,
+        organizationId.toString
       ) ~> check {
         assert(status == StatusCodes.Forbidden)
       }
     }
 
     "fail if verified attribute is not present in Tenant" in {
-      implicit val context: Seq[(String, String)] = m2mContext
+      implicit val context: Seq[(String, String)] = internalContext
 
       val targetTenantId = UUID.randomUUID()
       val attributeId    = UUID.randomUUID()
@@ -514,13 +510,12 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
         attributes = Seq(dependencyCertifiedTenantAttribute, dependencyDeclaredTenantAttribute, existingVerification)
       )
 
-      mockDateTimeGet()
-
       mockGetTenantById(targetTenantId, tenant)
 
       Post() ~> tenantService.updateVerifiedAttributeExtensionDate(
         targetTenantId.toString,
-        attributeId.toString
+        attributeId.toString,
+        organizationId.toString
       ) ~> check {
         assert(status == StatusCodes.NotFound)
       }

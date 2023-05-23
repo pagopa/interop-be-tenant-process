@@ -542,7 +542,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-  /tenants/{tenantId}/attributes/verified/{attributeId}/extend:
+  /tenants/{tenantId}/attributes/verified/{attributeId}/verifier/{verifierId}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
       - $ref: '#/components/parameters/IpAddress'
@@ -556,6 +556,13 @@ paths:
       - name: attributeId
         in: path
         description: Attribute id to be updated
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: verifierId
+        in: path
+        description: verifier id to be updated
         required: true
         schema:
           type: string

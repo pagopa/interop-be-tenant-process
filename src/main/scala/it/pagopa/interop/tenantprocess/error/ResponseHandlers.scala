@@ -151,9 +151,8 @@ object ResponseHandlers extends AkkaResponses {
       case Success(s)                                     => success(s)
       case Failure(ex: OrganizationNotFoundInVerifiers)   => forbidden(ex, logMessage)
       case Failure(ex: VerifiedAttributeNotFoundInTenant) => notFound(ex, logMessage)
-      case Failure(ex: ExtensionDateNotFoundInVerifier)   => notFound(ex, logMessage)
       case Failure(ex: ExpirationDateNotFoundInVerifier)  => badRequest(ex, logMessage)
-      case Failure(ex: TenantByIdNotFound) => notFound(ex, logMessage)
+      case Failure(ex: TenantByIdNotFound)                => notFound(ex, logMessage)
       case Failure(ex)                                    => internalServerError(ex, logMessage)
     }
 
