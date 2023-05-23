@@ -706,8 +706,8 @@ final case class TenantApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
-  ): Route = authorize(M2M_ROLE) {
-    val operationLabel = s"Update attribute ${attributeId} to tenant $tenantId"
+  ): Route = authorize(INTERNAL_ROLE) {
+    val operationLabel = s"Update extension date of attribute ${attributeId} for tenant $tenantId"
     logger.info(operationLabel)
 
     val now: OffsetDateTime = dateTimeSupplier.get()
