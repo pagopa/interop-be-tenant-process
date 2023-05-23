@@ -15,6 +15,7 @@ import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.{ComponentError, GenericComponentErrors}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.attributeregistrymanagement.client.model.{Attribute => AttributeRegistry}
+import it.pagopa.interop.tenantmanagement.client.model.VerificationRenewal.AUTOMATIC_RENEWAL
 import it.pagopa.interop.tenantmanagement.client.model.{
   TenantFeature => DependencyTenantFeature,
   Certifier => DependencyCertifier,
@@ -42,7 +43,7 @@ import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
 
-import java.time.OffsetDateTime
+import java.time.{Duration, OffsetDateTime}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -701,4 +702,60 @@ final case class TenantApiServiceImpl(
       roles.contains(INTERNAL_ROLE)
     )
   } yield ()
+
+  override def updateVerifiedAttributeExtensionDate(tenantId: String, attributeId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = authorize(M2M_ROLE) {
+    val operationLabel = s"Update attribute ${attributeId} to tenant $tenantId"
+    logger.info(operationLabel)
+
+    val now: OffsetDateTime = dateTimeSupplier.get()
+
+    val result: Future[Tenant] = for {
+      requesterUuid  <- getOrganizationIdFutureUUID(contexts)
+      tenantUuid     <- tenantId.toFutureUUID
+      attributeUuiId <- attributeId.toFutureUUID
+      tenant         <- tenantManagementService.getTenant(tenantUuid)
+      attribute      <- tenant.attributes
+        .flatMap(_.verified)
+        .find(_.id == attributeUuiId)
+        .toFuture(VerifiedAttributeNotFoundInTenant(tenantUuid, attributeUuiId))
+      oldVerifier    <- attribute.verifiedBy
+        .find(_.id == requesterUuid)
+        .toFuture(OrganizationNotFoundInVerifiers(requesterUuid, tenantUuid, attribute.id))
+      expirationDate <- oldVerifier.expirationDate.toFuture(
+        ExpirationDateNotFoundInVerifier(tenantUuid, attribute.id, oldVerifier.id)
+      )
+      extensionDate  <- oldVerifier.extensionDate.toFuture(
+        ExtensionDateNotFoundInVerifier(tenantUuid, attribute.id, oldVerifier.id)
+      )
+      updatedTenant  <- tenantManagementService.updateTenantAttribute(
+        tenantUuid,
+        attributeUuiId,
+        DependencyTenantAttribute(
+          declared = None,
+          certified = None,
+          verified = DependencyVerifiedTenantAttribute(
+            id = attributeUuiId,
+            assignmentTimestamp = attribute.assignmentTimestamp,
+            verifiedBy = attribute.verifiedBy.filterNot(_.id == requesterUuid) :+
+              DependencyTenantVerifier(
+                id = requesterUuid,
+                verificationDate = now,
+                renewal = AUTOMATIC_RENEWAL,
+                expirationDate = oldVerifier.expirationDate,
+                extensionDate = extensionDate.plus(Duration.between(oldVerifier.verificationDate, expirationDate)).some
+              ),
+            revokedBy = attribute.revokedBy
+          ).some
+        )
+      )
+    } yield updatedTenant.toApi
+
+    onComplete(result) {
+      updateVerifiedAttributeExtensionDateResponse[Tenant](operationLabel)(updateVerifiedAttributeExtensionDate200)
+    }
+  }
 }

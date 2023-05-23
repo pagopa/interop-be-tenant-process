@@ -74,4 +74,15 @@ object TenantProcessErrors {
         s"Organization $requesterId not found in verifier for Tenant $tenantId and attribute $attributeId"
       )
 
+  final case class ExpirationDateNotFoundInVerifier(tenantId: UUID, attributeId: UUID, verifierId: UUID)
+      extends ComponentError(
+        "0018",
+        s"ExpirationDate not found in verifier $verifierId for Tenant $tenantId and attribute $attributeId"
+      )
+
+  final case class ExtensionDateNotFoundInVerifier(tenantId: UUID, attributeId: UUID, verifierId: UUID)
+      extends ComponentError(
+        "0019",
+        s"ExtensionDate not found in verifier $verifierId for Tenant $tenantId and attribute $attributeId"
+      )
 }
