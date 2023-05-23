@@ -15,7 +15,6 @@ import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.{ComponentError, GenericComponentErrors}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.attributeregistrymanagement.client.model.{Attribute => AttributeRegistry}
-import it.pagopa.interop.tenantmanagement.client.model.VerificationRenewal.AUTOMATIC_RENEWAL
 import it.pagopa.interop.tenantmanagement.client.model.{
   TenantFeature => DependencyTenantFeature,
   Certifier => DependencyCertifier,
@@ -744,7 +743,7 @@ final case class TenantApiServiceImpl(
               DependencyTenantVerifier(
                 id = requesterUuid,
                 verificationDate = now,
-                renewal = AUTOMATIC_RENEWAL,
+                renewal = oldVerifier.renewal,
                 expirationDate = oldVerifier.expirationDate,
                 extensionDate = extensionDate.plus(Duration.between(oldVerifier.verificationDate, expirationDate)).some
               ),
