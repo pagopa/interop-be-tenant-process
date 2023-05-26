@@ -83,7 +83,7 @@ trait SpecData {
     verificationDate = timestamp,
     renewal = DependencyVerificationRenewal.AUTOMATIC_RENEWAL,
     expirationDate = None,
-    extensionDate = None
+    extensionDate = timestamp.some
   )
 
   val tenantRevoker: DependencyTenantRevoker = DependencyTenantRevoker(

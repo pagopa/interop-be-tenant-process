@@ -92,6 +92,13 @@
       ]
     },
     {
+      "route": "updateVerifiedAttributeExtensionDate",
+      "verb": "POST",
+      "roles": [
+        "internal"
+      ]
+    },
+    {
       "route": "updateTenant",
       "verb": "POST",
       "roles": [

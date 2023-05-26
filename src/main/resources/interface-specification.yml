@@ -542,6 +542,61 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /tenants/{tenantId}/attributes/verified/{attributeId}/verifier/{verifierId}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - name: tenantId
+        in: path
+        description: Tenant id which attribute needs to be verified
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: attributeId
+        in: path
+        description: Attribute id to be updated
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: verifierId
+        in: path
+        description: verifier id to be updated
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - tenant
+      operationId: updateVerifiedAttributeExtensionDate
+      description: Update attribute extensionDate to a Tenant by the requester Tenant
+      responses:
+        '200':
+          description: Updated Tenant Attribute
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /status:
     get:
       security: []

@@ -19,6 +19,7 @@ import it.pagopa.interop.tenantprocess.model.{
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.time.Duration
 import java.util.UUID
 
 class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest {
@@ -405,6 +406,117 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockGetTenantById(targetTenantId, tenant)
 
       Post() ~> tenantService.updateVerifiedAttribute(targetTenantId.toString, attributeId.toString, seed) ~> check {
+        assert(status == StatusCodes.NotFound)
+      }
+    }
+  }
+
+  "Verified attribute update extensionDate" should {
+    "succeed" in {
+      implicit val context: Seq[(String, String)] = internalContext
+
+      val targetTenantId = UUID.randomUUID()
+      val attributeId    = UUID.randomUUID()
+
+      val existingVerifier     = tenantVerifier.copy(id = organizationId, expirationDate = Some(timestamp.plusDays(30)))
+      val existingVerification =
+        dependencyVerifiedTenantAttribute(
+          attributeId,
+          assignmentTimestamp = timestamp.minusDays(1),
+          verifiedBy = Seq(existingVerifier)
+        )
+      val tenant               = dependencyTenant.copy(
+        id = targetTenantId,
+        attributes = Seq(dependencyCertifiedTenantAttribute, dependencyDeclaredTenantAttribute, existingVerification)
+      )
+      val managementSeed       = TenantAttribute(
+        declared = None,
+        certified = None,
+        verified = Some(
+          VerifiedTenantAttribute(
+            id = attributeId,
+            assignmentTimestamp = existingVerification.verified.get.assignmentTimestamp,
+            verifiedBy = existingVerification.verified.get.verifiedBy.filterNot(_.id == organizationId) :+
+              TenantVerifier(
+                id = organizationId,
+                verificationDate = timestamp,
+                renewal = existingVerifier.renewal,
+                expirationDate = existingVerifier.expirationDate,
+                extensionDate = Some(
+                  existingVerifier.extensionDate.get
+                    .plus(Duration.between(existingVerifier.verificationDate, existingVerifier.expirationDate.get))
+                )
+              ),
+            revokedBy = existingVerification.verified.get.revokedBy
+          )
+        )
+      )
+      mockGetTenantById(targetTenantId, tenant)
+      mockUpdateTenantAttribute(targetTenantId, attributeId, managementSeed)
+
+      Post() ~> tenantService.updateVerifiedAttributeExtensionDate(
+        targetTenantId.toString,
+        attributeId.toString,
+        organizationId.toString
+      ) ~> check {
+        assert(status == StatusCodes.OK)
+      }
+    }
+
+    "fail if Requester is not a previous verifier of verified attribute" in {
+      implicit val context: Seq[(String, String)] = internalContext
+
+      val targetTenantId = UUID.randomUUID()
+      val attributeId    = UUID.randomUUID()
+
+      val existingVerifier     = tenantVerifier.copy(id = UUID.randomUUID(), verificationDate = timestamp.minusDays(2))
+      val existingVerification =
+        dependencyVerifiedTenantAttribute(
+          attributeId,
+          assignmentTimestamp = timestamp.minusDays(1),
+          verifiedBy = Seq(existingVerifier)
+        )
+      val tenant               = dependencyTenant.copy(
+        id = targetTenantId,
+        attributes = Seq(dependencyCertifiedTenantAttribute, dependencyDeclaredTenantAttribute, existingVerification)
+      )
+
+      mockGetTenantById(targetTenantId, tenant)
+
+      Post() ~> tenantService.updateVerifiedAttributeExtensionDate(
+        targetTenantId.toString,
+        attributeId.toString,
+        organizationId.toString
+      ) ~> check {
+        assert(status == StatusCodes.Forbidden)
+      }
+    }
+
+    "fail if verified attribute is not present in Tenant" in {
+      implicit val context: Seq[(String, String)] = internalContext
+
+      val targetTenantId = UUID.randomUUID()
+      val attributeId    = UUID.randomUUID()
+
+      val existingVerifier     = tenantVerifier.copy(id = UUID.randomUUID(), verificationDate = timestamp.minusDays(2))
+      val existingVerification =
+        dependencyVerifiedTenantAttribute(
+          UUID.randomUUID(),
+          assignmentTimestamp = timestamp.minusDays(1),
+          verifiedBy = Seq(existingVerifier)
+        )
+      val tenant               = dependencyTenant.copy(
+        id = targetTenantId,
+        attributes = Seq(dependencyCertifiedTenantAttribute, dependencyDeclaredTenantAttribute, existingVerification)
+      )
+
+      mockGetTenantById(targetTenantId, tenant)
+
+      Post() ~> tenantService.updateVerifiedAttributeExtensionDate(
+        targetTenantId.toString,
+        attributeId.toString,
+        organizationId.toString
+      ) ~> check {
         assert(status == StatusCodes.NotFound)
       }
     }

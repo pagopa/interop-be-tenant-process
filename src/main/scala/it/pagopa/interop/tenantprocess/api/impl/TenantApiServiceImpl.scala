@@ -42,7 +42,7 @@ import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
 
-import java.time.OffsetDateTime
+import java.time.{Duration, OffsetDateTime}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -701,4 +701,56 @@ final case class TenantApiServiceImpl(
       roles.contains(INTERNAL_ROLE)
     )
   } yield ()
+
+  override def updateVerifiedAttributeExtensionDate(tenantId: String, attributeId: String, verifierId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = authorize(INTERNAL_ROLE) {
+    val operationLabel = s"Update extension date of attribute ${attributeId} for tenant $tenantId"
+    logger.info(operationLabel)
+
+    val result: Future[Tenant] = for {
+      verifierUuid   <- verifierId.toFutureUUID
+      tenantUuid     <- tenantId.toFutureUUID
+      attributeUuid  <- attributeId.toFutureUUID
+      tenant         <- tenantManagementService.getTenant(tenantUuid)
+      attribute      <- tenant.attributes
+        .flatMap(_.verified)
+        .find(_.id == attributeUuid)
+        .toFuture(VerifiedAttributeNotFoundInTenant(tenantUuid, attributeUuid))
+      oldVerifier    <- attribute.verifiedBy
+        .find(_.id == verifierUuid)
+        .toFuture(OrganizationNotFoundInVerifiers(verifierUuid, tenantUuid, attribute.id))
+      expirationDate <- oldVerifier.expirationDate.toFuture(
+        ExpirationDateNotFoundInVerifier(tenantUuid, attribute.id, oldVerifier.id)
+      )
+      extensionDate = oldVerifier.extensionDate.getOrElse(expirationDate)
+      updatedTenant <- tenantManagementService.updateTenantAttribute(
+        tenantUuid,
+        attributeUuid,
+        DependencyTenantAttribute(
+          declared = None,
+          certified = None,
+          verified = DependencyVerifiedTenantAttribute(
+            id = attributeUuid,
+            assignmentTimestamp = attribute.assignmentTimestamp,
+            verifiedBy = attribute.verifiedBy.filterNot(_.id == verifierUuid) :+
+              DependencyTenantVerifier(
+                id = verifierUuid,
+                verificationDate = oldVerifier.verificationDate,
+                renewal = oldVerifier.renewal,
+                expirationDate = oldVerifier.expirationDate,
+                extensionDate = extensionDate.plus(Duration.between(oldVerifier.verificationDate, expirationDate)).some
+              ),
+            revokedBy = attribute.revokedBy
+          ).some
+        )
+      )
+    } yield updatedTenant.toApi
+
+    onComplete(result) {
+      updateVerifiedAttributeExtensionDateResponse[Tenant](operationLabel)(updateVerifiedAttributeExtensionDate200)
+    }
+  }
 }
