@@ -6,7 +6,8 @@
       "roles": [
         "admin",
         "api",
-        "security"
+        "security",
+        "support"
       ]
     },
     {
@@ -15,7 +16,8 @@
       "roles": [
         "admin",
         "api",
-        "security"
+        "security",
+        "support"
       ]
     },
     {
