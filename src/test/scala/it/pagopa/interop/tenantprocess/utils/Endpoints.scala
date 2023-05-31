@@ -47,7 +47,7 @@ case class Endpoint(route: String, verb: String, roles: Seq[String]) {
 }
 
 object AuthorizedRoutes extends SprayJsonSupport {
-  val existingRoles: List[String] = List(ADMIN_ROLE, SECURITY_ROLE, API_ROLE, M2M_ROLE, INTERNAL_ROLE)
+  val existingRoles: List[String] = List(ADMIN_ROLE, SECURITY_ROLE, API_ROLE, M2M_ROLE, INTERNAL_ROLE, SUPPORT_ROLE)
   private val lines: String       = scala.io.Source.fromResource("authz.json").getLines().mkString
   implicit private val endpointFormat: RootJsonFormat[Endpoint]   = jsonFormat3(Endpoint)
   implicit private val endpointsFormat: RootJsonFormat[Endpoints] = jsonFormat1(Endpoints)

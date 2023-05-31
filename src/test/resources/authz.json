@@ -6,7 +6,8 @@
       "roles": [
         "admin",
         "api",
-        "security"
+        "security",
+        "support"
       ]
     },
     {
@@ -15,7 +16,19 @@
       "roles": [
         "admin",
         "api",
-        "security"
+        "security",
+        "support"
+      ]
+    },
+    {
+      "route": "getTenant",
+      "verb": "GET",
+      "roles": [
+        "admin",
+        "api",
+        "m2m",
+        "security",
+        "support"
       ]
     },
     {
