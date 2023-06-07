@@ -647,7 +647,7 @@ components:
         code:
           type: string
           minLength: 2
-          maxLength: 30
+          maxLength: 64
       required:
         - origin
         - code
@@ -657,7 +657,7 @@ components:
         code:
           type: string
           minLength: 2
-          maxLength: 30
+          maxLength: 64
       required:
         - code
     Tenant:
