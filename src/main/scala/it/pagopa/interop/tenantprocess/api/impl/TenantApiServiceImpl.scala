@@ -669,7 +669,7 @@ final case class TenantApiServiceImpl(
     agreements <- agreementManagementService.getAgreements(producerId, consumerId, agreementStates)
     eServices  <- Future.traverse(agreements.map(_.eserviceId))(catalogManagementService.getEServiceById)
     attributeIds = eServices
-      .flatMap(_.descriptors.lastOption.toList)
+      .flatMap(_.descriptors.sortBy(_.version).lastOption.toList)
       .flatMap(_.attributes.verified)
       .flatMap(attr => attr.single.map(_.id).toSeq ++ attr.group.traverse(_.map(_.id)).flatten)
       .toSet
