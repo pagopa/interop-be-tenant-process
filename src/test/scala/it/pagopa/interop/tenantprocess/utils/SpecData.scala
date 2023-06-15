@@ -24,7 +24,10 @@ import it.pagopa.interop.catalogmanagement.client.model.{
   AttributeValue => CatalogAttributeValue,
   Attributes => CatalogAttributes,
   EService => CatalogEService,
-  EServiceTechnology => CatalogEServiceTechnology
+  EServiceTechnology => CatalogEServiceTechnology,
+  EServiceDescriptor => CatalogDescriptor,
+  EServiceDescriptorState => CatalogDescriptorState,
+  AgreementApprovalPolicy
 }
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -163,12 +166,23 @@ trait SpecData {
       name = "EService",
       description = "EService desc",
       technology = CatalogEServiceTechnology.REST,
-      attributes = CatalogAttributes(
-        Nil,
-        Nil,
-        verified = Seq(CatalogAttribute(single = Some(CatalogAttributeValue(verifiedAttributeId, true))))
-      ),
-      descriptors = Nil
+      descriptors = CatalogDescriptor(
+        id = UUID.randomUUID(),
+        version = "1",
+        audience = Nil,
+        voucherLifespan = 0,
+        dailyCallsPerConsumer = 0,
+        dailyCallsTotal = 0,
+        docs = Nil,
+        state = CatalogDescriptorState.PUBLISHED,
+        agreementApprovalPolicy = AgreementApprovalPolicy.AUTOMATIC,
+        serverUrls = Nil,
+        attributes = CatalogAttributes(
+          Nil,
+          Nil,
+          verified = Seq(CatalogAttribute(single = Some(CatalogAttributeValue(verifiedAttributeId, true))))
+        )
+      ) :: Nil
     )
 
   def matchingAgreementAndEService(
