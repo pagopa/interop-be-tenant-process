@@ -1,7 +1,6 @@
 package it.pagopa.interop.tenantprocess.api.adapters
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import it.pagopa.interop.tenantmanagement.client.model.VerificationRenewal.{AUTOMATIC_RENEWAL, REVOKE_ON_EXPIRATION}
 import it.pagopa.interop.tenantmanagement.client.model.{
   CertifiedTenantAttribute => DependencyCertifiedTenantAttribute,
   Certifier => DependencyCertifier,
@@ -11,12 +10,11 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   MailKind => DependencyMailKind,
   MailSeed => DependencyMailSeed,
   Tenant => DependencyTenant,
-  TenantKind => DependencyTenantKind,
   TenantAttribute => DependencyTenantAttribute,
   TenantFeature => DependencyTenantFeature,
+  TenantKind => DependencyTenantKind,
   TenantRevoker => DependencyTenantRevoker,
   TenantVerifier => DependencyTenantVerifier,
-  VerificationRenewal => DependencyVerificationRenewal,
   VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.model._
@@ -112,18 +110,10 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       DependencyTenantAttribute(declared = None, certified = None, verified = Some(t))
   }
 
-  implicit class DependencyVerificationRenewalWrapper(private val t: DependencyVerificationRenewal) extends AnyVal {
-    def toApi: VerificationRenewal = t match {
-      case AUTOMATIC_RENEWAL    => VerificationRenewal.AUTOMATIC_RENEWAL
-      case REVOKE_ON_EXPIRATION => VerificationRenewal.REVOKE_ON_EXPIRATION
-    }
-  }
-
   implicit class DependencyTenantVerifierWrapper(private val t: DependencyTenantVerifier) extends AnyVal {
     def toApi: TenantVerifier = TenantVerifier(
       id = t.id,
       verificationDate = t.verificationDate,
-      renewal = t.renewal.toApi,
       expirationDate = t.expirationDate,
       extensionDate = t.extensionDate
     )
@@ -133,7 +123,6 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
     def toApi: TenantRevoker = TenantRevoker(
       id = t.id,
       verificationDate = t.verificationDate,
-      renewal = t.renewal.toApi,
       expirationDate = t.expirationDate,
       extensionDate = t.extensionDate,
       revocationDate = t.revocationDate
