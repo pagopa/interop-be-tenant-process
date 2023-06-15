@@ -667,9 +667,10 @@ final case class TenantApiServiceImpl(
     error: ComponentError
   )(implicit contexts: Seq[(String, String)]): Future[Unit] = for {
     agreements <- agreementManagementService.getAgreements(producerId, consumerId, agreementStates)
-    eServices  <- Future.traverse(agreements.map(_.eserviceId))(catalogManagementService.getEServiceById)
+    descriptorIds = agreements.map(_.descriptorId)
+    eServices <- Future.traverse(agreements.map(_.eserviceId))(catalogManagementService.getEServiceById)
     attributeIds = eServices
-      .flatMap(_.descriptors.sortBy(_.version).lastOption.toList)
+      .flatMap(_.descriptors.filter(d => descriptorIds.contains(d.id)))
       .flatMap(_.attributes.verified)
       .flatMap(attr => attr.single.map(_.id).toSeq ++ attr.group.traverse(_.map(_.id)).flatten)
       .toSet
