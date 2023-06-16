@@ -510,7 +510,7 @@ paths:
       tags:
         - tenant
       operationId: updateVerifiedAttribute
-      description: Update attribute to a Tenant by the requester Tenant
+      description: Update expirationDate for Verified Attribute of Tenant
       requestBody:
         content:
           application/json:
