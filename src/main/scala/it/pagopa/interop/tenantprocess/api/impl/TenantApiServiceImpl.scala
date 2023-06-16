@@ -45,6 +45,9 @@ import it.pagopa.interop.tenantprocess.service._
 import java.time.{Duration, OffsetDateTime}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import it.pagopa.interop.agreementmanagement.client.model.Agreement
+import it.pagopa.interop.agreementmanagement.model.agreement.PersistentAgreement
+import it.pagopa.interop.agreementmanagement.model.agreement.PersistentAgreementState
 
 final case class TenantApiServiceImpl(
   attributeRegistryManagementService: AttributeRegistryManagementService,
@@ -659,6 +662,37 @@ final case class TenantApiServiceImpl(
     AttributeRevocationNotAllowed(consumerId, attributeId)
   )
 
+  private def getAgreements(
+    producerId: UUID,
+    consumerId: UUID,
+    agreementStates: Seq[PersistentAgreementState],
+    offset: Int,
+    limit: Int
+  )(implicit contexts: Seq[(String, String)]): Future[PaginatedResult[PersistentAgreement]] = {
+    ReadModelQueries.getAgreements(producerId, consumerId, agreementStates)
+  }
+
+  private def getAllAgreements(producerId: UUID, consumerId: UUID, agreementStates: Seq[PersistentAgreementState])(
+    implicit ec: ExecutionContext
+  ): Future[List[PersistentAgreement]] = {
+
+    def getAgreementsFrom(offset: Int): Future[List[PersistentAgreement]] =
+      getAgreements(
+        producerId = producerId,
+        consumerId = consumerId,
+        agreementStates = agreementStates,
+        limit = 50,
+        offset = offset
+      ).map(_.results.toList)
+
+    def go(start: Int)(as: List[PersistentAgreement]): Future[List[PersistentAgreement]] =
+      getAgreementsFrom(start).flatMap(esec =>
+        if (esec.size < 50) Future.successful(as ++ esec) else go(start + 50)(as ++ esec)
+      )
+
+    go(0)(Nil)
+  }
+
   private def assertVerifiedAttributeOperationAllowed(
     producerId: UUID,
     consumerId: UUID,
@@ -666,7 +700,7 @@ final case class TenantApiServiceImpl(
     agreementStates: Seq[AgreementState],
     error: ComponentError
   )(implicit contexts: Seq[(String, String)]): Future[Unit] = for {
-    agreements <- agreementManagementService.getAgreements(producerId, consumerId, agreementStates)
+    agreements <- getAllAgreements(producerId, consumerId, agreementStates.map(_.toPersistent))
     eServices  <- Future.traverse(agreements.map(_.eserviceId))(catalogManagementService.getEServiceById)
     attributeIds = eServices
       .flatMap(_.attributes.verified)
