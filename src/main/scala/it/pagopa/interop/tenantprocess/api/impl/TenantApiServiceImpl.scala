@@ -399,10 +399,12 @@ final case class TenantApiServiceImpl(
       requesterUuid  <- getOrganizationIdFutureUUID(contexts)
       tenantUuid     <- tenantId.toFutureUUID
       attributeUuiId <- attributeId.toFutureUUID
-      _              <- seed.expirationDate match {
-        case Some(value) if (value.isBefore(now)) => Future.failed(ExpirationDateCannotBeInThePast(value))
-        case _                                    => Future.successful(())
-      }
+      _              <-
+        if (seed.expirationDate.isBefore(now)) {
+          Future.failed(ExpirationDateCannotBeInThePast(seed.expirationDate))
+        } else {
+          Future.successful(())
+        }
       tenant         <- tenantManagementService.getTenant(tenantUuid)
       attribute      <- tenant.attributes
         .flatMap(_.verified)
@@ -685,7 +687,6 @@ final case class TenantApiServiceImpl(
       revokedBy = verifiedAttribute.revokedBy :+ DependencyTenantRevoker(
         id = verifier.id,
         verificationDate = verifier.verificationDate,
-        renewal = verifier.renewal,
         expirationDate = verifier.expirationDate,
         extensionDate = verifier.extensionDate,
         revocationDate = now
@@ -739,7 +740,6 @@ final case class TenantApiServiceImpl(
               DependencyTenantVerifier(
                 id = verifierUuid,
                 verificationDate = oldVerifier.verificationDate,
-                renewal = oldVerifier.renewal,
                 expirationDate = oldVerifier.expirationDate,
                 extensionDate = extensionDate.plus(Duration.between(oldVerifier.verificationDate, expirationDate)).some
               ),

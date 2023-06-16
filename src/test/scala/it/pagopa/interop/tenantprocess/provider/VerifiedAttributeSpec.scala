@@ -2,6 +2,7 @@ package it.pagopa.interop.tenantprocess.provider
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import cats.implicits.catsSyntaxOptionId
 import it.pagopa.interop.agreementmanagement.client.model.AgreementState
 import it.pagopa.interop.tenantmanagement.client.model.{
   TenantAttribute,
@@ -9,13 +10,8 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantVerifier,
   VerifiedTenantAttribute
 }
-import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters.VerificationRenewalWrapper
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
-import it.pagopa.interop.tenantprocess.model.{
-  VerificationRenewal,
-  VerifiedTenantAttributeSeed,
-  UpdateVerifiedTenantAttributeSeed
-}
+import it.pagopa.interop.tenantprocess.model.{UpdateVerifiedTenantAttributeSeed, VerifiedTenantAttributeSeed}
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -40,7 +36,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
       val (agreement, eService) = matchingAgreementAndEService(attributeId)
 
-      val seed = VerifiedTenantAttributeSeed(attributeId, VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp))
+      val seed           = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
       val managementSeed = TenantAttribute(
         declared = None,
         certified = None,
@@ -52,7 +48,6 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
               TenantVerifier(
                 id = organizationId,
                 verificationDate = timestamp,
-                renewal = seed.renewal.toDependency,
                 expirationDate = seed.expirationDate,
                 extensionDate = seed.expirationDate
               )
@@ -92,7 +87,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
       val (agreement, eService) = matchingAgreementAndEService(attributeId)
 
-      val seed = VerifiedTenantAttributeSeed(attributeId, VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp))
+      val seed           = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
       val managementSeed = TenantAttribute(
         declared = None,
         certified = None,
@@ -104,7 +99,6 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
               TenantVerifier(
                 id = organizationId,
                 verificationDate = timestamp,
-                renewal = seed.renewal.toDependency,
                 expirationDate = seed.expirationDate,
                 extensionDate = None
               ),
@@ -148,7 +142,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
       val (agreement, eService) = matchingAgreementAndEService(attributeId)
 
-      val seed = VerifiedTenantAttributeSeed(attributeId, VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp))
+      val seed           = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
       val managementSeed = TenantAttribute(
         declared = None,
         certified = None,
@@ -160,7 +154,6 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
               TenantVerifier(
                 id = organizationId,
                 verificationDate = timestamp,
-                renewal = seed.renewal.toDependency,
                 expirationDate = seed.expirationDate,
                 extensionDate = None
               ),
@@ -189,7 +182,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
     "fail with 403 if Tenant is verifying own attribute" in {
       implicit val context: Seq[(String, String)] = adminContext
 
-      val seed = VerifiedTenantAttributeSeed(UUID.randomUUID(), VerificationRenewal.AUTOMATIC_RENEWAL, None)
+      val seed = VerifiedTenantAttributeSeed(UUID.randomUUID(), None)
 
       mockDateTimeGet()
 
@@ -207,7 +200,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val (agreement, eService) = matchingAgreementAndEService(anotherAttributeId)
 
-      val seed = VerifiedTenantAttributeSeed(attributeId, VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp))
+      val seed = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
 
       mockDateTimeGet()
       mockGetAgreements(
@@ -242,7 +235,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
       val (agreement, eService) = matchingAgreementAndEService(attributeId)
 
-      val seed = VerifiedTenantAttributeSeed(attributeId, VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp))
+      val seed = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
 
       val managementSeed = TenantAttribute(
         declared = None,
@@ -255,7 +248,6 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
               TenantVerifier(
                 id = organizationId,
                 verificationDate = timestamp,
-                renewal = seed.renewal.toDependency,
                 expirationDate = seed.expirationDate,
                 extensionDate = None
               ),
@@ -302,7 +294,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       val seed =
-        UpdateVerifiedTenantAttributeSeed(VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp.plusDays(10)))
+        UpdateVerifiedTenantAttributeSeed(timestamp.plusDays(10))
 
       val managementSeed = TenantAttribute(
         declared = None,
@@ -315,8 +307,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
               TenantVerifier(
                 id = organizationId,
                 verificationDate = timestamp,
-                renewal = seed.renewal.toDependency,
-                expirationDate = seed.expirationDate,
+                expirationDate = seed.expirationDate.some,
                 extensionDate = None
               ),
             revokedBy = existingVerification.verified.get.revokedBy
@@ -341,7 +332,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val attributeId    = UUID.randomUUID()
 
       val seed =
-        UpdateVerifiedTenantAttributeSeed(VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp.minusDays(2)))
+        UpdateVerifiedTenantAttributeSeed(timestamp.minusDays(2))
 
       mockDateTimeGet()
 
@@ -369,7 +360,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       val seed =
-        UpdateVerifiedTenantAttributeSeed(VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp.plusDays(10)))
+        UpdateVerifiedTenantAttributeSeed(timestamp.plusDays(10))
 
       mockDateTimeGet()
 
@@ -399,7 +390,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       val seed =
-        UpdateVerifiedTenantAttributeSeed(VerificationRenewal.AUTOMATIC_RENEWAL, Some(timestamp.plusDays(10)))
+        UpdateVerifiedTenantAttributeSeed(timestamp.plusDays(10))
 
       mockDateTimeGet()
 
@@ -440,7 +431,6 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
               TenantVerifier(
                 id = organizationId,
                 verificationDate = timestamp,
-                renewal = existingVerifier.renewal,
                 expirationDate = existingVerifier.expirationDate,
                 extensionDate = Some(
                   existingVerifier.extensionDate.get
@@ -555,7 +545,6 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
             revokedBy = existingVerification.verified.get.revokedBy :+ TenantRevoker(
               id = verifier.id,
               verificationDate = verifier.verificationDate,
-              renewal = verifier.renewal,
               expirationDate = verifier.expirationDate,
               extensionDate = verifier.extensionDate,
               revocationDate = timestamp

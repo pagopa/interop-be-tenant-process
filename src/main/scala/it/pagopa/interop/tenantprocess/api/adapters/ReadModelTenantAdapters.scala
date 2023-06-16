@@ -80,18 +80,10 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
     )
   }
 
-  implicit class PersistentVerificationRenewalWrapper(private val t: PersistentVerificationRenewal) extends AnyVal {
-    def toApi: VerificationRenewal = t match {
-      case PersistentVerificationRenewal.AUTOMATIC_RENEWAL    => VerificationRenewal.AUTOMATIC_RENEWAL
-      case PersistentVerificationRenewal.REVOKE_ON_EXPIRATION => VerificationRenewal.REVOKE_ON_EXPIRATION
-    }
-  }
-
   implicit class PersistentTenantVerifierWrapper(private val t: PersistentTenantVerifier) extends AnyVal {
     def toApi: TenantVerifier = TenantVerifier(
       id = t.id,
       verificationDate = t.verificationDate,
-      renewal = t.renewal.toApi,
       expirationDate = t.expirationDate,
       extensionDate = t.extensionDate
     )
@@ -101,7 +93,6 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
     def toApi: TenantRevoker = TenantRevoker(
       id = t.id,
       verificationDate = t.verificationDate,
-      renewal = t.renewal.toApi,
       expirationDate = t.expirationDate,
       extensionDate = t.extensionDate,
       revocationDate = t.revocationDate

@@ -10,7 +10,6 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantAttribute => DependencyTenantAttribute,
   TenantRevoker => DependencyTenantRevoker,
   TenantVerifier => DependencyTenantVerifier,
-  VerificationRenewal => DependencyVerificationRenewal,
   VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.model._
@@ -81,7 +80,6 @@ trait SpecData {
   val tenantVerifier: DependencyTenantVerifier = DependencyTenantVerifier(
     id = UUID.randomUUID(),
     verificationDate = timestamp,
-    renewal = DependencyVerificationRenewal.AUTOMATIC_RENEWAL,
     expirationDate = None,
     extensionDate = timestamp.some
   )
@@ -90,7 +88,6 @@ trait SpecData {
     id = UUID.randomUUID(),
     verificationDate = timestamp,
     expirationDate = None,
-    renewal = DependencyVerificationRenewal.AUTOMATIC_RENEWAL,
     extensionDate = None,
     revocationDate = timestamp
   )
