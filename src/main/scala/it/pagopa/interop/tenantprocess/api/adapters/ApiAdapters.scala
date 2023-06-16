@@ -1,41 +1,24 @@
 package it.pagopa.interop.tenantprocess.api.adapters
 
 import cats.implicits._
-import it.pagopa.interop.agreementmanagement.client.{model => AgreementDependency}
-import it.pagopa.interop.agreementmanagement.model.{agreement => AgreementPersistence}
+import it.pagopa.interop.tenantmanagement.client.model.MailKind.CONTACT_EMAIL
 import it.pagopa.interop.tenantmanagement.client.model.{
+  Certifier => DependencyCertifier,
   DeclaredTenantAttribute => DependencyDeclaredTenantAttribute,
   ExternalId => DependencyExternalId,
-  TenantAttribute => DependencyTenantAttribute,
-  TenantVerifier => DependencyTenantVerifier,
-  VerificationRenewal => DependencyVerificationRenewal,
-  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
-  TenantFeature => DependencyTenantFeature,
-  Certifier => DependencyCertifier,
   MailKind => DependencyMailKind,
-  TenantKind => DependencyTenantKind,
   MailSeed => DependencyMailSeed,
-  TenantDelta => DependencyTenantDelta
+  TenantAttribute => DependencyTenantAttribute,
+  TenantDelta => DependencyTenantDelta,
+  TenantFeature => DependencyTenantFeature,
+  TenantKind => DependencyTenantKind,
+  TenantVerifier => DependencyTenantVerifier,
+  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
-import it.pagopa.interop.tenantprocess.model.VerificationRenewal._
-import it.pagopa.interop.tenantprocess.model.{
-  DeclaredTenantAttributeSeed,
-  ExternalId,
-  VerificationRenewal,
-  TenantFeature,
-  Certifier,
-  VerifiedTenantAttributeSeed,
-  UpdateVerifiedTenantAttributeSeed,
-  TenantDelta,
-  Mail,
-  MailKind,
-  TenantKind
-}
+import it.pagopa.interop.tenantprocess.model._
 
 import java.time.OffsetDateTime
 import java.util.UUID
-import it.pagopa.interop.tenantmanagement.client.model.MailKind.CONTACT_EMAIL
-import it.pagopa.interop.tenantprocess.model.MailSeed
 
 object ApiAdapters {
 
@@ -118,7 +101,6 @@ object ApiAdapters {
             DependencyTenantVerifier(
               id = requesterId,
               verificationDate = now,
-              renewal = seed.renewal.toDependency,
               expirationDate = seed.expirationDate,
               extensionDate = seed.expirationDate
             )
@@ -141,7 +123,6 @@ object ApiAdapters {
           DependencyTenantVerifier(
             id = requesterId,
             verificationDate = now,
-            renewal = seed.renewal.toDependency,
             expirationDate = seed.expirationDate,
             extensionDate = None
           ),
@@ -168,20 +149,11 @@ object ApiAdapters {
           DependencyTenantVerifier(
             id = requesterId,
             verificationDate = now,
-            renewal = seed.renewal.toDependency,
-            expirationDate = seed.expirationDate,
+            expirationDate = seed.expirationDate.some,
             extensionDate = None
           ),
         revokedBy = attribute.revokedBy
       ).some
     )
   }
-
-  implicit class VerificationRenewalWrapper(private val t: VerificationRenewal) extends AnyVal {
-    def toDependency: DependencyVerificationRenewal = t match {
-      case AUTOMATIC_RENEWAL    => DependencyVerificationRenewal.AUTOMATIC_RENEWAL
-      case REVOKE_ON_EXPIRATION => DependencyVerificationRenewal.REVOKE_ON_EXPIRATION
-    }
-  }
-
 }
