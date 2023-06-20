@@ -26,8 +26,8 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
       val (agreement, eService) = matchingAgreementAndEService(attributeId)
 
-      val seed              = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
-      val verifiedAttribute = Dependency.TenantAttribute(
+      val seed           = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
+      val managementSeed = Dependency.TenantAttribute(
         declared = None,
         certified = None,
         verified = Some(
@@ -51,7 +51,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockGetAgreements(Seq(agreement))
       mockGetEServiceById(eService.id, eService)
       mockGetTenantById(targetTenantId, tenant)
-      mockAddTenantAttribute(targetTenantId, verifiedAttribute)
+      mockAddTenantAttribute(targetTenantId, managementSeed)
       mockComputeAgreementState(targetTenantId, attributeId)
 
       Post() ~> tenantService.verifyVerifiedAttribute(targetTenantId.toString, seed) ~> check {
@@ -73,8 +73,8 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val dependencyExistingVerification = existingVerification.toManagement
       val (agreement, eService)          = matchingAgreementAndEService(attributeId)
 
-      val seed              = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
-      val verifiedAttribute = Dependency.TenantAttribute(
+      val seed           = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
+      val managementSeed = Dependency.TenantAttribute(
         declared = None,
         certified = None,
         verified = Some(
@@ -97,7 +97,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockGetAgreements(Seq(agreement))
       mockGetEServiceById(eService.id, eService)
       mockGetTenantById(targetTenantId, tenant)
-      mockUpdateTenantAttribute(targetTenantId, seed.id, verifiedAttribute)
+      mockUpdateTenantAttribute(targetTenantId, seed.id, managementSeed)
       mockComputeAgreementState(targetTenantId, attributeId)
 
       Post() ~> tenantService.verifyVerifiedAttribute(targetTenantId.toString, seed) ~> check {
@@ -127,8 +127,8 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val (agreement, eService) = matchingAgreementAndEService(attributeId)
 
-      val seed              = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
-      val verifiedAttribute = Dependency.TenantAttribute(
+      val seed           = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
+      val managementSeed = Dependency.TenantAttribute(
         declared = None,
         certified = None,
         verified = Some(
@@ -151,7 +151,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockGetAgreements(Seq(agreement))
       mockGetEServiceById(eService.id, eService)
       mockGetTenantById(targetTenantId, tenant)
-      mockUpdateTenantAttribute(targetTenantId, seed.id, verifiedAttribute)
+      mockUpdateTenantAttribute(targetTenantId, seed.id, managementSeed)
       mockComputeAgreementState(targetTenantId, attributeId)
 
       Post() ~> tenantService.verifyVerifiedAttribute(targetTenantId.toString, seed) ~> check {
@@ -215,7 +215,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val seed = VerifiedTenantAttributeSeed(attributeId, Some(timestamp))
 
-      val verifiedAttribute = Dependency.TenantAttribute(
+      val managementSeed = Dependency.TenantAttribute(
         declared = None,
         certified = None,
         verified = Some(
@@ -238,7 +238,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockGetAgreements(Seq(agreement))
       mockGetEServiceById(eService.id, eService)
       mockGetTenantById(targetTenantId, tenant)
-      mockUpdateTenantAttribute(targetTenantId, attributeId, verifiedAttribute)
+      mockUpdateTenantAttribute(targetTenantId, attributeId, managementSeed)
       mockComputeAgreementState(targetTenantId, attributeId)
 
       Post() ~> tenantService.verifyVerifiedAttribute(targetTenantId.toString, seed) ~> check {
@@ -272,7 +272,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val seed =
         UpdateVerifiedTenantAttributeSeed(timestamp.plusDays(10))
 
-      val verifiedAttribute = Dependency.TenantAttribute(
+      val managementSeed = Dependency.TenantAttribute(
         declared = None,
         certified = None,
         verified = Some(
@@ -294,7 +294,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockDateTimeGet()
 
       mockGetTenantById(targetTenantId, tenant)
-      mockUpdateTenantAttribute(targetTenantId, attributeId, verifiedAttribute)
+      mockUpdateTenantAttribute(targetTenantId, attributeId, managementSeed)
 
       Post() ~> tenantService.updateVerifiedAttribute(targetTenantId.toString, attributeId.toString, seed) ~> check {
         assert(status == StatusCodes.OK)
@@ -402,7 +402,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
       val dependencyExistingVerification = existingVerification.toManagement
 
-      val verifiedAttribute = Dependency.TenantAttribute(
+      val managementSeed = Dependency.TenantAttribute(
         declared = None,
         certified = None,
         verified = Some(
@@ -424,7 +424,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
       )
       mockGetTenantById(targetTenantId, tenant)
-      mockUpdateTenantAttribute(targetTenantId, attributeId, verifiedAttribute)
+      mockUpdateTenantAttribute(targetTenantId, attributeId, managementSeed)
 
       Post() ~> tenantService.updateVerifiedAttributeExtensionDate(
         targetTenantId.toString,
@@ -517,7 +517,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val (agreement, eService) = matchingAgreementAndEService(attributeId)
 
-      val verifiedAttribute = Dependency.TenantAttribute(
+      val managementSeed = Dependency.TenantAttribute(
         declared = None,
         certified = None,
         verified = Some(
@@ -540,7 +540,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockGetAgreements(Seq(agreement))
       mockGetEServiceById(eService.id, eService)
       mockGetTenantById(targetTenantId, tenant)
-      mockUpdateTenantAttribute(targetTenantId, attributeId, verifiedAttribute)
+      mockUpdateTenantAttribute(targetTenantId, attributeId, managementSeed)
       mockComputeAgreementState(targetTenantId, attributeId)
 
       Post() ~> tenantService.revokeVerifiedAttribute(targetTenantId.toString, attributeId.toString) ~> check {
