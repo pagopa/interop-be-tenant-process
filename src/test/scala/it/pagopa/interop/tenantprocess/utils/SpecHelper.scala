@@ -1,19 +1,21 @@
 package it.pagopa.interop.tenantprocess.utils
 
-import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
-import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
-import it.pagopa.interop.catalogmanagement.client.model.EService
+import it.pagopa.interop.agreementmanagement.model.agreement._
+import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.PersistentAttribute
+import it.pagopa.interop.catalogmanagement.model._
+import org.mongodb.scala.bson.conversions.Bson
+import spray.json._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.utils._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
+import it.pagopa.interop.tenantmanagement.model.tenant.{
+  PersistentTenant,
+  PersistentExternalId,
+  PersistentTenantAttribute
+}
 import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiServiceImpl
-import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
-  RegistryAttributeNotFound,
-  TenantAttributeNotFound,
-  TenantNotFound
-}
 import it.pagopa.interop.tenantprocess.service._
 import org.scalamock.scalatest.MockFactory
 
@@ -39,11 +41,8 @@ trait SpecHelper extends MockFactory with SpecData {
   val adminContext: Seq[(String, String)]    =
     Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> organizationId.toString)
 
-  val mockAttributeRegistryManagement: AttributeRegistryManagementService = mock[AttributeRegistryManagementService]
-  val mockTenantManagement: TenantManagementService                       = mock[TenantManagementService]
-  val mockAgreementProcess: AgreementProcessService                       = mock[AgreementProcessService]
-  val mockAgreementManagement: AgreementManagementService                 = mock[AgreementManagementService]
-  val mockCatalogManagement: CatalogManagementService                     = mock[CatalogManagementService]
+  val mockTenantManagement: TenantManagementService = mock[TenantManagementService]
+  val mockAgreementProcess: AgreementProcessService = mock[AgreementProcessService]
 
   val mockReadModel: ReadModelService              = mock[ReadModelService]
   val mockUuidSupplier: UUIDSupplier               = mock[UUIDSupplier]
@@ -51,36 +50,35 @@ trait SpecHelper extends MockFactory with SpecData {
 
   val tenantService: TenantApiService =
     TenantApiServiceImpl(
-      mockAttributeRegistryManagement,
       mockTenantManagement,
       mockAgreementProcess,
-      mockAgreementManagement,
-      mockCatalogManagement,
       mockReadModel,
       mockUuidSupplier,
       mockDateTimeSupplier
     )(ExecutionContext.global)
 
-  def mockGetTenantById(tenantId: UUID, result: Tenant)(implicit contexts: Seq[(String, String)]) =
-    (mockTenantManagement
-      .getTenant(_: UUID)(_: Seq[(String, String)]))
-      .expects(tenantId, contexts)
+  def mockGetTenantById(tenantId: UUID, result: PersistentTenant) =
+    (mockReadModel
+      .findOne(_: String, _: Bson)(_: JsonReader[_], _: ExecutionContext))
+      .expects("tenants", *, *, *)
       .once()
-      .returns(Future.successful(result.copy(id = tenantId)))
+      .returns(Future.successful(Some(result.copy(id = tenantId))))
 
-  def mockGetTenantByExternalId(externalId: ExternalId, result: Tenant)(implicit contexts: Seq[(String, String)]) =
-    (mockTenantManagement
-      .getTenantByExternalId(_: ExternalId)(_: Seq[(String, String)]))
-      .expects(externalId, contexts)
+  def mockGetTenantByExternalId(externalId: ExternalId, result: PersistentTenant) =
+    (mockReadModel
+      .findOne(_: String, _: Bson)(_: JsonReader[_], _: ExecutionContext))
+      .expects("tenants", *, *, *)
       .once()
-      .returns(Future.successful(result.copy(externalId = externalId)))
+      .returns(
+        Future.successful(Some(result.copy(externalId = PersistentExternalId(externalId.origin, externalId.value))))
+      )
 
-  def mockGetTenantByExternalIdNotFound(externalId: ExternalId)(implicit contexts: Seq[(String, String)]) =
-    (mockTenantManagement
-      .getTenantByExternalId(_: ExternalId)(_: Seq[(String, String)]))
-      .expects(externalId, contexts)
+  def mockGetTenantByExternalIdNotFound() =
+    (mockReadModel
+      .findOne(_: String, _: Bson)(_: JsonReader[_], _: ExecutionContext))
+      .expects("tenants", *, *, *)
       .once()
-      .returns(Future.failed(TenantNotFound(externalId.origin, externalId.value)))
+      .returns(Future.successful(None))
 
   def mockCreateTenant(seed: TenantSeed, result: Tenant)(implicit contexts: Seq[(String, String)]) =
     (mockTenantManagement
@@ -105,20 +103,11 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(dependencyTenant))
 
-  def mockGetTenantAttribute(tenantId: UUID, attributeId: UUID, result: TenantAttribute = dependencyTenantAttribute)(
-    implicit contexts: Seq[(String, String)]
-  ) = (mockTenantManagement
-    .getTenantAttribute(_: UUID, _: UUID)(_: Seq[(String, String)]))
-    .expects(tenantId, attributeId, contexts)
+  def mockGetTenantAttribute(result: PersistentTenantAttribute = persistentCertifiedAttribute) = (mockReadModel
+    .findOne(_: String, _: Bson)(_: JsonReader[_], _: ExecutionContext))
+    .expects("tenants", *, *, *)
     .once()
-    .returns(Future.successful(result))
-
-  def mockGetTenantAttributeNotFound(tenantId: UUID, attributeId: UUID)(implicit contexts: Seq[(String, String)]) =
-    (mockTenantManagement
-      .getTenantAttribute(_: UUID, _: UUID)(_: Seq[(String, String)]))
-      .expects(tenantId, attributeId, contexts)
-      .once()
-      .returns(Future.failed(TenantAttributeNotFound(tenantId, attributeId)))
+    .returns(Future.successful(Some(result)))
 
   def mockUpdateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
     contexts: Seq[(String, String)]
@@ -129,28 +118,26 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(dependencyTenant))
 
-  def mockGetAttributeByExternalId(origin: String, value: String, result: Attribute)(implicit
-    contexts: Seq[(String, String)]
-  ) =
-    (mockAttributeRegistryManagement
-      .getAttributeByExternalCode(_: String, _: String)(_: Seq[(String, String)]))
-      .expects(origin, value, contexts)
+  def mockGetAttributeByExternalId(origin: String, value: String, result: PersistentAttribute) =
+    (mockReadModel
+      .findOne(_: String, _: Bson)(_: JsonReader[_], _: ExecutionContext))
+      .expects("attributes", *, *, *)
       .once()
-      .returns(Future.successful(result.copy(origin = Some(origin), code = Some(value))))
+      .returns(Future.successful(Some(result.copy(origin = Some(origin), code = Some(value)))))
 
-  def mockGetAttributeByExternalIdNotFound(origin: String, value: String)(implicit contexts: Seq[(String, String)]) =
-    (mockAttributeRegistryManagement
-      .getAttributeByExternalCode(_: String, _: String)(_: Seq[(String, String)]))
-      .expects(origin, value, contexts)
+  def mockGetAttributeByExternalIdNotFound() =
+    (mockReadModel
+      .findOne(_: String, _: Bson)(_: JsonReader[_], _: ExecutionContext))
+      .expects("attributes", *, *, *)
       .once()
-      .returns(Future.failed(RegistryAttributeNotFound(origin, value)))
+      .returns(Future.successful(None))
 
-  def mockGetAttributeById(id: UUID, result: Attribute)(implicit contexts: Seq[(String, String)]) =
-    (mockAttributeRegistryManagement
-      .getAttributeById(_: UUID)(_: Seq[(String, String)]))
-      .expects(id, contexts)
+  def mockGetAttributeById(id: UUID, result: PersistentAttribute) =
+    (mockReadModel
+      .findOne(_: String, _: Bson)(_: JsonReader[_], _: ExecutionContext))
+      .expects("attributes", *, *, *)
       .once()
-      .returns(Future.successful(result))
+      .returns(Future.successful(Some(result.copy(id = id))))
 
   def mockComputeAgreementState(consumerId: UUID, attributeId: UUID)(implicit contexts: Seq[(String, String)]) =
     (mockAgreementProcess
@@ -159,20 +146,22 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.unit)
 
-  def mockGetAgreements(producerId: UUID, consumerId: UUID, states: Seq[AgreementState], result: Seq[Agreement])(
-    implicit contexts: Seq[(String, String)]
-  ) = (mockAgreementManagement
-    .getAgreements(_: UUID, _: UUID, _: Seq[AgreementState])(_: Seq[(String, String)]))
-    .expects(producerId, consumerId, states, contexts)
-    .once()
-    .returns(Future.successful(result))
-
-  def mockGetEServiceById(eServiceId: UUID, result: EService)(implicit contexts: Seq[(String, String)]) =
-    (mockCatalogManagement
-      .getEServiceById(_: UUID)(_: Seq[(String, String)]))
-      .expects(eServiceId, contexts)
+  def mockGetAgreements(result: Seq[PersistentAgreement]) =
+    (mockReadModel
+      .find[PersistentAgreement](_: String, _: Bson, _: Int, _: Int)(
+        _: JsonReader[PersistentAgreement],
+        _: ExecutionContext
+      ))
+      .expects("agreements", *, *, *, *, *)
       .once()
       .returns(Future.successful(result))
+
+  def mockGetEServiceById(eServiceId: UUID, result: CatalogItem) =
+    (mockReadModel
+      .findOne(_: String, _: Bson)(_: JsonReader[_], _: ExecutionContext))
+      .expects("eservices", *, *, *)
+      .once()
+      .returns(Future.successful(Some(result.copy(id = eServiceId))))
 
   def mockDateTimeGet() = (() => mockDateTimeSupplier.get()).expects().returning(timestamp).once()
 

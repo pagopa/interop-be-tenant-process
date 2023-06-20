@@ -18,21 +18,15 @@ import java.time.OffsetDateTime
 import java.util.UUID
 
 class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
-  val fakeAttributeRegistryManagement: FakeAttributeRegistryManagement = FakeAttributeRegistryManagement()
-  val fakeTenantManagement: FakeTenantManagement                       = FakeTenantManagement()
-  val fakeAgreementManagement: FakeAgreementManagement                 = FakeAgreementManagement()
-  val fakeCatalogManagement: FakeCatalogManagement                     = FakeCatalogManagement()
-  val fakeAgreementProcess: FakeAgreementProcess                       = FakeAgreementProcess()
-  val dummyReadModel: ReadModelService                                 = new FakeReadModelService
-  val dummyDateTimeSupplier: OffsetDateTimeSupplier                    = () => OffsetDateTime.now()
-  val dummyUuidSupplier: UUIDSupplier                                  = () => UUID.randomUUID()
+  val fakeTenantManagement: FakeTenantManagement    = FakeTenantManagement()
+  val fakeAgreementProcess: FakeAgreementProcess    = FakeAgreementProcess()
+  val dummyReadModel: ReadModelService              = new FakeReadModelService
+  val dummyDateTimeSupplier: OffsetDateTimeSupplier = () => OffsetDateTime.now()
+  val dummyUuidSupplier: UUIDSupplier               = () => UUID.randomUUID()
 
   val tenantService: TenantApiService = TenantApiServiceImpl(
-    fakeAttributeRegistryManagement,
     fakeTenantManagement,
     fakeAgreementProcess,
-    fakeAgreementManagement,
-    fakeCatalogManagement,
     dummyReadModel,
     dummyUuidSupplier,
     dummyDateTimeSupplier

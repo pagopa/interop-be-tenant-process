@@ -14,7 +14,19 @@ import org.mongodb.scala.model.Sorts.ascending
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-object ReadModelQueries {
+object TenantReadModelQueries extends ReadModelQuery {
+
+  def getTenant(tenantId: UUID)(readModel: ReadModelService)(implicit
+    ec: ExecutionContext
+  ): Future[Option[PersistentTenant]] =
+    readModel.findOne[PersistentTenant](collectionName = "tenants", filter = Filters.eq("data.id", tenantId.toString))
+
+  def getTenantByExternalId(origin: String, value: String)(
+    readModel: ReadModelService
+  )(implicit ec: ExecutionContext): Future[Option[PersistentTenant]] = readModel.findOne[PersistentTenant](
+    collectionName = "tenants",
+    filter = Filters.and(Filters.eq("data.externalId.origin", origin), Filters.eq("data.externalId.value", value))
+  )
 
   def listProducers(name: Option[String], offset: Int, limit: Int)(
     readModel: ReadModelService
@@ -96,6 +108,4 @@ object ReadModelQueries {
 
     mapToVarArgs(nameFilter.toList)(Filters.and).getOrElse(Filters.empty())
   }
-
-  def mapToVarArgs[A, B](l: Seq[A])(f: Seq[A] => B): Option[B] = Option.when(l.nonEmpty)(f(l))
 }

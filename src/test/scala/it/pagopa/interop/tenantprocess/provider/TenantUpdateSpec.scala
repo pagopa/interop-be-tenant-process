@@ -9,11 +9,12 @@ import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.TenantManagementAdapters._
+import it.pagopa.interop.tenantprocess.api.adapters.ReadModelTenantAdapters._
 
 import java.util.UUID
 import it.pagopa.interop.tenantprocess.model.TenantDelta
 import it.pagopa.interop.tenantprocess.model.Tenant
-import it.pagopa.interop.tenantmanagement.client.model
+import it.pagopa.interop.tenantmanagement.client.{model => Dependency}
 import it.pagopa.interop.tenantprocess.model.MailSeed
 import it.pagopa.interop.tenantprocess.model.MailKind
 
@@ -27,15 +28,14 @@ class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRou
     val tenantId: UUID           = organizationId
     val tenantDelta: TenantDelta = TenantDelta(mails = Nil)
 
-    val tenantManagement: model.Tenant            = dependencyTenant
-    val tenantThatManagementReturns: model.Tenant = dependencyTenant
-    val expected: Tenant                          = tenantThatManagementReturns.toApi
+    val dependencyTenant: Dependency.Tenant = persistentTenant.toManagement
+    val expected: Tenant                    = dependencyTenant.toApi
 
-    mockGetTenantById(tenantId, tenantManagement)
+    mockGetTenantById(tenantId, persistentTenant)
     mockUpdateTenant(
       tenantId,
-      tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features, kind = model.TenantKind.PA),
-      tenantThatManagementReturns
+      tenantDelta.fromAPI(dependencyTenant.selfcareId, dependencyTenant.features, kind = Dependency.TenantKind.PA),
+      dependencyTenant
     )
 
     Post() ~> tenantService.updateTenant(tenantId.toString, tenantDelta) ~> check {
@@ -52,23 +52,21 @@ class TenantUpdateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRou
       MailSeed(kind = MailKind.CONTACT_EMAIL, address = "foo@bar.com", description = "awe".some) :: Nil
     )
 
-    val tenantManagement: model.Tenant            = dependencyTenant
-    val tenantThatManagementReturns: model.Tenant =
-      dependencyTenant.copy(mails =
-        model.Mail(
-          kind = model.MailKind.CONTACT_EMAIL,
-          address = "foo@bar.com",
-          createdAt = OffsetDateTime.now(),
-          description = "awe".some
-        ) :: Nil
-      )
-    val expected: Tenant                          = tenantThatManagementReturns.toApi
+    val dependencyTenant: Dependency.Tenant = persistentTenant.toManagement.copy(mails =
+      Dependency.Mail(
+        kind = Dependency.MailKind.CONTACT_EMAIL,
+        address = "foo@bar.com",
+        createdAt = OffsetDateTime.now(),
+        description = "awe".some
+      ) :: Nil
+    )
+    val expected: Tenant                    = dependencyTenant.toApi
 
-    mockGetTenantById(tenantId, tenantManagement)
+    mockGetTenantById(tenantId, persistentTenant)
     mockUpdateTenant(
       tenantId,
-      tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features, kind = model.TenantKind.PA),
-      tenantThatManagementReturns
+      tenantDelta.fromAPI(dependencyTenant.selfcareId, dependencyTenant.features, kind = Dependency.TenantKind.PA),
+      dependencyTenant
     )
 
     Post() ~> tenantService.updateTenant(tenantId.toString, tenantDelta) ~> check {

@@ -79,4 +79,10 @@ object TenantProcessErrors {
         "0018",
         s"ExpirationDate not found in verifier $verifierId for Tenant $tenantId and attribute $attributeId"
       )
+
+  final case class RegistryAttributeIdNotFound(id: UUID)
+      extends ComponentError("0019", s"Attribute ${id.toString} not found in registry")
+
+  final case class EServiceNotFound(id: UUID)
+      extends ComponentError("0020", s"EService ${id.toString} not found in the catalog")
 }

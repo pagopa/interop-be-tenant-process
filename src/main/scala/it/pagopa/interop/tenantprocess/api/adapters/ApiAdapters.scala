@@ -22,19 +22,6 @@ import java.util.UUID
 
 object ApiAdapters {
 
-  implicit class AgreementStateWrapper(private val s: AgreementDependency.AgreementState) extends AnyVal {
-    def toPersistent: AgreementPersistence.PersistentAgreementState = s match {
-      case AgreementDependency.AgreementState.ACTIVE                       => AgreementPersistence.Active
-      case AgreementDependency.AgreementState.ARCHIVED                     => AgreementPersistence.Archived
-      case AgreementDependency.AgreementState.DRAFT                        => AgreementPersistence.Draft
-      case AgreementDependency.AgreementState.MISSING_CERTIFIED_ATTRIBUTES =>
-        AgreementPersistence.MissingCertifiedAttributes
-      case AgreementDependency.AgreementState.PENDING                      => AgreementPersistence.Pending
-      case AgreementDependency.AgreementState.REJECTED                     => AgreementPersistence.Rejected
-      case AgreementDependency.AgreementState.SUSPENDED                    => AgreementPersistence.Suspended
-    }
-  }
-
   implicit class MailWrapper(private val m: Mail) extends AnyVal {
     def fromAPI: DependencyMailSeed =
       DependencyMailSeed(kind = m.kind.fromAPI, address = m.address, description = m.description)

@@ -5,11 +5,7 @@ import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLo
 import it.pagopa.interop.commons.utils.withHeaders
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError, BearerToken}
 import it.pagopa.interop.tenantmanagement.client.model._
-import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
-  TenantAttributeNotFound,
-  TenantByIdNotFound,
-  TenantNotFound
-}
+import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.TenantByIdNotFound
 import it.pagopa.interop.tenantprocess.service.{
   TenantManagementApi,
   TenantManagementAttributesApi,
@@ -38,19 +34,6 @@ final case class TenantManagementServiceImpl(
         request,
         s"Creating tenant for Origin ${seed.externalId.origin} and Value ${seed.externalId.value}"
       )
-  }
-
-  override def getTenant(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[Tenant] = withHeaders {
-    (bearerToken, correlationId, ip) =>
-      val request = tenantApi.getTenant(xCorrelationId = correlationId, tenantId = tenantId, xForwardedFor = ip)(
-        BearerToken(bearerToken)
-      )
-      invoker
-        .invoke(request, s"Retrieving tenant with id $tenantId")
-        .recoverWith {
-          case err: ApiError[_] if err.code == 404 =>
-            Future.failed(TenantByIdNotFound(tenantId))
-        }
   }
 
   override def updateTenant(tenantId: UUID, payload: TenantDelta)(implicit
@@ -99,38 +82,5 @@ final case class TenantManagementServiceImpl(
       xForwardedFor = ip
     )(BearerToken(bearerToken))
     invoker.invoke(request, s"Deleting attribute $attributeId from tenant $tenantId")
-  }
-
-  override def getTenantByExternalId(externalId: ExternalId)(implicit contexts: Seq[(String, String)]): Future[Tenant] =
-    withHeaders { (bearerToken, correlationId, ip) =>
-      val request = tenantApi.getTenantByExternalId(
-        xCorrelationId = correlationId,
-        origin = externalId.origin,
-        code = externalId.value,
-        xForwardedFor = ip
-      )(BearerToken(bearerToken))
-      invoker
-        .invoke(request, s"Retrieving tenant with origin ${externalId.origin} and code ${externalId.value}")
-        .recoverWith {
-          case err: ApiError[_] if err.code == 404 =>
-            Future.failed(TenantNotFound(externalId.origin, externalId.value))
-        }
-    }
-
-  override def getTenantAttribute(tenantId: UUID, attributeId: UUID)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[TenantAttribute] = withHeaders { (bearerToken, correlationId, ip) =>
-    val request = attributeApi.getTenantAttribute(
-      xCorrelationId = correlationId,
-      tenantId = tenantId,
-      attributeId = attributeId,
-      xForwardedFor = ip
-    )(BearerToken(bearerToken))
-    invoker
-      .invoke(request, s"Retrieving attribute $attributeId for tenant $tenantId")
-      .recoverWith {
-        case err: ApiError[_] if err.code == 404 =>
-          Future.failed(TenantAttributeNotFound(tenantId, attributeId))
-      }
   }
 }
