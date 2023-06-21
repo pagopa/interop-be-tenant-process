@@ -823,8 +823,6 @@ components:
         expirationDate:
           type: string
           format: date-time
-      required:
-        - expirationDate
     TenantVerifier:
       type: object
       properties:
