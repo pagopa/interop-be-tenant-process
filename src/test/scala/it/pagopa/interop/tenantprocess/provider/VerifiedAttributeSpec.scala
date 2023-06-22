@@ -294,7 +294,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       val seed =
-        UpdateVerifiedTenantAttributeSeed(timestamp.plusDays(10))
+        UpdateVerifiedTenantAttributeSeed(timestamp.plusDays(10).some)
 
       val managementSeed = TenantAttribute(
         declared = None,
@@ -307,7 +307,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
               TenantVerifier(
                 id = organizationId,
                 verificationDate = timestamp,
-                expirationDate = seed.expirationDate.some,
+                expirationDate = seed.expirationDate,
                 extensionDate = None
               ),
             revokedBy = existingVerification.verified.get.revokedBy
@@ -332,7 +332,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val attributeId    = UUID.randomUUID()
 
       val seed =
-        UpdateVerifiedTenantAttributeSeed(timestamp.minusDays(2))
+        UpdateVerifiedTenantAttributeSeed(timestamp.minusDays(2).some)
 
       mockDateTimeGet()
 
@@ -360,7 +360,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       val seed =
-        UpdateVerifiedTenantAttributeSeed(timestamp.plusDays(10))
+        UpdateVerifiedTenantAttributeSeed(timestamp.plusDays(10).some)
 
       mockDateTimeGet()
 
@@ -390,7 +390,7 @@ class VerifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       val seed =
-        UpdateVerifiedTenantAttributeSeed(timestamp.plusDays(10))
+        UpdateVerifiedTenantAttributeSeed(timestamp.plusDays(10).some)
 
       mockDateTimeGet()
 

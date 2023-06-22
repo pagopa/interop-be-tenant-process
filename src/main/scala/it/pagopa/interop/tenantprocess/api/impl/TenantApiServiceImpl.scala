@@ -399,12 +399,10 @@ final case class TenantApiServiceImpl(
       requesterUuid  <- getOrganizationIdFutureUUID(contexts)
       tenantUuid     <- tenantId.toFutureUUID
       attributeUuiId <- attributeId.toFutureUUID
-      _              <-
-        if (seed.expirationDate.isBefore(now)) {
-          Future.failed(ExpirationDateCannotBeInThePast(seed.expirationDate))
-        } else {
-          Future.successful(())
-        }
+      _              <- seed.expirationDate match {
+        case Some(value) if (value.isBefore(now)) => Future.failed(ExpirationDateCannotBeInThePast(value))
+        case _                                    => Future.successful(())
+      }
       tenant         <- tenantManagementService.getTenant(tenantUuid)
       attribute      <- tenant.attributes
         .flatMap(_.verified)

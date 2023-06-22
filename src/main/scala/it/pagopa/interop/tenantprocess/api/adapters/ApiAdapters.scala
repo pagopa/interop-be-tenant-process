@@ -136,7 +136,7 @@ object ApiAdapters {
           DependencyTenantVerifier(
             id = requesterId,
             verificationDate = now,
-            expirationDate = seed.expirationDate.some,
+            expirationDate = seed.expirationDate,
             extensionDate = None
           ),
         revokedBy = attribute.revokedBy
