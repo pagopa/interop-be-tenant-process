@@ -139,11 +139,12 @@ trait SpecData {
 
   def dependencyAgreement(
     eServiceId: UUID = UUID.randomUUID(),
+    descriptorId: UUID = UUID.randomUUID(),
     verifiedAttributeId: UUID = UUID.randomUUID()
   ): DependencyAgreement = DependencyAgreement(
     id = UUID.randomUUID(),
     eserviceId = eServiceId,
-    descriptorId = UUID.randomUUID(),
+    descriptorId = descriptorId,
     producerId = UUID.randomUUID(),
     consumerId = UUID.randomUUID(),
     state = DependencyAgreementState.ACTIVE,
@@ -156,15 +157,19 @@ trait SpecData {
     rejectionReason = None
   )
 
-  def catalogEService(id: UUID = UUID.randomUUID(), verifiedAttributeId: UUID = UUID.randomUUID()): CatalogEService =
+  def catalogEService(
+    eServiceId: UUID = UUID.randomUUID(),
+    descriptorId: UUID = UUID.randomUUID(),
+    verifiedAttributeId: UUID = UUID.randomUUID()
+  ): CatalogEService =
     CatalogEService(
-      id = id,
+      id = eServiceId,
       producerId = UUID.randomUUID(),
       name = "EService",
       description = "EService desc",
       technology = CatalogEServiceTechnology.REST,
       descriptors = CatalogDescriptor(
-        id = UUID.randomUUID(),
+        id = descriptorId,
         version = "1",
         audience = Nil,
         voucherLifespan = 0,
@@ -185,9 +190,12 @@ trait SpecData {
   def matchingAgreementAndEService(
     verifiedAttributeId: UUID = UUID.randomUUID()
   ): (DependencyAgreement, CatalogEService) = {
-    val eServiceId = UUID.randomUUID()
-
-    (dependencyAgreement(eServiceId, verifiedAttributeId), catalogEService(eServiceId, verifiedAttributeId))
+    val eServiceId   = UUID.randomUUID()
+    val descriptorId = UUID.randomUUID()
+    (
+      dependencyAgreement(eServiceId, descriptorId, verifiedAttributeId),
+      catalogEService(eServiceId, descriptorId, verifiedAttributeId)
+    )
   }
 
 }
