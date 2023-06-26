@@ -687,7 +687,6 @@ final case class TenantApiServiceImpl(
       revokedBy = verifiedAttribute.revokedBy :+ DependencyTenantRevoker(
         id = verifier.id,
         verificationDate = verifier.verificationDate,
-        renewal = verifier.renewal,
         expirationDate = verifier.expirationDate,
         extensionDate = verifier.extensionDate,
         revocationDate = now
@@ -741,7 +740,6 @@ final case class TenantApiServiceImpl(
               DependencyTenantVerifier(
                 id = verifierUuid,
                 verificationDate = oldVerifier.verificationDate,
-                renewal = oldVerifier.renewal,
                 expirationDate = oldVerifier.expirationDate,
                 extensionDate = extensionDate.plus(Duration.between(oldVerifier.verificationDate, expirationDate)).some
               ),
