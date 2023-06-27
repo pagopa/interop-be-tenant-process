@@ -25,17 +25,10 @@ import it.pagopa.interop.catalogmanagement.model.{
   CatalogAttributeValue,
   CatalogItem,
   CatalogAttributes,
-  SingleAttribute
-
-import it.pagopa.interop.catalogmanagement.client.model.{
-  Attribute => CatalogAttribute,
-  AttributeValue => CatalogAttributeValue,
-  Attributes => CatalogAttributes,
-  EService => CatalogEService,
-  EServiceTechnology => CatalogEServiceTechnology,
-  EServiceDescriptor => CatalogDescriptor,
-  EServiceDescriptorState => CatalogDescriptorState,
-  AgreementApprovalPolicy
+  SingleAttribute,
+  CatalogDescriptor,
+  Published,
+  Automatic
 }
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -182,37 +175,46 @@ trait SpecData {
     descriptorId: UUID = UUID.randomUUID(),
     verifiedAttributeId: UUID = UUID.randomUUID()
   ): CatalogItem =
-    CatalogEService(
+    CatalogItem(
       id = eServiceId,
       producerId = UUID.randomUUID(),
       name = "EService",
       description = "EService desc",
       technology = Rest,
-      createdAt = OffsetDateTimeSupplier.get().minusDays(10)
+      attributes = None,
+      createdAt = OffsetDateTimeSupplier.get().minusDays(10),
       descriptors = CatalogDescriptor(
         id = descriptorId,
+        description = None,
+        interface = None,
         version = "1",
         audience = Nil,
         voucherLifespan = 0,
         dailyCallsPerConsumer = 0,
         dailyCallsTotal = 0,
         docs = Nil,
-        state = CatalogDescriptorState.PUBLISHED,
-        agreementApprovalPolicy = AgreementApprovalPolicy.AUTOMATIC,
+        state = Published,
+        publishedAt = None,
+        suspendedAt = None,
+        deprecatedAt = None,
+        archivedAt = None,
+        agreementApprovalPolicy = Some(Automatic),
         serverUrls = Nil,
-        attributes = CatalogAttributes(
-          Nil,
-          Nil,
-          verified = Seq(CatalogAttribute(single = Some(CatalogAttributeValue(verifiedAttributeId, true))))
-        )
+        createdAt = OffsetDateTimeSupplier.get().minusDays(10),
+        attributes =
+          CatalogAttributes(Nil, Nil, verified = Seq(SingleAttribute(CatalogAttributeValue(verifiedAttributeId, true))))
       ) :: Nil
     )
 
   def matchingAgreementAndEService(
     verifiedAttributeId: UUID = UUID.randomUUID()
   ): (PersistentAgreement, CatalogItem) = {
-    val eServiceId = UUID.randomUUID()
+    val eServiceId   = UUID.randomUUID()
+    val descriptorId = UUID.randomUUID()
 
-    (persistentAgreement(eServiceId,  descriptorId, verifiedAttributeId), catalogItem(eServiceId, descriptorId, verifiedAttributeId))
+    (
+      persistentAgreement(eServiceId, descriptorId, verifiedAttributeId),
+      catalogItem(eServiceId, descriptorId, verifiedAttributeId)
+    )
   }
 }

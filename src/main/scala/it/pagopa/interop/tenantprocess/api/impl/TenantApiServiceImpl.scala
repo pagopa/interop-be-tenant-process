@@ -709,10 +709,10 @@ final case class TenantApiServiceImpl(
     attributeId: UUID,
     agreementStates: Seq[AgreementPersistentModel.PersistentAgreementState],
     error: ComponentError
-  )(implicit contexts: Seq[(String, String)]): Future[Unit] = for {
+  ): Future[Unit] = for {
     agreements <- getAllAgreements(producerId, consumerId, agreementStates)
     descriptorIds = agreements.map(_.descriptorId)
-    eServices  <- Future.traverse(agreements.map(_.eserviceId))(id =>
+    eServices <- Future.traverse(agreements.map(_.eserviceId))(id =>
       CatalogReadModelQueries.getEServiceById(id)(readModel).flatMap { e =>
         e.toFuture(EServiceNotFound(id))
       }
