@@ -23,7 +23,10 @@ import it.pagopa.interop.catalogmanagement.client.model.{
   AttributeValue => CatalogAttributeValue,
   Attributes => CatalogAttributes,
   EService => CatalogEService,
-  EServiceTechnology => CatalogEServiceTechnology
+  EServiceTechnology => CatalogEServiceTechnology,
+  EServiceDescriptor => CatalogDescriptor,
+  EServiceDescriptorState => CatalogDescriptorState,
+  AgreementApprovalPolicy
 }
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -136,11 +139,12 @@ trait SpecData {
 
   def dependencyAgreement(
     eServiceId: UUID = UUID.randomUUID(),
+    descriptorId: UUID = UUID.randomUUID(),
     verifiedAttributeId: UUID = UUID.randomUUID()
   ): DependencyAgreement = DependencyAgreement(
     id = UUID.randomUUID(),
     eserviceId = eServiceId,
-    descriptorId = UUID.randomUUID(),
+    descriptorId = descriptorId,
     producerId = UUID.randomUUID(),
     consumerId = UUID.randomUUID(),
     state = DependencyAgreementState.ACTIVE,
@@ -153,27 +157,45 @@ trait SpecData {
     rejectionReason = None
   )
 
-  def catalogEService(id: UUID = UUID.randomUUID(), verifiedAttributeId: UUID = UUID.randomUUID()): CatalogEService =
+  def catalogEService(
+    eServiceId: UUID = UUID.randomUUID(),
+    descriptorId: UUID = UUID.randomUUID(),
+    verifiedAttributeId: UUID = UUID.randomUUID()
+  ): CatalogEService =
     CatalogEService(
-      id = id,
+      id = eServiceId,
       producerId = UUID.randomUUID(),
       name = "EService",
       description = "EService desc",
       technology = CatalogEServiceTechnology.REST,
-      attributes = CatalogAttributes(
-        Nil,
-        Nil,
-        verified = Seq(CatalogAttribute(single = Some(CatalogAttributeValue(verifiedAttributeId, true))))
-      ),
-      descriptors = Nil
+      descriptors = CatalogDescriptor(
+        id = descriptorId,
+        version = "1",
+        audience = Nil,
+        voucherLifespan = 0,
+        dailyCallsPerConsumer = 0,
+        dailyCallsTotal = 0,
+        docs = Nil,
+        state = CatalogDescriptorState.PUBLISHED,
+        agreementApprovalPolicy = AgreementApprovalPolicy.AUTOMATIC,
+        serverUrls = Nil,
+        attributes = CatalogAttributes(
+          Nil,
+          Nil,
+          verified = Seq(CatalogAttribute(single = Some(CatalogAttributeValue(verifiedAttributeId, true))))
+        )
+      ) :: Nil
     )
 
   def matchingAgreementAndEService(
     verifiedAttributeId: UUID = UUID.randomUUID()
   ): (DependencyAgreement, CatalogEService) = {
-    val eServiceId = UUID.randomUUID()
-
-    (dependencyAgreement(eServiceId, verifiedAttributeId), catalogEService(eServiceId, verifiedAttributeId))
+    val eServiceId   = UUID.randomUUID()
+    val descriptorId = UUID.randomUUID()
+    (
+      dependencyAgreement(eServiceId, descriptorId, verifiedAttributeId),
+      catalogEService(eServiceId, descriptorId, verifiedAttributeId)
+    )
   }
 
 }
