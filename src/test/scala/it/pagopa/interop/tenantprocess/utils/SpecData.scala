@@ -19,12 +19,23 @@ import it.pagopa.interop.agreementmanagement.model.agreement.{
   PersistentStamps,
   PersistentVerifiedAttribute => AgreementPersistentVerifiedAttribute
 }
+
 import it.pagopa.interop.catalogmanagement.model.{
   Rest,
   CatalogAttributeValue,
   CatalogItem,
   CatalogAttributes,
   SingleAttribute
+
+import it.pagopa.interop.catalogmanagement.client.model.{
+  Attribute => CatalogAttribute,
+  AttributeValue => CatalogAttributeValue,
+  Attributes => CatalogAttributes,
+  EService => CatalogEService,
+  EServiceTechnology => CatalogEServiceTechnology,
+  EServiceDescriptor => CatalogDescriptor,
+  EServiceDescriptorState => CatalogDescriptorState,
+  AgreementApprovalPolicy
 }
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -141,11 +152,12 @@ trait SpecData {
 
   def persistentAgreement(
     eServiceId: UUID = UUID.randomUUID(),
+    descriptorId: UUID = UUID.randomUUID(),
     verifiedAttributeId: UUID = UUID.randomUUID()
   ): PersistentAgreement = PersistentAgreement(
     id = UUID.randomUUID(),
     eserviceId = eServiceId,
-    descriptorId = UUID.randomUUID(),
+    descriptorId = descriptorId,
     producerId = UUID.randomUUID(),
     consumerId = UUID.randomUUID(),
     state = Active,
@@ -165,17 +177,35 @@ trait SpecData {
     contract = None
   )
 
-  def catalogItem(id: UUID = UUID.randomUUID(), verifiedAttributeId: UUID = UUID.randomUUID()): CatalogItem =
-    CatalogItem(
-      id = id,
+  def catalogItem(
+    eServiceId: UUID = UUID.randomUUID(),
+    descriptorId: UUID = UUID.randomUUID(),
+    verifiedAttributeId: UUID = UUID.randomUUID()
+  ): CatalogItem =
+    CatalogEService(
+      id = eServiceId,
       producerId = UUID.randomUUID(),
       name = "EService",
       description = "EService desc",
       technology = Rest,
-      attributes =
-        CatalogAttributes(Nil, Nil, verified = Seq(SingleAttribute(CatalogAttributeValue(verifiedAttributeId, true)))),
-      descriptors = Nil,
       createdAt = OffsetDateTimeSupplier.get().minusDays(10)
+      descriptors = CatalogDescriptor(
+        id = descriptorId,
+        version = "1",
+        audience = Nil,
+        voucherLifespan = 0,
+        dailyCallsPerConsumer = 0,
+        dailyCallsTotal = 0,
+        docs = Nil,
+        state = CatalogDescriptorState.PUBLISHED,
+        agreementApprovalPolicy = AgreementApprovalPolicy.AUTOMATIC,
+        serverUrls = Nil,
+        attributes = CatalogAttributes(
+          Nil,
+          Nil,
+          verified = Seq(CatalogAttribute(single = Some(CatalogAttributeValue(verifiedAttributeId, true))))
+        )
+      ) :: Nil
     )
 
   def matchingAgreementAndEService(
@@ -183,7 +213,6 @@ trait SpecData {
   ): (PersistentAgreement, CatalogItem) = {
     val eServiceId = UUID.randomUUID()
 
-    (persistentAgreement(eServiceId, verifiedAttributeId), catalogItem(eServiceId, verifiedAttributeId))
+    (persistentAgreement(eServiceId,  descriptorId, verifiedAttributeId), catalogItem(eServiceId, descriptorId, verifiedAttributeId))
   }
-
 }
