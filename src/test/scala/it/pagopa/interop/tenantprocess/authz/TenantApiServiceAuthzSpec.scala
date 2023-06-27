@@ -129,7 +129,7 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
         tenantService.updateVerifiedAttribute(
           UUID.randomUUID().toString,
           UUID.randomUUID().toString,
-          UpdateVerifiedTenantAttributeSeed(timestamp)
+          UpdateVerifiedTenantAttributeSeed(None)
         )
       }
     )
