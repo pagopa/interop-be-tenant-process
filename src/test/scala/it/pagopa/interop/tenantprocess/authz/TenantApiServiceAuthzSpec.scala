@@ -106,7 +106,7 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
       endpoints("verifyVerifiedAttribute"),
       { implicit c: Seq[(String, String)] =>
         tenantService.verifyVerifiedAttribute(
-          UUID.randomUUID().toString,
+          c.find(_._1 == ORGANIZATION_ID_CLAIM).get.toString,
           VerifiedTenantAttributeSeed(verifiedAttributeId, None)
         )
       }
@@ -117,7 +117,10 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     validateAuthorization(
       endpoints("revokeVerifiedAttribute"),
       { implicit c: Seq[(String, String)] =>
-        tenantService.revokeVerifiedAttribute(UUID.randomUUID().toString, verifiedAttributeId.toString)
+        tenantService.revokeVerifiedAttribute(
+          c.find(_._1 == ORGANIZATION_ID_CLAIM).get.toString,
+          verifiedAttributeId.toString
+        )
       }
     )
   }

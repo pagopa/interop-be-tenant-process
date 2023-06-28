@@ -668,41 +668,6 @@ final case class TenantApiServiceImpl(
       AttributeRevocationNotAllowed(consumerId, attributeId)
     )
 
-  private def getAgreements(
-    producerId: UUID,
-    consumerId: UUID,
-    agreementStates: Seq[AgreementPersistentModel.PersistentAgreementState],
-    offset: Int,
-    limit: Int
-  )(implicit ec: ExecutionContext): Future[Seq[AgreementPersistentModel.PersistentAgreement]] = {
-    AgreementReadModelQueries.getAgreements(producerId, consumerId, agreementStates, offset, limit)(readModel)
-  }
-
-  private def getAllAgreements(
-    producerId: UUID,
-    consumerId: UUID,
-    agreementStates: Seq[AgreementPersistentModel.PersistentAgreementState]
-  )(implicit ec: ExecutionContext): Future[Seq[AgreementPersistentModel.PersistentAgreement]] = {
-
-    def getAgreementsFrom(offset: Int): Future[Seq[AgreementPersistentModel.PersistentAgreement]] =
-      getAgreements(
-        producerId = producerId,
-        consumerId = consumerId,
-        agreementStates = agreementStates,
-        limit = 50,
-        offset = offset
-      )
-
-    def go(start: Int)(
-      as: Seq[AgreementPersistentModel.PersistentAgreement]
-    ): Future[Seq[AgreementPersistentModel.PersistentAgreement]] =
-      getAgreementsFrom(start).flatMap(esec =>
-        if (esec.size < 50) Future.successful(as ++ esec) else go(start + 50)(as ++ esec)
-      )
-
-    go(0)(Nil)
-  }
-
   private def assertVerifiedAttributeOperationAllowed(
     producerId: UUID,
     consumerId: UUID,
@@ -710,7 +675,7 @@ final case class TenantApiServiceImpl(
     agreementStates: Seq[AgreementPersistentModel.PersistentAgreementState],
     error: ComponentError
   ): Future[Unit] = for {
-    agreements <- getAllAgreements(producerId, consumerId, agreementStates)
+    agreements <- AgreementReadModelQueries.getAllAgreements(producerId, consumerId, agreementStates)(readModel)
     descriptorIds = agreements.map(_.descriptorId)
     eServices <- Future.traverse(agreements.map(_.eserviceId))(id =>
       CatalogReadModelQueries.getEServiceById(id)(readModel).flatMap { e =>

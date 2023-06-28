@@ -11,6 +11,27 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object AgreementReadModelQueries extends ReadModelQuery {
 
+  def getAllAgreements(producerId: UUID, consumerId: UUID, agreementStates: Seq[PersistentAgreementState])(
+    readModel: ReadModelService
+  )(implicit ec: ExecutionContext): Future[Seq[PersistentAgreement]] = {
+
+    def getAgreementsFrom(offset: Int): Future[Seq[PersistentAgreement]] =
+      getAgreements(
+        producerId = producerId,
+        consumerId = consumerId,
+        agreementStates = agreementStates,
+        limit = 50,
+        offset = offset
+      )(readModel)
+
+    def go(start: Int)(as: Seq[PersistentAgreement]): Future[Seq[PersistentAgreement]] =
+      getAgreementsFrom(start).flatMap(esec =>
+        if (esec.size < 50) Future.successful(as ++ esec) else go(start + 50)(as ++ esec)
+      )
+
+    go(0)(Nil)
+  }
+
   private def agreementsFilters(
     producerId: UUID,
     consumerId: UUID,
@@ -18,7 +39,7 @@ object AgreementReadModelQueries extends ReadModelQuery {
   ): Bson = {
     val producerFilter = Filters.eq("data.producerId", producerId.toString)
     val consumerFilter = Filters.eq("data.consumerId", consumerId.toString)
-    val statesFilter   = mapToVarArgs(agreementStates.map(Filters.eq("data.state", _)))(Filters.or)
+    val statesFilter   = mapToVarArgs(agreementStates.map(a => Filters.eq("data.state", a.toString)))(Filters.or)
 
     mapToVarArgs(Seq(producerFilter, consumerFilter) ++ statesFilter)(Filters.and).getOrElse(Filters.empty())
   }
