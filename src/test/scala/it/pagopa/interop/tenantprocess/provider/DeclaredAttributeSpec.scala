@@ -27,7 +27,7 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       mockDateTimeGet()
-      mockGetTenantById(organizationId, persistentTenant)
+      mockGetTenantAttributeNotFound(organizationId, attributeId)
       mockAddTenantAttribute(organizationId, managementSeed)
       mockComputeAgreementState(organizationId, attributeId)
 
@@ -41,17 +41,13 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
     "succeed" in {
       implicit val context: Seq[(String, String)] = adminContext
 
-      val targetTenantId   = organizationId
-      val attributeId      = UUID.randomUUID()
-      val existingDeclared =
-        persistentDeclaredAttribute.copy(id = attributeId, assignmentTimestamp = timestamp.minusDays(1))
-      val tenant           = persistentTenant.copy(id = targetTenantId, attributes = List(existingDeclared))
+      val attribute = persistentDeclaredAttribute
 
       val managementSeed = Dependency.TenantAttribute(
         declared = Some(
           Dependency.DeclaredTenantAttribute(
-            attributeId,
-            assignmentTimestamp = timestamp.minusDays(1),
+            attribute.id,
+            assignmentTimestamp = timestamp,
             revocationTimestamp = Some(timestamp)
           )
         ),
@@ -60,11 +56,11 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       mockDateTimeGet()
-      mockGetTenantById(targetTenantId, tenant)
-      mockUpdateTenantAttribute(organizationId, attributeId, managementSeed)
-      mockComputeAgreementState(organizationId, attributeId)
+      mockGetTenantAttribute(organizationId, attribute.id, attribute)
+      mockUpdateTenantAttribute(organizationId, attribute.id, managementSeed)
+      mockComputeAgreementState(organizationId, attribute.id)
 
-      Post() ~> tenantService.revokeDeclaredAttribute(attributeId.toString) ~> check {
+      Post() ~> tenantService.revokeDeclaredAttribute(attribute.id.toString) ~> check {
         assert(status == StatusCodes.OK)
       }
     }
@@ -74,19 +70,17 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
     "succeed" in {
       implicit val context: Seq[(String, String)] = adminContext
 
-      val targetTenantId = organizationId
-      val attributeId    = UUID.randomUUID()
-      val seed           = DeclaredTenantAttributeSeed(attributeId)
+      val attributeId = UUID.randomUUID()
+      val seed        = DeclaredTenantAttributeSeed(attributeId)
 
-      val existingDeclared =
-        persistentDeclaredAttribute.copy(id = attributeId, assignmentTimestamp = timestamp.minusDays(1))
-      val tenant           = persistentTenant.copy(id = targetTenantId, attributes = List(existingDeclared))
+      val existingAttribute =
+        persistentDeclaredAttribute.copy(id = attributeId, revocationTimestamp = Some(timestamp))
 
       val managementSeed = Dependency.TenantAttribute(
         declared = Some(
           Dependency.DeclaredTenantAttribute(
             seed.id,
-            assignmentTimestamp = existingDeclared.assignmentTimestamp,
+            assignmentTimestamp = existingAttribute.assignmentTimestamp,
             revocationTimestamp = None
           )
         ),
@@ -95,7 +89,7 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       mockDateTimeGet()
-      mockGetTenantById(targetTenantId, tenant)
+      mockGetTenantAttribute(organizationId, attributeId, existingAttribute)
       mockUpdateTenantAttribute(organizationId, attributeId, managementSeed)
       mockComputeAgreementState(organizationId, attributeId)
 

@@ -34,26 +34,27 @@ import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.AttributeRegistryManagementAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.ReadModelTenantAdapters._
 import it.pagopa.interop.tenantprocess.api.adapters.TenantManagementAdapters._
-import it.pagopa.interop.tenantprocess.common.readmodel._
 import it.pagopa.interop.tenantprocess.error.ResponseHandlers._
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
+import it.pagopa.interop.catalogmanagement.model.{SingleAttribute, GroupAttribute}
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
+import it.pagopa.interop.tenantprocess.common.readmodel.ReadModelTenantQueries
 
 import java.time.{Duration, OffsetDateTime}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import it.pagopa.interop.catalogmanagement.model.SingleAttribute
-import it.pagopa.interop.catalogmanagement.model.GroupAttribute
-import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenant
 
 final case class TenantApiServiceImpl(
+  attributeRegistryManagementService: AttributeRegistryManagementService,
   tenantManagementService: TenantManagementService,
   agreementProcessService: AgreementProcessService,
-  readModel: ReadModelService,
+  agreementManagementService: AgreementManagementService,
+  catalogManagementService: CatalogManagementService,
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
-)(implicit ec: ExecutionContext)
+)(implicit ec: ExecutionContext, readModel: ReadModelService)
     extends TenantApiService {
 
   // Enti Pubblici
@@ -74,8 +75,8 @@ final case class TenantApiServiceImpl(
     val operationLabel = s"Retrieving Producers with name = $name, limit = $limit, offset = $offset"
     logger.info(operationLabel)
 
-    val result: Future[Tenants] = TenantReadModelQueries
-      .listProducers(name, offset, limit)(readModel)
+    val result: Future[Tenants] = ReadModelTenantQueries
+      .listProducers(name, offset, limit)
       .map(result => Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount))
 
     onComplete(result) {
@@ -93,7 +94,7 @@ final case class TenantApiServiceImpl(
 
     val result: Future[Tenants] = for {
       requesterId <- getOrganizationIdFutureUUID(contexts)
-      result      <- TenantReadModelQueries.listConsumers(name, requesterId, offset, limit)(readModel)
+      result      <- ReadModelTenantQueries.listConsumers(name, requesterId, offset, limit)
     } yield Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount)
 
     onComplete(result) {
@@ -112,7 +113,7 @@ final case class TenantApiServiceImpl(
     val result: Future[Tenant] = for {
       tenantUUID       <- id.toFutureUUID
       _                <- assertResourceAllowed(tenantUUID)
-      tenantManagement <- getPersistentTenant(tenantUUID).map(_.toManagement)
+      tenantManagement <- tenantManagementService.getTenantById(tenantUUID).map(_.toManagement)
       tenantKind       <- tenantManagement.kind.fold(
         getTenantKindLoadingCertifiedAttributes(tenantManagement.attributes, tenantManagement.externalId)
       )(Future.successful)
@@ -163,7 +164,7 @@ final case class TenantApiServiceImpl(
 
       def validateCertifierTenant: Future[DependencyCertifier] = for {
         requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
-        requesterTenant     <- getPersistentTenant(requesterTenantUuid).map(_.toManagement)
+        requesterTenant     <- tenantManagementService.getTenantById(requesterTenantUuid).map(_.toManagement)
         maybeCertifier = requesterTenant.features
           .collectFirst { case DependencyTenantFeature(Some(certifier)) => certifier }
         certifier <- maybeCertifier.toFuture(TenantIsNotACertifier(requesterTenantUuid))
@@ -192,7 +193,7 @@ final case class TenantApiServiceImpl(
 
     val result: Future[Unit] = for {
       requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
-      requesterTenant     <- getPersistentTenant(requesterTenantUuid).map(_.toManagement)
+      requesterTenant     <- tenantManagementService.getTenantById(requesterTenantUuid).map(_.toManagement)
       certifierId         <- requesterTenant.features
         .collectFirstSome(_.certifier.map(_.certifierId))
         .toFuture(TenantIsNotACertifier(requesterTenantUuid))
@@ -300,19 +301,19 @@ final case class TenantApiServiceImpl(
       updatedAttribute <- tenantManagementService.updateTenantAttribute(tenantId, declaredAttribute.id, updateSeed)
     } yield updatedAttribute
 
-    def upsertAttribute(tenant: PersistentTenant, seed: DeclaredTenantAttributeSeed): Future[DependencyTenant] = {
-      val maybeAttribute: Option[DependencyTenantAttribute] = tenant.attributes
-        .find(_.id == seed.id)
-        .map(_.toManagement)
-      maybeAttribute.fold(addAttribute(tenant.id, seed))(updateAttribute(tenant.id, _))
-    }
+    def upsertAttribute(tenantId: UUID, seed: DeclaredTenantAttributeSeed): Future[DependencyTenant] = for {
+      maybeAttribute <- tenantManagementService
+        .getTenantAttribute(tenantId, seed.id)
+        .map(a => Some(a.toManagement))
+        .recover { case _: TenantAttributeNotFound => None }
+      updatedTenant  <- maybeAttribute.fold(addAttribute(tenantId, seed))(updateAttribute(tenantId, _))
+    } yield updatedTenant
 
     val result: Future[Tenant] = for {
       requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Adding declared attribute ${seed.id} to $requesterTenantUuid")
-      persistentTenant <- getPersistentTenant(requesterTenantUuid)
-      tenant           <- upsertAttribute(persistentTenant, seed)
-      _                <- agreementProcessService.computeAgreementsByAttribute(requesterTenantUuid, seed.id)
+      tenant <- upsertAttribute(requesterTenantUuid, seed)
+      _      <- agreementProcessService.computeAgreementsByAttribute(requesterTenantUuid, seed.id)
     } yield tenant.toApi
 
     onComplete(result) {
@@ -334,10 +335,7 @@ final case class TenantApiServiceImpl(
       requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Revoking declared attribute $attributeId to $requesterTenantUuid")
       attributeUuid     <- attributeId.toFutureUUID
-      tenant            <- getPersistentTenant(requesterTenantUuid)
-      attribute         <- tenant.attributes
-        .find(_.id == attributeUuid)
-        .toFuture(TenantAttributeNotFound(tenant.id, attributeUuid))
+      attribute         <- tenantManagementService.getTenantAttribute(requesterTenantUuid, attributeUuid)
       declaredAttribute <- attribute.toManagement.declared.toFuture(
         DeclaredAttributeNotFoundInTenant(requesterTenantUuid, attributeUuid)
       )
@@ -366,7 +364,7 @@ final case class TenantApiServiceImpl(
       targetTenantUuid    <- tenantId.toFutureUUID
       _            <- Future.failed(VerifiedAttributeSelfVerification).whenA(requesterTenantUuid == targetTenantUuid)
       _            <- assertAttributeVerificationAllowed(requesterTenantUuid, targetTenantUuid, seed.id)
-      targetTenant <- getPersistentTenant(targetTenantUuid).map(_.toManagement)
+      targetTenant <- tenantManagementService.getTenantById(targetTenantUuid).map(_.toManagement)
       attribute = targetTenant.attributes.flatMap(_.verified).find(_.id == seed.id)
       updatedTenant <- attribute.fold(
         tenantManagementService.addTenantAttribute(targetTenantUuid, seed.toCreateDependency(now, requesterTenantUuid))
@@ -404,7 +402,7 @@ final case class TenantApiServiceImpl(
         case Some(value) if (value.isBefore(now)) => Future.failed(ExpirationDateCannotBeInThePast(value))
         case _                                    => Future.successful(())
       }
-      tenant         <- getPersistentTenant(tenantUuid).map(_.toManagement)
+      tenant         <- tenantManagementService.getTenantById(tenantUuid).map(_.toManagement)
       attribute      <- tenant.attributes
         .flatMap(_.verified)
         .find(_.id == attributeUuiId)
@@ -440,7 +438,7 @@ final case class TenantApiServiceImpl(
       attributeUuid       <- attributeId.toFutureUUID
       _             <- Future.failed(VerifiedAttributeSelfRevocation).whenA(requesterTenantUuid == targetTenantUuid)
       _             <- assertAttributeRevocationAllowed(requesterTenantUuid, targetTenantUuid, attributeUuid)
-      targetTenant  <- getPersistentTenant(targetTenantUuid).map(_.toManagement)
+      targetTenant  <- tenantManagementService.getTenantById(targetTenantUuid).map(_.toManagement)
       attribute     <- targetTenant.attributes
         .flatMap(_.verified)
         .find(_.id == attributeUuid)
@@ -519,7 +517,7 @@ final case class TenantApiServiceImpl(
           tenantManagementService.updateTenantAttribute(tenant.id, id, a)
         }
         .void
-      updatedTenant <- getPersistentTenant(tenant.id).map(_.toManagement)
+      updatedTenant <- tenantManagementService.getTenantById(tenant.id).map(_.toManagement)
       tenantKind    <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
       updatedTenant <- updatedTenant.kind match {
         case Some(x) if (x == tenantKind) => Future.successful(updatedTenant)
@@ -559,11 +557,7 @@ final case class TenantApiServiceImpl(
     } yield ExternalId(origin, code)
 
     def getDependencyAttributes(attributes: Seq[UUID]): Future[Seq[PersistentAttribute]] =
-      Future.traverse(attributes)(a =>
-        AttributeRegistryReadModelQueries.getAttributeById(a)(readModel).flatMap { attr =>
-          attr.toFuture(RegistryAttributeIdNotFound(a))
-        }
-      )
+      Future.traverse(attributes)(a => attributeRegistryManagementService.getAttributeById(a))
 
     for {
       attributesIds <- Future.successful(getCertifiedAttributesIds(attributes))
@@ -574,24 +568,13 @@ final case class TenantApiServiceImpl(
   }
 
   private def getAttributes(attributes: Seq[ExternalId]): Future[Seq[PersistentAttribute]] =
-    Future.traverse(attributes)(a =>
-      AttributeRegistryReadModelQueries.getAttributeByExternalCode(a.origin, a.value)(readModel).flatMap { attr =>
-        attr.toFuture(RegistryAttributeNotFound(a.origin, a.value))
-      }
-    )
+    Future.traverse(attributes)(a => attributeRegistryManagementService.getAttributeByExternalCode(a.origin, a.value))
 
-  private def getPersistentTenant(tenantId: UUID): Future[PersistentTenant] = for {
-    pt     <- TenantReadModelQueries.getTenant(tenantId)(readModel)
-    tenant <- pt.toFuture(TenantByIdNotFound(tenantId))
-  } yield tenant
-
-  private def getPersistentTenant(origin: String, value: String): Future[PersistentTenant] = for {
-    pt     <- TenantReadModelQueries.getTenantByExternalId(origin, value)(readModel)
-    tenant <- pt.toFuture(TenantNotFound(origin, value))
-  } yield tenant
-
-  private def findTenant(id: ExternalId): Future[Option[DependencyTenant]] = for {
-    tenant <- TenantReadModelQueries.getTenantByExternalId(id.origin, id.value)(readModel)
+  private def findTenant(externalId: ExternalId): Future[Option[DependencyTenant]] = for {
+    tenant <- tenantManagementService
+      .getTenantByExternalId(externalId.toPersistent)
+      .map(_.some)
+      .recover { case _: TenantNotFound => None }
   } yield tenant.map(_.toManagement)
 
   override def getTenant(id: String)(implicit
@@ -604,7 +587,7 @@ final case class TenantApiServiceImpl(
 
     val result: Future[Tenant] = for {
       uuid   <- id.toFutureUUID
-      tenant <- getPersistentTenant(uuid)
+      tenant <- tenantManagementService.getTenantById(uuid)
     } yield tenant.toApi
 
     onComplete(result) {
@@ -618,11 +601,12 @@ final case class TenantApiServiceImpl(
     attributeOrigin: String,
     attributeExternalId: String
   )(implicit contexts: Seq[(String, String)]): Future[(DependencyTenant, DependencyCertifiedTenantAttribute)] = for {
-    tenantToModify      <- getPersistentTenant(tenantOrigin, tenantExternalId)
+    tenantToModify      <- tenantManagementService
+      .getTenantByExternalId(PersistentExternalId(tenantOrigin, tenantExternalId))
       .map(_.toManagement)
-    attributeIdToRevoke <- AttributeRegistryReadModelQueries
-      .getAttributeByExternalCode(attributeOrigin, attributeExternalId)(readModel)
-      .flatMap(_.toFuture(RegistryAttributeNotFound(attributeOrigin, attributeExternalId)).map(_.id))
+    attributeIdToRevoke <- attributeRegistryManagementService
+      .getAttributeByExternalCode(attributeOrigin, attributeExternalId)
+      .map(_.id)
     attributeToModify   <- tenantToModify.attributes
       .mapFilter(_.certified)
       .find(_.id == attributeIdToRevoke)
@@ -675,13 +659,9 @@ final case class TenantApiServiceImpl(
     agreementStates: Seq[AgreementPersistentModel.PersistentAgreementState],
     error: ComponentError
   ): Future[Unit] = for {
-    agreements <- AgreementReadModelQueries.getAllAgreements(producerId, consumerId, agreementStates)(readModel)
+    agreements <- agreementManagementService.getAgreements(producerId, consumerId, agreementStates)
     descriptorIds = agreements.map(_.descriptorId)
-    eServices <- Future.traverse(agreements.map(_.eserviceId))(id =>
-      CatalogReadModelQueries.getEServiceById(id)(readModel).flatMap { e =>
-        e.toFuture(EServiceNotFound(id))
-      }
-    )
+    eServices <- Future.traverse(agreements.map(_.eserviceId))(id => catalogManagementService.getEServiceById(id))
     attributeIds = eServices
       .flatMap(_.descriptors.filter(d => descriptorIds.contains(d.id)))
       .flatMap(_.attributes.verified)
@@ -733,7 +713,7 @@ final case class TenantApiServiceImpl(
       verifierUuid   <- verifierId.toFutureUUID
       tenantUuid     <- tenantId.toFutureUUID
       attributeUuid  <- attributeId.toFutureUUID
-      tenant         <- getPersistentTenant(tenantUuid).map(_.toManagement)
+      tenant         <- tenantManagementService.getTenantById(tenantUuid).map(_.toManagement)
       attribute      <- tenant.attributes
         .flatMap(_.verified)
         .find(_.id == attributeUuid)

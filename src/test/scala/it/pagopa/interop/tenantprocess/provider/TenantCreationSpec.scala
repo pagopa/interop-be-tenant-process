@@ -7,7 +7,11 @@ import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.provider.TenantCreationSpec._
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import it.pagopa.interop.tenantprocess.model.{InternalAttributeSeed, M2MAttributeSeed}
-import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenantFeature, PersistentTenantKind}
+import it.pagopa.interop.tenantmanagement.model.tenant.{
+  PersistentTenantFeature,
+  PersistentTenantKind,
+  PersistentExternalId
+}
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -62,7 +66,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound()
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -118,7 +122,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound()
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -173,7 +177,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound()
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -231,7 +235,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound()
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -300,7 +304,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val expectedNewAttribute2 = expectedNewAttribute1.withNewId(newAttributeId2)
 
     mockDateTimeGet()
-    mockGetTenantByExternalId(ExternalId(seed.externalId.origin, seed.externalId.value), existingTenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), existingTenant)
 
     mockGetAttributeByExternalId(
       noChangesExistingAttribute.origin.get,
@@ -401,7 +405,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val expectedNewAttribute2 = expectedNewAttribute1.withNewId(newAttributeId2)
 
     mockDateTimeGet()
-    mockGetTenantByExternalId(ExternalId(seed.externalId.origin, seed.externalId.value), existingTenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), existingTenant)
 
     mockGetAttributeByExternalId(
       noChangesExistingAttribute.origin.get,
@@ -488,7 +492,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockUuidGet(newTenantId)
 
     mockGetTenantById(requesterTenantId, requesterTenant)
-    mockGetTenantByExternalIdNotFound()
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -544,7 +548,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockUuidGet(newTenantId)
 
     mockGetTenantById(requesterTenantId, requesterTenant)
-    mockGetTenantByExternalIdNotFound()
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -601,7 +605,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockUuidGet(newTenantId)
 
     mockGetTenantById(requesterTenantId, requesterTenant)
-    mockGetTenantByExternalIdNotFound()
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -644,7 +648,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val attribute      = persistentAttribute.copy(id = attributeId, origin = Some(certifierId), code = Some(code))
     val tenantToModify = persistentTenant.copy(attributes = List(persistentCertifiedAttribute.copy(id = attributeId)))
 
-    mockGetTenantByExternalId(ExternalId(origin, externalId), tenantToModify)
+    mockGetTenantByExternalId(PersistentExternalId(origin, externalId), tenantToModify)
     mockGetAttributeByExternalId(certifierId, code, attribute)
     mockDateTimeGet()
     mockUpdateTenantAttribute(tenantToModify.id, attributeId, dependencyAttribute)
@@ -654,7 +658,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockComputeAgreementState(dependencyTenant.id, attributeId)
 
-    mockUpdateTenant(dependencyTenant.id, expectedTenantUpdate)
+    mockUpdateTenant(tenantToModify.id, expectedTenantUpdate)
 
     Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
       assert(status == StatusCodes.NoContent)
@@ -679,8 +683,8 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val attributeId    = UUID.randomUUID()
     val tenantToModify = persistentTenant.copy(attributes = List(persistentCertifiedAttribute.copy(id = attributeId)))
 
-    mockGetTenantByExternalId(ExternalId(origin, externalId), tenantToModify)
-    mockGetAttributeByExternalIdNotFound()
+    mockGetTenantByExternalId(PersistentExternalId(origin, externalId), tenantToModify)
+    mockGetAttributeByExternalIdNotFound(certifierId, code)
 
     Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
       assert(status == StatusCodes.NotFound)
@@ -708,7 +712,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val attribute = persistentAttribute.copy(id = attributeId, origin = Some(certifierId), code = Some(code))
 
-    mockGetTenantByExternalId(ExternalId(origin, externalId), tenantToModify)
+    mockGetTenantByExternalId(PersistentExternalId(origin, externalId), tenantToModify)
     mockGetAttributeByExternalId(certifierId, code, attribute)
 
     Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
@@ -794,7 +798,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
 
     mockGetTenantById(requesterTenantId, requesterTenant)
-    mockGetTenantByExternalId(ExternalId(seed.externalId.origin, seed.externalId.value), existingTenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), existingTenant)
 
     mockGetAttributeByExternalId(
       noChangesExistingAttribute.origin.get,
@@ -878,7 +882,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound()
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockCreateTenant(expectedTenantSeed, tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
@@ -909,7 +913,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound()
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockCreateTenant(expectedTenantSeed, tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
@@ -940,7 +944,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockDateTimeGet()
 
-    mockGetTenantByExternalId(ExternalId(seed.externalId.origin, seed.externalId.value), tenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
@@ -962,7 +966,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockDateTimeGet()
 
-    mockGetTenantByExternalId(ExternalId(seed.externalId.origin, seed.externalId.value), tenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -984,7 +988,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockDateTimeGet()
 
-    mockGetTenantByExternalId(ExternalId(seed.externalId.origin, seed.externalId.value), tenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.Conflict)
@@ -1006,7 +1010,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockDateTimeGet()
 
-    mockGetTenantByExternalId(ExternalId(seed.externalId.origin, seed.externalId.value), tenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.Forbidden)
@@ -1034,7 +1038,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockDateTimeGet()
 
-    mockGetTenantByExternalId(ExternalId(seed.externalId.origin, seed.externalId.value), tenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {

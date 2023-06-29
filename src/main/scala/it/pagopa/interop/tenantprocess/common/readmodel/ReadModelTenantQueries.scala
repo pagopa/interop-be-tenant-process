@@ -14,23 +14,25 @@ import org.mongodb.scala.model.Sorts.ascending
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-object TenantReadModelQueries extends ReadModelQuery {
+object ReadModelTenantQueries extends ReadModelQuery {
 
-  def getTenant(tenantId: UUID)(readModel: ReadModelService)(implicit
-    ec: ExecutionContext
-  ): Future[Option[PersistentTenant]] =
+  def getTenantById(
+    tenantId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Option[PersistentTenant]] =
     readModel.findOne[PersistentTenant](collectionName = "tenants", filter = Filters.eq("data.id", tenantId.toString))
 
-  def getTenantByExternalId(origin: String, value: String)(
+  def getTenantByExternalId(origin: String, value: String)(implicit
+    ec: ExecutionContext,
     readModel: ReadModelService
-  )(implicit ec: ExecutionContext): Future[Option[PersistentTenant]] = readModel.findOne[PersistentTenant](
+  ): Future[Option[PersistentTenant]] = readModel.findOne[PersistentTenant](
     collectionName = "tenants",
     filter = Filters.and(Filters.eq("data.externalId.origin", origin), Filters.eq("data.externalId.value", value))
   )
 
-  def listProducers(name: Option[String], offset: Int, limit: Int)(
+  def listProducers(name: Option[String], offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
     readModel: ReadModelService
-  )(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentTenant]] = {
+  ): Future[PaginatedResult[PersistentTenant]] = {
     val query: Bson               = listTenantsFilters(name)
     val filterPipeline: Seq[Bson] = Seq(
       `match`(query),
@@ -63,9 +65,10 @@ object TenantReadModelQueries extends ReadModelQuery {
     } yield PaginatedResult(results = tenants, totalCount = count.headOption.map(_.totalCount).getOrElse(0))
   }
 
-  def listConsumers(name: Option[String], producerId: UUID, offset: Int, limit: Int)(
+  def listConsumers(name: Option[String], producerId: UUID, offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
     readModel: ReadModelService
-  )(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentTenant]] = {
+  ): Future[PaginatedResult[PersistentTenant]] = {
     val query: Bson               = listTenantsFilters(name)
     val filterPipeline: Seq[Bson] = Seq(
       `match`(query),

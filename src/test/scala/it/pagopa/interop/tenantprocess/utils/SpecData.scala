@@ -36,8 +36,8 @@ import java.util.UUID
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 
 trait SpecData {
-  final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
-
+  final val timestamp                              = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
+  val tenantId                                     = UUID.randomUUID()
   val internalAttributeSeed: InternalAttributeSeed = InternalAttributeSeed("IPA", s"int-attribute-${UUID.randomUUID()}")
   val m2mAttributeSeed: M2MAttributeSeed           = M2MAttributeSeed(s"m2m-attribute-${UUID.randomUUID()}")
 
@@ -55,7 +55,7 @@ trait SpecData {
     SelfcareTenantSeed(ExternalId("NOT_IPA", s"tenant-${UUID.randomUUID()}"), UUID.randomUUID().toString, "test_name")
 
   val dependencyTenant: Dependency.Tenant      = Dependency.Tenant(
-    id = UUID.randomUUID(),
+    id = tenantId,
     selfcareId = None,
     externalId = Dependency.ExternalId("IPA", "org"),
     features = Nil,
@@ -84,7 +84,7 @@ trait SpecData {
   )
 
   val persistentTenant: PersistentTenant = PersistentTenant(
-    id = UUID.randomUUID(),
+    id = tenantId,
     selfcareId = None,
     externalId = PersistentExternalId("IPA", "org"),
     features = Nil,

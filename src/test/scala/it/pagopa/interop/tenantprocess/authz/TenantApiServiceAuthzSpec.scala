@@ -18,16 +18,21 @@ import java.time.OffsetDateTime
 import java.util.UUID
 
 class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
-  val fakeTenantManagement: FakeTenantManagement    = FakeTenantManagement()
-  val fakeAgreementProcess: FakeAgreementProcess    = FakeAgreementProcess()
-  val dummyReadModel: ReadModelService              = new FakeReadModelService
-  val dummyDateTimeSupplier: OffsetDateTimeSupplier = () => OffsetDateTime.now()
-  val dummyUuidSupplier: UUIDSupplier               = () => UUID.randomUUID()
+  val fakeAttributeRegistryManagement: FakeAttributeRegistryManagement = FakeAttributeRegistryManagement()
+  val fakeAgreementManagement: FakeAgreementManagement                 = FakeAgreementManagement()
+  val fakeCatalogManagement: FakeCatalogManagement                     = FakeCatalogManagement()
+  val fakeTenantManagement: FakeTenantManagement                       = FakeTenantManagement()
+  val fakeAgreementProcess: FakeAgreementProcess                       = FakeAgreementProcess()
+  implicit val dummyReadModel: ReadModelService                        = new FakeReadModelService
+  val dummyDateTimeSupplier: OffsetDateTimeSupplier                    = () => OffsetDateTime.now()
+  val dummyUuidSupplier: UUIDSupplier                                  = () => UUID.randomUUID()
 
   val tenantService: TenantApiService = TenantApiServiceImpl(
+    fakeAttributeRegistryManagement,
     fakeTenantManagement,
     fakeAgreementProcess,
-    dummyReadModel,
+    fakeAgreementManagement,
+    fakeCatalogManagement,
     dummyUuidSupplier,
     dummyDateTimeSupplier
   )
@@ -72,7 +77,9 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
       endpoints("selfcareUpsertTenant"),
       { c: Seq[(String, String)] =>
         implicit val contextWithOrgId: Seq[(String, String)] =
-          c.filter(_._1 != ORGANIZATION_ID_CLAIM) :+ ORGANIZATION_ID_CLAIM -> FakeDependencies.fakeTenant.id.toString
+          c.filter(
+            _._1 != ORGANIZATION_ID_CLAIM
+          ) :+ ORGANIZATION_ID_CLAIM -> FakeDependencies.fakePersistentTenant.id.toString
         tenantService.selfcareUpsertTenant(selfcareTenantSeed)
       }
     )

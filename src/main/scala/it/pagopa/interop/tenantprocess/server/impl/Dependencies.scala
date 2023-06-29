@@ -51,7 +51,9 @@ trait Dependencies {
     )
     .toFuture
 
-  val readModelService: ReadModelService = new MongoDbReadModelService(ApplicationConfiguration.readModelConfig)
+  implicit val readModelService: ReadModelService = new MongoDbReadModelService(
+    ApplicationConfiguration.readModelConfig
+  )
 
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
@@ -72,9 +74,11 @@ trait Dependencies {
   ): TenantApi =
     new TenantApi(
       TenantApiServiceImpl(
+        AttributeRegistryManagementServiceImpl,
         tenantManagement(blockingEc),
         agreementProcess(blockingEc),
-        readModelService,
+        AgreementManagementServiceImpl,
+        CatalogManagementServiceImpl,
         uuidSupplier,
         dateTimeSupplier
       ),

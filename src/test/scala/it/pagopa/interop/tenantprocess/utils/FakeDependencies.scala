@@ -2,6 +2,17 @@ package it.pagopa.interop.tenantprocess.utils
 
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.tenantmanagement.client.model._
+import it.pagopa.interop.tenantmanagement.model.tenant.{
+  PersistentExternalId,
+  PersistentTenant,
+  PersistentTenantAttribute,
+  PersistentCertifiedAttribute,
+  PersistentTenantFeature,
+  PersistentTenantKind
+}
+import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.{PersistentAttribute, Certified}
+import it.pagopa.interop.catalogmanagement.model.CatalogItem
+import it.pagopa.interop.agreementmanagement.model.agreement.{PersistentAgreement, PersistentAgreementState}
 import it.pagopa.interop.tenantprocess.service._
 import org.mongodb.scala.bson.conversions.Bson
 import spray.json.JsonReader
@@ -13,6 +24,39 @@ import scala.concurrent.{ExecutionContext, Future}
 object FakeDependencies extends SpecData {
   val verifiedAttributeId: UUID = UUID.randomUUID()
   val (agreement, eService)     = matchingAgreementAndEService(verifiedAttributeId)
+
+  case class FakeAttributeRegistryManagement() extends AttributeRegistryManagementService {
+
+    override def getAttributeById(
+      id: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentAttribute] =
+      Future.successful(
+        PersistentAttribute(
+          id = UUID.randomUUID(),
+          code = Some(UUID.randomUUID().toString),
+          kind = Certified,
+          description = "Attribute x",
+          origin = Some("IPA"),
+          name = "AttributeX",
+          creationTime = OffsetDateTime.now()
+        )
+      )
+
+    override def getAttributeByExternalCode(origin: String, code: String)(implicit
+      ec: ExecutionContext,
+      readModel: ReadModelService
+    ): Future[PersistentAttribute] = Future.successful(
+      PersistentAttribute(
+        id = UUID.randomUUID(),
+        code = Some(UUID.randomUUID().toString),
+        kind = Certified,
+        description = "Attribute x",
+        origin = Some("IPA"),
+        name = "AttributeX",
+        creationTime = OffsetDateTime.now()
+      )
+    )
+  }
 
   case class FakeTenantManagement() extends TenantManagementService {
 
@@ -30,12 +74,41 @@ object FakeDependencies extends SpecData {
     override def addTenantAttribute(tenantId: UUID, seed: TenantAttribute)(implicit
       contexts: Seq[(String, String)]
     ): Future[Tenant] = Future.successful(fakeTenant)
+
+    override def getTenantById(
+      tenantId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =
+      Future.successful(fakePersistentTenant)
+
+    override def getTenantByExternalId(
+      externalId: PersistentExternalId
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =
+      Future.successful(fakePersistentTenant)
+
+    override def getTenantAttribute(tenantId: UUID, attributeId: UUID)(implicit
+      ec: ExecutionContext,
+      readModel: ReadModelService
+    ): Future[PersistentTenantAttribute] = Future.successful(fakeAttribute)
   }
 
   case class FakeAgreementProcess() extends AgreementProcessService {
     override def computeAgreementsByAttribute(consumerId: UUID, attributeId: UUID)(implicit
       contexts: Seq[(String, String)]
     ): Future[Unit] = Future.unit
+  }
+
+  case class FakeAgreementManagement() extends AgreementManagementService {
+    override def getAgreements(producerId: UUID, consumerId: UUID, states: Seq[PersistentAgreementState])(implicit
+      ec: ExecutionContext,
+      readModel: ReadModelService
+    ): Future[Seq[PersistentAgreement]] = Future.successful(Seq(agreement))
+  }
+
+  case class FakeCatalogManagement() extends CatalogManagementService {
+    override def getEServiceById(
+      eServiceId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[CatalogItem] =
+      Future.successful(eService)
   }
 
   class FakeReadModelService extends ReadModelService {
@@ -73,4 +146,20 @@ object FakeDependencies extends SpecData {
     mails = Nil,
     name = "test_name"
   )
+
+  val fakePersistentTenant: PersistentTenant = PersistentTenant(
+    id = UUID.randomUUID(),
+    selfcareId = None,
+    externalId = PersistentExternalId("IPA", "something"),
+    features = List(PersistentTenantFeature.PersistentCertifier(certifierId = "SOMETHING")),
+    attributes = Nil,
+    createdAt = OffsetDateTime.now(),
+    updatedAt = None,
+    mails = Nil,
+    name = "test_name",
+    kind = Some(PersistentTenantKind.PA)
+  )
+
+  val fakeAttribute: PersistentCertifiedAttribute =
+    PersistentCertifiedAttribute(UUID.randomUUID(), OffsetDateTime.now(), None)
 }

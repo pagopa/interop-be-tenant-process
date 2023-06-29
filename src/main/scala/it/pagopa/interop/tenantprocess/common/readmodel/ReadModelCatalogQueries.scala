@@ -8,11 +8,11 @@ import org.mongodb.scala.model.Filters
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-object CatalogReadModelQueries extends ReadModelQuery {
+object ReadModelCatalogQueries extends ReadModelQuery {
 
   def getEServiceById(
     eServiceId: UUID
-  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[Option[CatalogItem]] = {
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Option[CatalogItem]] = {
     readModel.findOne[CatalogItem](collectionName = "eservices", filter = Filters.eq("data.id", eServiceId.toString))
   }
 }

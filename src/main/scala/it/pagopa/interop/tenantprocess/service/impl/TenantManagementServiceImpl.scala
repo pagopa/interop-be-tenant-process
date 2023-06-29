@@ -5,7 +5,19 @@ import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLo
 import it.pagopa.interop.commons.utils.withHeaders
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError, BearerToken}
 import it.pagopa.interop.tenantmanagement.client.model._
-import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.TenantByIdNotFound
+import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
+  TenantByIdNotFound,
+  TenantNotFound,
+  TenantAttributeNotFound
+}
+import it.pagopa.interop.commons.utils.TypeConversions._
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.tenantmanagement.model.tenant.{
+  PersistentTenant,
+  PersistentTenantAttribute,
+  PersistentExternalId
+}
+import it.pagopa.interop.tenantprocess.common.readmodel.ReadModelTenantQueries
 import it.pagopa.interop.tenantprocess.service.{
   TenantManagementApi,
   TenantManagementAttributesApi,
@@ -83,4 +95,27 @@ final case class TenantManagementServiceImpl(
     )(BearerToken(bearerToken))
     invoker.invoke(request, s"Deleting attribute $attributeId from tenant $tenantId")
   }
+
+  override def getTenantAttribute(tenantId: UUID, attributeId: UUID)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PersistentTenantAttribute] = for {
+    optTenant <- ReadModelTenantQueries.getTenantById(tenantId)
+    tenant    <- optTenant.toFuture(TenantAttributeNotFound(tenantId, attributeId))
+    attribute <- tenant.attributes
+      .find(_.id == attributeId)
+      .toFuture(TenantAttributeNotFound(tenantId, attributeId))
+  } yield attribute
+
+  override def getTenantById(
+    tenantId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =
+    ReadModelTenantQueries.getTenantById(tenantId).flatMap(_.toFuture(TenantByIdNotFound(tenantId)))
+
+  override def getTenantByExternalId(
+    externalId: PersistentExternalId
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =
+    ReadModelTenantQueries
+      .getTenantByExternalId(externalId.origin, externalId.value)
+      .flatMap(_.toFuture(TenantNotFound(externalId.origin, externalId.value)))
 }

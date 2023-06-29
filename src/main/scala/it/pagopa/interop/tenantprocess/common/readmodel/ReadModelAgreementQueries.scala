@@ -9,11 +9,12 @@ import org.mongodb.scala.model.Filters
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-object AgreementReadModelQueries extends ReadModelQuery {
+object ReadModelAgreementQueries extends ReadModelQuery {
 
-  def getAllAgreements(producerId: UUID, consumerId: UUID, agreementStates: Seq[PersistentAgreementState])(
+  def getAllAgreements(producerId: UUID, consumerId: UUID, agreementStates: Seq[PersistentAgreementState])(implicit
+    ec: ExecutionContext,
     readModel: ReadModelService
-  )(implicit ec: ExecutionContext): Future[Seq[PersistentAgreement]] = {
+  ): Future[Seq[PersistentAgreement]] = {
 
     def getAgreementsFrom(offset: Int): Future[Seq[PersistentAgreement]] =
       getAgreements(
@@ -22,7 +23,7 @@ object AgreementReadModelQueries extends ReadModelQuery {
         agreementStates = agreementStates,
         limit = 50,
         offset = offset
-      )(readModel)
+      )
 
     def go(start: Int)(as: Seq[PersistentAgreement]): Future[Seq[PersistentAgreement]] =
       getAgreementsFrom(start).flatMap(esec =>
@@ -50,7 +51,7 @@ object AgreementReadModelQueries extends ReadModelQuery {
     agreementStates: Seq[PersistentAgreementState],
     offset: Int,
     limit: Int
-  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[Seq[PersistentAgreement]] = {
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentAgreement]] = {
     val filter: Bson = agreementsFilters(producerId, consumerId, agreementStates)
     readModel.find[PersistentAgreement](collectionName = "agreements", filter = filter, offset = offset, limit = limit)
   }
