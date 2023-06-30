@@ -753,4 +753,22 @@ final case class TenantApiServiceImpl(
       updateVerifiedAttributeExtensionDateResponse[Tenant](operationLabel)(updateVerifiedAttributeExtensionDate200)
     }
   }
+
+  override def getTenantByExternalId(origin: String, code: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = {
+    val operationLabel = s"Retrieving tenant with origin $origin and code $code"
+    logger.info(operationLabel)
+
+    val result: Future[Tenant] =
+      tenantManagementService
+        .getTenantByExternalId(DependencyExternalId(origin, code))
+        .map(_.toApi)
+
+    onComplete(result) {
+      getTenantByExternalIdResponse[Tenant](operationLabel)(getTenantByExternalId200)
+    }
+  }
 }
