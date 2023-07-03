@@ -17,6 +17,7 @@ import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
   TenantAttributeNotFound
 }
 import it.pagopa.interop.tenantmanagement.client.model._
+import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiServiceImpl
 import it.pagopa.interop.tenantprocess.service._
@@ -65,12 +66,37 @@ trait SpecHelper extends MockFactory with SpecData {
       mockDateTimeSupplier
     )(ExecutionContext.global, mockReadModel)
 
-  def mockGetTenantById(tenantId: UUID, result: PersistentTenant) =
+  def mockGetTenantById(tenantId: UUID, result: PersistentTenant = persistentTenant) =
     (mockTenantManagement
       .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
       .expects(tenantId, *, *)
       .once()
       .returns(Future.successful(result.copy(id = tenantId)))
+
+  def mockGetProducers(
+    name: Option[String],
+    offset: Int,
+    limit: Int,
+    result: PaginatedResult[PersistentTenant] = paginatedResults
+  ) =
+    (mockTenantManagement
+      .listProducers(_: Option[String], _: Int, _: Int)(_: ExecutionContext, _: ReadModelService))
+      .expects(name, offset, limit, *, *)
+      .once()
+      .returns(Future.successful(result))
+
+  def mockGetConsumers(
+    name: Option[String],
+    producerId: UUID,
+    offset: Int,
+    limit: Int,
+    result: PaginatedResult[PersistentTenant] = paginatedResults
+  ) =
+    (mockTenantManagement
+      .listConsumers(_: Option[String], _: UUID, _: Int, _: Int)(_: ExecutionContext, _: ReadModelService))
+      .expects(name, producerId, offset, limit, *, *)
+      .once()
+      .returns(Future.successful(result))
 
   def mockGetTenantByExternalId(externalId: PersistentExternalId, result: PersistentTenant) =
     (mockTenantManagement

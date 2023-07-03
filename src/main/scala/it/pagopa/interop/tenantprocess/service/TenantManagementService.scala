@@ -6,6 +6,7 @@ import it.pagopa.interop.tenantmanagement.model.tenant.{
   PersistentTenantAttribute,
   PersistentExternalId
 }
+import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 
 import java.util.UUID
@@ -32,4 +33,14 @@ trait TenantManagementService {
   def getTenantByExternalId(
     externalId: PersistentExternalId
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant]
+
+  def listProducers(name: Option[String], offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PaginatedResult[PersistentTenant]]
+
+  def listConsumers(name: Option[String], producerId: UUID, offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PaginatedResult[PersistentTenant]]
 }

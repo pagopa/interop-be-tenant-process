@@ -2,6 +2,7 @@ package it.pagopa.interop.tenantprocess.utils
 
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.tenantmanagement.client.model._
+import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.tenantmanagement.model.tenant.{
   PersistentExternalId,
   PersistentTenant,
@@ -89,6 +90,18 @@ object FakeDependencies extends SpecData {
       ec: ExecutionContext,
       readModel: ReadModelService
     ): Future[PersistentTenantAttribute] = Future.successful(fakeAttribute)
+
+    override def listConsumers(name: Option[String], producerId: UUID, offset: Int, limit: Int)(implicit
+      ec: ExecutionContext,
+      readModel: ReadModelService
+    ): Future[PaginatedResult[PersistentTenant]] =
+      Future.successful(paginatedResults)
+
+    override def listProducers(name: Option[String], offset: Int, limit: Int)(implicit
+      ec: ExecutionContext,
+      readModel: ReadModelService
+    ): Future[PaginatedResult[PersistentTenant]] =
+      Future.successful(paginatedResults)
   }
 
   case class FakeAgreementProcess() extends AgreementProcessService {

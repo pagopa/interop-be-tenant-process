@@ -1,6 +1,7 @@
 package it.pagopa.interop.tenantprocess.utils
 
 import it.pagopa.interop.tenantmanagement.client.{model => Dependency}
+import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute._
 import it.pagopa.interop.tenantmanagement.model.tenant.{
   PersistentExternalId,
@@ -205,6 +206,9 @@ trait SpecData {
           CatalogAttributes(Nil, Nil, verified = Seq(SingleAttribute(CatalogAttributeValue(verifiedAttributeId, true))))
       ) :: Nil
     )
+
+  val paginatedResults: PaginatedResult[PersistentTenant] =
+    PaginatedResult(results = Seq(persistentTenant), totalCount = 1)
 
   def matchingAgreementAndEService(
     verifiedAttributeId: UUID = UUID.randomUUID()

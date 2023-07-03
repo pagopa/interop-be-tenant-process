@@ -40,7 +40,6 @@ import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
 import it.pagopa.interop.catalogmanagement.model.{SingleAttribute, GroupAttribute}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
-import it.pagopa.interop.tenantprocess.common.readmodel.ReadModelTenantQueries
 
 import java.time.{Duration, OffsetDateTime}
 import java.util.UUID
@@ -75,7 +74,7 @@ final case class TenantApiServiceImpl(
     val operationLabel = s"Retrieving Producers with name = $name, limit = $limit, offset = $offset"
     logger.info(operationLabel)
 
-    val result: Future[Tenants] = ReadModelTenantQueries
+    val result: Future[Tenants] = tenantManagementService
       .listProducers(name, offset, limit)
       .map(result => Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount))
 
@@ -94,7 +93,7 @@ final case class TenantApiServiceImpl(
 
     val result: Future[Tenants] = for {
       requesterId <- getOrganizationIdFutureUUID(contexts)
-      result      <- ReadModelTenantQueries.listConsumers(name, requesterId, offset, limit)
+      result      <- tenantManagementService.listConsumers(name, requesterId, offset, limit)
     } yield Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount)
 
     onComplete(result) {

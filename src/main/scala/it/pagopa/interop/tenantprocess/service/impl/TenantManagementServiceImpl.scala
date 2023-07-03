@@ -5,6 +5,7 @@ import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLo
 import it.pagopa.interop.commons.utils.withHeaders
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiError, BearerToken}
 import it.pagopa.interop.tenantmanagement.client.model._
+import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
   TenantByIdNotFound,
   TenantNotFound,
@@ -118,4 +119,14 @@ final case class TenantManagementServiceImpl(
     ReadModelTenantQueries
       .getTenantByExternalId(externalId.origin, externalId.value)
       .flatMap(_.toFuture(TenantNotFound(externalId.origin, externalId.value)))
+
+  override def listProducers(name: Option[String], offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PaginatedResult[PersistentTenant]] = ReadModelTenantQueries.listProducers(name, offset, limit)
+
+  override def listConsumers(name: Option[String], producerId: UUID, offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PaginatedResult[PersistentTenant]] = ReadModelTenantQueries.listConsumers(name, producerId, offset, limit)
 }
