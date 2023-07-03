@@ -758,7 +758,7 @@ final case class TenantApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
     val operationLabel = s"Retrieving tenant with origin $origin and code $code"
     logger.info(operationLabel)
 
