@@ -77,26 +77,26 @@ trait SpecHelper extends MockFactory with SpecData {
     name: Option[String],
     offset: Int,
     limit: Int,
-    result: PaginatedResult[PersistentTenant] = paginatedResults
+    result: Seq[PersistentTenant] = Seq(persistentTenant)
   ) =
     (mockTenantManagement
       .listProducers(_: Option[String], _: Int, _: Int)(_: ExecutionContext, _: ReadModelService))
       .expects(name, offset, limit, *, *)
       .once()
-      .returns(Future.successful(result))
+      .returns(Future.successful(PaginatedResult(results = result, totalCount = result.size)))
 
   def mockGetConsumers(
     name: Option[String],
     producerId: UUID,
     offset: Int,
     limit: Int,
-    result: PaginatedResult[PersistentTenant] = paginatedResults
+    result: Seq[PersistentTenant] = Seq(persistentTenant)
   ) =
     (mockTenantManagement
       .listConsumers(_: Option[String], _: UUID, _: Int, _: Int)(_: ExecutionContext, _: ReadModelService))
       .expects(name, producerId, offset, limit, *, *)
       .once()
-      .returns(Future.successful(result))
+      .returns(Future.successful(PaginatedResult(results = result, totalCount = result.size)))
 
   def mockGetTenantByExternalId(externalId: PersistentExternalId, result: PersistentTenant) =
     (mockTenantManagement

@@ -2,8 +2,8 @@ package it.pagopa.interop.tenantprocess.provider
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
+import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import org.scalatest.wordspec.AnyWordSpecLike
 import java.util.UUID
 
@@ -35,7 +35,7 @@ class TenantRetrieveSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       val limit: Int           = 50
       val name: Option[String] = Some("name")
 
-      mockGetConsumers(name, producerId, offset, limit)
+      mockGetConsumers(name, producerId, offset, limit, Seq(persistentTenant.copy(id = organizationId)))
 
       Get() ~> tenantService.getConsumers(name, offset, limit) ~> check {
         assert(status == StatusCodes.OK)
