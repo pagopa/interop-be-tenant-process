@@ -761,7 +761,7 @@ final case class TenantApiServiceImpl(
 
     val result: Future[Tenant] =
       tenantManagementService
-        .getTenantByExternalId(DependencyExternalId(origin, code))
+        .getTenantByExternalId(PersistentExternalId(origin, code))
         .map(_.toApi)
 
     onComplete(result) {
