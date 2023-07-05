@@ -354,6 +354,40 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /tenants/origin/{origin}/code/{code}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - name: origin
+        in: path
+        description: the tenant origin
+        required: true
+        schema:
+          type: string
+      - name: code
+        in: path
+        description: the tenant code
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - tenant
+      operationId: getTenantByExternalId
+      description: Retrieve the Tenant
+      responses:
+        '200':
+          description: Tenant retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '404':
+          description: Tenant Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /tenants/attributes/declared:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'

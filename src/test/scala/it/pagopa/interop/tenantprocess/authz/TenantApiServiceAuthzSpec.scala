@@ -51,6 +51,22 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     )
   }
 
+  test("Tenant api should accept authorized roles for getTenant") {
+    validateAuthorization(
+      endpoints("getTenant"),
+      { implicit c: Seq[(String, String)] => tenantService.getTenant(UUID.randomUUID.toString) }
+    )
+  }
+
+  test("Tenant api should accept authorized roles for getTenantByExternalId") {
+    validateAuthorization(
+      endpoints("getTenantByExternalId"),
+      { implicit c: Seq[(String, String)] =>
+        tenantService.getTenantByExternalId("origin", "value")
+      }
+    )
+  }
+
   test("Tenant api should accept authorized roles for internalUpsertTenant") {
     validateAuthorization(
       endpoints("internalUpsertTenant"),
