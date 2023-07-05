@@ -1,15 +1,17 @@
 package it.pagopa.interop.tenantprocess.service
 
-import it.pagopa.interop.attributeregistrymanagement.client.model.Attribute
+import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.PersistentAttribute
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 
-import scala.concurrent.Future
 import java.util.UUID
+import scala.concurrent.{Future, ExecutionContext}
 
 trait AttributeRegistryManagementService {
-
   def getAttributeByExternalCode(origin: String, code: String)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Attribute]
-
-  def getAttributeById(id: UUID)(implicit contexts: Seq[(String, String)]): Future[Attribute]
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PersistentAttribute]
+  def getAttributeById(
+    attributeId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentAttribute]
 }

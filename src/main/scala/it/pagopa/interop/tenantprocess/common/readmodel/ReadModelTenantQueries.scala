@@ -14,11 +14,25 @@ import org.mongodb.scala.model.Sorts.ascending
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-object ReadModelQueries {
+object ReadModelTenantQueries extends ReadModelQuery {
 
-  def listProducers(name: Option[String], offset: Int, limit: Int)(
+  def getTenantById(
+    tenantId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Option[PersistentTenant]] =
+    readModel.findOne[PersistentTenant](collectionName = "tenants", filter = Filters.eq("data.id", tenantId.toString))
+
+  def getTenantByExternalId(origin: String, value: String)(implicit
+    ec: ExecutionContext,
     readModel: ReadModelService
-  )(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentTenant]] = {
+  ): Future[Option[PersistentTenant]] = readModel.findOne[PersistentTenant](
+    collectionName = "tenants",
+    filter = Filters.and(Filters.eq("data.externalId.origin", origin), Filters.eq("data.externalId.value", value))
+  )
+
+  def listProducers(name: Option[String], offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PaginatedResult[PersistentTenant]] = {
     val query: Bson               = listTenantsFilters(name)
     val filterPipeline: Seq[Bson] = Seq(
       `match`(query),
@@ -51,9 +65,10 @@ object ReadModelQueries {
     } yield PaginatedResult(results = tenants, totalCount = count.headOption.map(_.totalCount).getOrElse(0))
   }
 
-  def listConsumers(name: Option[String], producerId: UUID, offset: Int, limit: Int)(
+  def listConsumers(name: Option[String], producerId: UUID, offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
     readModel: ReadModelService
-  )(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentTenant]] = {
+  ): Future[PaginatedResult[PersistentTenant]] = {
     val query: Bson               = listTenantsFilters(name)
     val filterPipeline: Seq[Bson] = Seq(
       `match`(query),
@@ -96,6 +111,4 @@ object ReadModelQueries {
 
     mapToVarArgs(nameFilter.toList)(Filters.and).getOrElse(Filters.empty())
   }
-
-  def mapToVarArgs[A, B](l: Seq[A])(f: Seq[A] => B): Option[B] = Option.when(l.nonEmpty)(f(l))
 }

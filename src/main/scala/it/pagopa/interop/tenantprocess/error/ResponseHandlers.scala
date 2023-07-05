@@ -76,6 +76,7 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex: CertifiedAttributeNotFoundInTenant) => badRequest(ex, logMessage)
       case Failure(ex: TenantIsNotACertifier)              => forbidden(ex, logMessage)
       case Failure(ex: TenantNotFound)                     => notFound(ex, logMessage)
+      case Failure(ex: TenantByIdNotFound)                 => notFound(ex, logMessage)
       case Failure(ex: RegistryAttributeNotFound)          => notFound(ex, logMessage)
       case Failure(ex)                                     => internalServerError(ex, logMessage)
     }
@@ -141,6 +142,7 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex: ExpirationDateCannotBeInThePast)   => badRequest(ex, logMessage)
       case Failure(ex: OrganizationNotFoundInVerifiers)   => forbidden(ex, logMessage)
       case Failure(ex: VerifiedAttributeNotFoundInTenant) => notFound(ex, logMessage)
+      case Failure(ex: TenantByIdNotFound)                => notFound(ex, logMessage)
       case Failure(ex)                                    => internalServerError(ex, logMessage)
     }
 

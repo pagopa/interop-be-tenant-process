@@ -1,6 +1,7 @@
 package it.pagopa.interop.tenantprocess.api.adapters
 
-import cats.implicits._
+import cats.syntax.all._
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
 import it.pagopa.interop.tenantmanagement.client.model.MailKind.CONTACT_EMAIL
 import it.pagopa.interop.tenantmanagement.client.model.{
   Certifier => DependencyCertifier,
@@ -65,6 +66,7 @@ object ApiAdapters {
 
   implicit class ExternalIdWrapper(private val id: ExternalId) extends AnyVal {
     def toDependency: DependencyExternalId = DependencyExternalId(origin = id.origin, value = id.value)
+    def toPersistent: PersistentExternalId = PersistentExternalId(origin = id.origin, value = id.value)
   }
 
   implicit class DeclaredTenantAttributeSeedWrapper(private val seed: DeclaredTenantAttributeSeed) extends AnyVal {

@@ -2,12 +2,11 @@ package it.pagopa.interop.tenantprocess.provider
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import cats.implicits.catsSyntaxOptionId
-import it.pagopa.interop.tenantmanagement.client.model.{DeclaredTenantAttribute, TenantAttribute}
+import it.pagopa.interop.tenantmanagement.client.{model => Dependency}
 import it.pagopa.interop.tenantprocess.model.DeclaredTenantAttributeSeed
+import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
-import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 
 import java.util.UUID
 
@@ -19,8 +18,10 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val attributeId    = UUID.randomUUID()
       val seed           = DeclaredTenantAttributeSeed(attributeId)
-      val managementSeed = TenantAttribute(
-        declared = Some(DeclaredTenantAttribute(seed.id, assignmentTimestamp = timestamp, revocationTimestamp = None)),
+      val managementSeed = Dependency.TenantAttribute(
+        declared = Some(
+          Dependency.DeclaredTenantAttribute(seed.id, assignmentTimestamp = timestamp, revocationTimestamp = None)
+        ),
         certified = None,
         verified = None
       )
@@ -40,23 +41,26 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
     "succeed" in {
       implicit val context: Seq[(String, String)] = adminContext
 
-      val attribute   = dependencyDeclaredTenantAttribute
-      val attributeId = attribute.declared.get.id
+      val attribute = persistentDeclaredAttribute
 
-      val managementSeed = TenantAttribute(
+      val managementSeed = Dependency.TenantAttribute(
         declared = Some(
-          DeclaredTenantAttribute(attributeId, assignmentTimestamp = timestamp, revocationTimestamp = Some(timestamp))
+          Dependency.DeclaredTenantAttribute(
+            attribute.id,
+            assignmentTimestamp = timestamp,
+            revocationTimestamp = Some(timestamp)
+          )
         ),
         certified = None,
         verified = None
       )
 
       mockDateTimeGet()
-      mockGetTenantAttribute(organizationId, attributeId, attribute)
-      mockUpdateTenantAttribute(organizationId, attributeId, managementSeed)
-      mockComputeAgreementState(organizationId, attributeId)
+      mockGetTenantAttribute(organizationId, attribute.id, attribute)
+      mockUpdateTenantAttribute(organizationId, attribute.id, managementSeed)
+      mockComputeAgreementState(organizationId, attribute.id)
 
-      Post() ~> tenantService.revokeDeclaredAttribute(attributeId.toString) ~> check {
+      Post() ~> tenantService.revokeDeclaredAttribute(attribute.id.toString) ~> check {
         assert(status == StatusCodes.OK)
       }
     }
@@ -69,15 +73,14 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val attributeId = UUID.randomUUID()
       val seed        = DeclaredTenantAttributeSeed(attributeId)
 
-      val existingAttribute = dependencyDeclaredTenantAttribute.copy(declared =
-        dependencyDeclaredTenantAttribute.declared.get.copy(id = attributeId, revocationTimestamp = timestamp.some).some
-      )
+      val existingAttribute =
+        persistentDeclaredAttribute.copy(id = attributeId, revocationTimestamp = Some(timestamp))
 
-      val managementSeed = TenantAttribute(
+      val managementSeed = Dependency.TenantAttribute(
         declared = Some(
-          DeclaredTenantAttribute(
+          Dependency.DeclaredTenantAttribute(
             seed.id,
-            assignmentTimestamp = existingAttribute.declared.get.assignmentTimestamp,
+            assignmentTimestamp = existingAttribute.assignmentTimestamp,
             revocationTimestamp = None
           )
         ),

@@ -1,41 +1,44 @@
 package it.pagopa.interop.tenantprocess.utils
 
-import cats.implicits._
-import it.pagopa.interop.attributeregistrymanagement.client.model.{AttributeKind, Attribute => DependencyAttribute}
-import it.pagopa.interop.tenantmanagement.client.model.{
-  CertifiedTenantAttribute => DependencyCertifiedTenantAttribute,
-  DeclaredTenantAttribute => DependencyDeclaredTenantAttribute,
-  ExternalId => DependencyExternalId,
-  Tenant => DependencyTenant,
-  TenantAttribute => DependencyTenantAttribute,
-  TenantRevoker => DependencyTenantRevoker,
-  TenantVerifier => DependencyTenantVerifier,
-  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
+import it.pagopa.interop.tenantmanagement.client.{model => Dependency}
+import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
+import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute._
+import it.pagopa.interop.tenantmanagement.model.tenant.{
+  PersistentExternalId,
+  PersistentTenant,
+  PersistentVerifiedAttribute,
+  PersistentDeclaredAttribute,
+  PersistentCertifiedAttribute,
+  PersistentTenantVerifier,
+  PersistentTenantRevoker,
+  PersistentTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.model._
-import it.pagopa.interop.agreementmanagement.client.model.{
-  Agreement => DependencyAgreement,
-  AgreementState => DependencyAgreementState,
-  VerifiedAttribute => DependencyVerifiedAttribute
+import it.pagopa.interop.agreementmanagement.model.agreement.{
+  PersistentAgreement,
+  Active,
+  PersistentStamps,
+  PersistentVerifiedAttribute => AgreementPersistentVerifiedAttribute
 }
-import it.pagopa.interop.catalogmanagement.client.model.{
-  Attribute => CatalogAttribute,
-  AttributeValue => CatalogAttributeValue,
-  Attributes => CatalogAttributes,
-  EService => CatalogEService,
-  EServiceTechnology => CatalogEServiceTechnology,
-  EServiceDescriptor => CatalogDescriptor,
-  EServiceDescriptorState => CatalogDescriptorState,
-  AgreementApprovalPolicy
+
+import it.pagopa.interop.catalogmanagement.model.{
+  Rest,
+  CatalogAttributeValue,
+  CatalogItem,
+  CatalogAttributes,
+  SingleAttribute,
+  CatalogDescriptor,
+  Published,
+  Automatic
 }
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
-import it.pagopa.interop.agreementmanagement.client.model.Stamps
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 
 trait SpecData {
-  final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
-
+  final val timestamp                              = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
+  val tenantId                                     = UUID.randomUUID()
   val internalAttributeSeed: InternalAttributeSeed = InternalAttributeSeed("IPA", s"int-attribute-${UUID.randomUUID()}")
   val m2mAttributeSeed: M2MAttributeSeed           = M2MAttributeSeed(s"m2m-attribute-${UUID.randomUUID()}")
 
@@ -52,10 +55,39 @@ trait SpecData {
   val selfcareTenantSeedNotIpa: SelfcareTenantSeed =
     SelfcareTenantSeed(ExternalId("NOT_IPA", s"tenant-${UUID.randomUUID()}"), UUID.randomUUID().toString, "test_name")
 
-  val dependencyTenant: DependencyTenant = DependencyTenant(
-    id = UUID.randomUUID(),
+  val dependencyTenant: Dependency.Tenant      = Dependency.Tenant(
+    id = tenantId,
     selfcareId = None,
-    externalId = DependencyExternalId("IPA", "org"),
+    externalId = Dependency.ExternalId("IPA", "org"),
+    features = Nil,
+    attributes = Nil,
+    createdAt = timestamp,
+    updatedAt = None,
+    mails = Nil,
+    name = "test_name",
+    kind = None
+  )
+  val persistentAttribute: PersistentAttribute = PersistentAttribute(
+    id = UUID.randomUUID(),
+    origin = Some("origin"),
+    code = Some("value"),
+    kind = Certified,
+    description = "description",
+    name = "name",
+    creationTime = OffsetDateTimeSupplier.get().minusDays(10)
+  )
+
+  val dependencyTenantAttribute: Dependency.TenantAttribute = Dependency.TenantAttribute(certified =
+    Some(
+      Dependency
+        .CertifiedTenantAttribute(id = UUID.randomUUID(), assignmentTimestamp = timestamp, revocationTimestamp = None)
+    )
+  )
+
+  val persistentTenant: PersistentTenant = PersistentTenant(
+    id = tenantId,
+    selfcareId = None,
+    externalId = PersistentExternalId("IPA", "org"),
     features = Nil,
     attributes = Nil,
     createdAt = timestamp,
@@ -65,10 +97,10 @@ trait SpecData {
     kind = None
   )
 
-  val dependencyTenantNotIPA: DependencyTenant = DependencyTenant(
+  val persistentTenantNotIPA: PersistentTenant = PersistentTenant(
     id = UUID.randomUUID(),
     selfcareId = None,
-    externalId = DependencyExternalId("NOT_IPA", "org"),
+    externalId = PersistentExternalId("NOT_IPA", "org"),
     features = Nil,
     attributes = Nil,
     createdAt = timestamp,
@@ -80,14 +112,14 @@ trait SpecData {
 
   val fakeTenantDelta: TenantDelta = TenantDelta(mails = Nil)
 
-  val tenantVerifier: DependencyTenantVerifier = DependencyTenantVerifier(
+  val persistentTenantVerifier: PersistentTenantVerifier = PersistentTenantVerifier(
     id = UUID.randomUUID(),
     verificationDate = timestamp,
     expirationDate = None,
-    extensionDate = timestamp.some
+    extensionDate = Some(timestamp)
   )
 
-  val tenantRevoker: DependencyTenantRevoker = DependencyTenantRevoker(
+  val persistentTenantRevoker: PersistentTenantRevoker = PersistentTenantRevoker(
     id = UUID.randomUUID(),
     verificationDate = timestamp,
     expirationDate = None,
@@ -95,107 +127,98 @@ trait SpecData {
     revocationDate = timestamp
   )
 
-  val dependencyTenantAttribute: DependencyTenantAttribute = DependencyTenantAttribute(certified =
-    DependencyCertifiedTenantAttribute(
+  val persistentTenantAttribute: PersistentTenantAttribute =
+    PersistentCertifiedAttribute(id = UUID.randomUUID(), assignmentTimestamp = timestamp, revocationTimestamp = None)
+
+  val persistentCertifiedAttribute: PersistentCertifiedAttribute =
+    PersistentCertifiedAttribute(id = UUID.randomUUID(), assignmentTimestamp = timestamp, revocationTimestamp = None)
+
+  val persistentDeclaredAttribute: PersistentDeclaredAttribute =
+    PersistentDeclaredAttribute(id = UUID.randomUUID(), assignmentTimestamp = timestamp, revocationTimestamp = None)
+
+  val persistentVerifiedAttribute: PersistentVerifiedAttribute =
+    PersistentVerifiedAttribute(
       id = UUID.randomUUID(),
       assignmentTimestamp = timestamp,
-      revocationTimestamp = None
-    ).some
-  )
+      verifiedBy = List(persistentTenantVerifier),
+      revokedBy = List(persistentTenantRevoker)
+    )
 
-  val dependencyCertifiedTenantAttribute: DependencyTenantAttribute = dependencyTenantAttribute
-
-  val dependencyDeclaredTenantAttribute: DependencyTenantAttribute = DependencyTenantAttribute(declared =
-    DependencyDeclaredTenantAttribute(
-      id = UUID.randomUUID(),
-      assignmentTimestamp = timestamp,
-      revocationTimestamp = None
-    ).some
-  )
-
-  def dependencyVerifiedTenantAttribute(
-    id: UUID = UUID.randomUUID(),
-    verifiedBy: Seq[DependencyTenantVerifier] = Seq(tenantVerifier),
-    revokedBy: Seq[DependencyTenantRevoker] = Seq(tenantRevoker),
-    assignmentTimestamp: OffsetDateTime = timestamp
-  ): DependencyTenantAttribute = DependencyTenantAttribute(verified =
-    DependencyVerifiedTenantAttribute(
-      id = id,
-      assignmentTimestamp = assignmentTimestamp,
-      verifiedBy = verifiedBy,
-      revokedBy = revokedBy
-    ).some
-  )
-
-  val dependencyAttribute: DependencyAttribute = DependencyAttribute(
-    id = UUID.randomUUID(),
-    code = None,
-    kind = AttributeKind.CERTIFIED,
-    description = "An attribute",
-    origin = None,
-    name = "AttributeX",
-    creationTime = timestamp
-  )
-
-  def dependencyAgreement(
+  def persistentAgreement(
     eServiceId: UUID = UUID.randomUUID(),
     descriptorId: UUID = UUID.randomUUID(),
     verifiedAttributeId: UUID = UUID.randomUUID()
-  ): DependencyAgreement = DependencyAgreement(
+  ): PersistentAgreement = PersistentAgreement(
     id = UUID.randomUUID(),
     eserviceId = eServiceId,
     descriptorId = descriptorId,
     producerId = UUID.randomUUID(),
     consumerId = UUID.randomUUID(),
-    state = DependencyAgreementState.ACTIVE,
-    verifiedAttributes = Seq(DependencyVerifiedAttribute(verifiedAttributeId)),
+    state = Active,
+    verifiedAttributes = Seq(AgreementPersistentVerifiedAttribute(verifiedAttributeId)),
     certifiedAttributes = Nil,
     declaredAttributes = Nil,
     consumerDocuments = Nil,
-    createdAt = OffsetDateTime.now(),
-    stamps = Stamps(),
-    rejectionReason = None
+    stamps = PersistentStamps(),
+    rejectionReason = None,
+    suspendedByConsumer = None,
+    suspendedByProducer = None,
+    suspendedByPlatform = None,
+    createdAt = OffsetDateTime.now().minusDays(30),
+    updatedAt = Some(OffsetDateTime.now().minusDays(10)),
+    consumerNotes = None,
+    suspendedAt = None,
+    contract = None
   )
 
-  def catalogEService(
+  def catalogItem(
     eServiceId: UUID = UUID.randomUUID(),
     descriptorId: UUID = UUID.randomUUID(),
     verifiedAttributeId: UUID = UUID.randomUUID()
-  ): CatalogEService =
-    CatalogEService(
+  ): CatalogItem =
+    CatalogItem(
       id = eServiceId,
       producerId = UUID.randomUUID(),
       name = "EService",
       description = "EService desc",
-      technology = CatalogEServiceTechnology.REST,
+      technology = Rest,
+      attributes = None,
+      createdAt = OffsetDateTimeSupplier.get().minusDays(10),
       descriptors = CatalogDescriptor(
         id = descriptorId,
+        description = None,
+        interface = None,
         version = "1",
         audience = Nil,
         voucherLifespan = 0,
         dailyCallsPerConsumer = 0,
         dailyCallsTotal = 0,
         docs = Nil,
-        state = CatalogDescriptorState.PUBLISHED,
-        agreementApprovalPolicy = AgreementApprovalPolicy.AUTOMATIC,
+        state = Published,
+        publishedAt = None,
+        suspendedAt = None,
+        deprecatedAt = None,
+        archivedAt = None,
+        agreementApprovalPolicy = Some(Automatic),
         serverUrls = Nil,
-        attributes = CatalogAttributes(
-          Nil,
-          Nil,
-          verified = Seq(CatalogAttribute(single = Some(CatalogAttributeValue(verifiedAttributeId, true))))
-        )
+        createdAt = OffsetDateTimeSupplier.get().minusDays(10),
+        attributes =
+          CatalogAttributes(Nil, Nil, verified = Seq(SingleAttribute(CatalogAttributeValue(verifiedAttributeId, true))))
       ) :: Nil
     )
 
+  val paginatedResults: PaginatedResult[PersistentTenant] =
+    PaginatedResult(results = Seq(persistentTenant), totalCount = 1)
+
   def matchingAgreementAndEService(
     verifiedAttributeId: UUID = UUID.randomUUID()
-  ): (DependencyAgreement, CatalogEService) = {
+  ): (PersistentAgreement, CatalogItem) = {
     val eServiceId   = UUID.randomUUID()
     val descriptorId = UUID.randomUUID()
+
     (
-      dependencyAgreement(eServiceId, descriptorId, verifiedAttributeId),
-      catalogEService(eServiceId, descriptorId, verifiedAttributeId)
+      persistentAgreement(eServiceId, descriptorId, verifiedAttributeId),
+      catalogItem(eServiceId, descriptorId, verifiedAttributeId)
     )
   }
-
 }

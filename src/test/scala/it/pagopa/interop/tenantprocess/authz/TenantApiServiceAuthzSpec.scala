@@ -19,11 +19,11 @@ import java.util.UUID
 
 class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
   val fakeAttributeRegistryManagement: FakeAttributeRegistryManagement = FakeAttributeRegistryManagement()
-  val fakeTenantManagement: FakeTenantManagement                       = FakeTenantManagement()
   val fakeAgreementManagement: FakeAgreementManagement                 = FakeAgreementManagement()
   val fakeCatalogManagement: FakeCatalogManagement                     = FakeCatalogManagement()
+  val fakeTenantManagement: FakeTenantManagement                       = FakeTenantManagement()
   val fakeAgreementProcess: FakeAgreementProcess                       = FakeAgreementProcess()
-  val dummyReadModel: ReadModelService                                 = new FakeReadModelService
+  implicit val dummyReadModel: ReadModelService                        = new FakeReadModelService
   val dummyDateTimeSupplier: OffsetDateTimeSupplier                    = () => OffsetDateTime.now()
   val dummyUuidSupplier: UUIDSupplier                                  = () => UUID.randomUUID()
 
@@ -33,7 +33,6 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     fakeAgreementProcess,
     fakeAgreementManagement,
     fakeCatalogManagement,
-    dummyReadModel,
     dummyUuidSupplier,
     dummyDateTimeSupplier
   )
@@ -94,7 +93,9 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
       endpoints("selfcareUpsertTenant"),
       { c: Seq[(String, String)] =>
         implicit val contextWithOrgId: Seq[(String, String)] =
-          c.filter(_._1 != ORGANIZATION_ID_CLAIM) :+ ORGANIZATION_ID_CLAIM -> FakeDependencies.fakeTenant.id.toString
+          c.filter(
+            _._1 != ORGANIZATION_ID_CLAIM
+          ) :+ ORGANIZATION_ID_CLAIM -> FakeDependencies.fakePersistentTenant.id.toString
         tenantService.selfcareUpsertTenant(selfcareTenantSeed)
       }
     )
@@ -128,7 +129,7 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
       endpoints("verifyVerifiedAttribute"),
       { implicit c: Seq[(String, String)] =>
         tenantService.verifyVerifiedAttribute(
-          UUID.randomUUID().toString,
+          c.find(_._1 == ORGANIZATION_ID_CLAIM).get.toString,
           VerifiedTenantAttributeSeed(verifiedAttributeId, None)
         )
       }
@@ -139,7 +140,10 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     validateAuthorization(
       endpoints("revokeVerifiedAttribute"),
       { implicit c: Seq[(String, String)] =>
-        tenantService.revokeVerifiedAttribute(UUID.randomUUID().toString, verifiedAttributeId.toString)
+        tenantService.revokeVerifiedAttribute(
+          c.find(_._1 == ORGANIZATION_ID_CLAIM).get.toString,
+          verifiedAttributeId.toString
+        )
       }
     )
   }

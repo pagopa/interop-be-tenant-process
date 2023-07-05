@@ -51,7 +51,9 @@ trait Dependencies {
     )
     .toFuture
 
-  val readModelService: ReadModelService = new MongoDbReadModelService(ApplicationConfiguration.readModelConfig)
+  implicit val readModelService: ReadModelService = new MongoDbReadModelService(
+    ApplicationConfiguration.readModelConfig
+  )
 
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
@@ -72,12 +74,11 @@ trait Dependencies {
   ): TenantApi =
     new TenantApi(
       TenantApiServiceImpl(
-        attributeRegistryManagement(blockingEc),
+        AttributeRegistryManagementServiceImpl,
         tenantManagement(blockingEc),
         agreementProcess(blockingEc),
-        agreementManagement(blockingEc),
-        catalogManagement(blockingEc),
-        readModelService,
+        AgreementManagementServiceImpl,
+        CatalogManagementServiceImpl,
         uuidSupplier,
         dateTimeSupplier
       ),
@@ -108,12 +109,6 @@ trait Dependencies {
   private final val agreementProcessApi: AgreementProcessApi =
     AgreementProcessApi(ApplicationConfiguration.agreementProcessURL)
 
-  private final val agreementManagementApi: AgreementManagementApi =
-    AgreementManagementApi(ApplicationConfiguration.agreementManagementURL)
-
-  private final val catalogManagementApi: CatalogManagementApi =
-    CatalogManagementApi(ApplicationConfiguration.catalogManagementURL)
-
   private def agreementProcessInvoker(blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_]
   ): AgreementProcessInvoker =
@@ -123,41 +118,4 @@ trait Dependencies {
     actorSystem: ActorSystem[_]
   ): AgreementProcessService =
     AgreementProcessServiceImpl(agreementProcessInvoker(blockingEc), agreementProcessApi, blockingEc)
-
-  private def agreementManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): AgreementManagementInvoker =
-    AgreementManagementInvoker(blockingEc)(actorSystem.classicSystem)
-
-  def agreementManagement(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): AgreementManagementService =
-    AgreementManagementServiceImpl(agreementManagementInvoker(blockingEc), agreementManagementApi)
-
-  private def catalogManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): CatalogManagementInvoker =
-    CatalogManagementInvoker(blockingEc)(actorSystem.classicSystem)
-
-  def catalogManagement(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): CatalogManagementService =
-    CatalogManagementServiceImpl(catalogManagementInvoker(blockingEc), catalogManagementApi)
-
-  private def attributeRegistryManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): AttributeRegistryManagementInvoker =
-    AttributeRegistryManagementInvoker(blockingEc)(actorSystem.classicSystem)
-
-  private final val attributeRegistryManagementApi: AttributeRegistryManagementApi =
-    AttributeRegistryManagementApi(ApplicationConfiguration.attributeRegistryManagementURL)
-
-  def attributeRegistryManagement(
-    blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_]): AttributeRegistryManagementService =
-    AttributeRegistryManagementServiceImpl(
-      attributeRegistryManagementInvoker(blockingEc),
-      attributeRegistryManagementApi
-    )(blockingEc)
-
 }

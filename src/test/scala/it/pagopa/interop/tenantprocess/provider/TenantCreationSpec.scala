@@ -2,13 +2,16 @@ package it.pagopa.interop.tenantprocess.provider
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import cats.implicits._
 import it.pagopa.interop.commons.utils.USER_ROLES
 import it.pagopa.interop.tenantmanagement.client.model._
-import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters.ExternalIdWrapper
+import it.pagopa.interop.tenantprocess.provider.TenantCreationSpec._
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import it.pagopa.interop.tenantprocess.model.{InternalAttributeSeed, M2MAttributeSeed}
-import it.pagopa.interop.tenantprocess.provider.TenantCreationSpec._
+import it.pagopa.interop.tenantmanagement.model.tenant.{
+  PersistentTenantFeature,
+  PersistentTenantKind,
+  PersistentExternalId
+}
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -29,21 +32,31 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val attributeSeed1 = InternalAttributeSeed(origin = "origin1", code = "code1")
     val attributeSeed2 = InternalAttributeSeed(origin = "origin2", code = "code2")
 
-    val attribute1 =
-      dependencyAttribute.copy(id = attributeId1, origin = attributeSeed1.origin.some, code = attributeSeed1.code.some)
-    val attribute2 =
-      dependencyAttribute.copy(id = attributeId2, origin = attributeSeed2.origin.some, code = attributeSeed2.code.some)
+    val attribute1 = persistentAttribute.copy(
+      id = attributeId1,
+      origin = Some(attributeSeed1.origin),
+      code = Some(attributeSeed1.code)
+    )
+
+    val attribute2 = persistentAttribute.copy(
+      id = attributeId2,
+      origin = Some(attributeSeed2.origin),
+      code = Some(attributeSeed2.code)
+    )
 
     val seed = internalTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
     val expectedAttribute1 = dependencyTenantAttribute.copy(certified =
-      CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
+      Some(CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None))
     )
-    val expectedAttribute2 = expectedAttribute1.withNewId(attributeId2)
+
+    val expectedAttribute2 = dependencyTenantAttribute.copy(certified =
+      Some(CertifiedTenantAttribute(id = attributeId2, assignmentTimestamp = timestamp, revocationTimestamp = None))
+    )
 
     val expectedTenantSeed = TenantSeed(
       id = Some(tenantId),
-      externalId = seed.externalId.toDependency,
+      externalId = ExternalId(seed.externalId.origin, seed.externalId.value),
       features = Nil,
       attributes = Seq(expectedAttribute1, expectedAttribute2),
       name = "test_name",
@@ -53,7 +66,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -69,28 +82,37 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     implicit val context: Seq[(String, String)] = internalContext
 
     val tenantId     = UUID.randomUUID()
-    val tenant       = dependencyTenant.copy(id = tenantId)
+    val tenant       = dependencyTenant.copy(id = tenantId, kind = Some(TenantKind.GSP))
     val attributeId1 = UUID.randomUUID()
     val attributeId2 = UUID.randomUUID()
 
     val attributeSeed1 = InternalAttributeSeed(origin = "IPA", code = "L37")
     val attributeSeed2 = InternalAttributeSeed(origin = "origin2", code = "code2")
 
-    val attribute1 =
-      dependencyAttribute.copy(id = attributeId1, origin = attributeSeed1.origin.some, code = attributeSeed1.code.some)
-    val attribute2 =
-      dependencyAttribute.copy(id = attributeId2, origin = attributeSeed2.origin.some, code = attributeSeed2.code.some)
+    val attribute1 = persistentAttribute.copy(
+      id = attributeId1,
+      origin = Some(attributeSeed1.origin),
+      code = Some(attributeSeed1.code)
+    )
+
+    val attribute2 = persistentAttribute.copy(
+      id = attributeId2,
+      origin = Some(attributeSeed2.origin),
+      code = Some(attributeSeed2.code)
+    )
 
     val seed = internalTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
     val expectedAttribute1 = dependencyTenantAttribute.copy(certified =
-      CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
+      Some(CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None))
     )
-    val expectedAttribute2 = expectedAttribute1.withNewId(attributeId2)
+    val expectedAttribute2 = expectedAttribute1.copy(certified =
+      Some(CertifiedTenantAttribute(id = attributeId2, assignmentTimestamp = timestamp, revocationTimestamp = None))
+    )
 
     val expectedTenantSeed = TenantSeed(
       id = Some(tenantId),
-      externalId = seed.externalId.toDependency,
+      externalId = ExternalId(seed.externalId.origin, seed.externalId.value),
       features = Nil,
       attributes = Seq(expectedAttribute1, expectedAttribute2),
       name = "test_name",
@@ -100,7 +122,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -112,32 +134,40 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
   }
 
   "Internal request - Creation of a new tenant with kind GSP with attributes using code SAG must succeed" in {
-
     implicit val context: Seq[(String, String)] = internalContext
 
     val tenantId     = UUID.randomUUID()
-    val tenant       = dependencyTenant.copy(id = tenantId)
+    val tenant       = dependencyTenant.copy(id = tenantId, kind = Some(TenantKind.GSP))
     val attributeId1 = UUID.randomUUID()
     val attributeId2 = UUID.randomUUID()
 
     val attributeSeed1 = InternalAttributeSeed(origin = "IPA", code = "SAG")
     val attributeSeed2 = InternalAttributeSeed(origin = "origin2", code = "code2")
 
-    val attribute1 =
-      dependencyAttribute.copy(id = attributeId1, origin = attributeSeed1.origin.some, code = attributeSeed1.code.some)
-    val attribute2 =
-      dependencyAttribute.copy(id = attributeId2, origin = attributeSeed2.origin.some, code = attributeSeed2.code.some)
+    val attribute1 = persistentAttribute.copy(
+      id = attributeId1,
+      origin = Some(attributeSeed1.origin),
+      code = Some(attributeSeed1.code)
+    )
+
+    val attribute2 = persistentAttribute.copy(
+      id = attributeId2,
+      origin = Some(attributeSeed2.origin),
+      code = Some(attributeSeed2.code)
+    )
 
     val seed = internalTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
     val expectedAttribute1 = dependencyTenantAttribute.copy(certified =
-      CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
+      Some(CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None))
     )
-    val expectedAttribute2 = expectedAttribute1.withNewId(attributeId2)
+    val expectedAttribute2 = expectedAttribute1.copy(certified =
+      Some(CertifiedTenantAttribute(id = attributeId2, assignmentTimestamp = timestamp, revocationTimestamp = None))
+    )
 
     val expectedTenantSeed = TenantSeed(
       id = Some(tenantId),
-      externalId = seed.externalId.toDependency,
+      externalId = ExternalId(seed.externalId.origin, seed.externalId.value),
       features = Nil,
       attributes = Seq(expectedAttribute1, expectedAttribute2),
       name = "test_name",
@@ -147,7 +177,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -163,7 +193,8 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     implicit val context: Seq[(String, String)] = internalContext
 
     val tenantId     = UUID.randomUUID()
-    val tenant       = dependencyTenantNotIPA.copy(id = tenantId)
+    val tenant       =
+      dependencyTenant.copy(id = tenantId, externalId = ExternalId("NOT_IPA", "org"), kind = Some(TenantKind.PRIVATE))
     val attributeId1 = UUID.randomUUID()
     val attributeId2 = UUID.randomUUID()
 
@@ -171,20 +202,30 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val attributeSeed2 = InternalAttributeSeed(origin = "origin2", code = "code2")
 
     val attribute1 =
-      dependencyAttribute.copy(id = attributeId1, origin = attributeSeed1.origin.some, code = attributeSeed1.code.some)
+      persistentAttribute.copy(
+        id = attributeId1,
+        origin = Some(attributeSeed1.origin),
+        code = Some(attributeSeed1.code)
+      )
     val attribute2 =
-      dependencyAttribute.copy(id = attributeId2, origin = attributeSeed2.origin.some, code = attributeSeed2.code.some)
+      persistentAttribute.copy(
+        id = attributeId2,
+        origin = Some(attributeSeed2.origin),
+        code = Some(attributeSeed2.code)
+      )
 
     val seed = internalTenantSeedNotIpa.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
     val expectedAttribute1 = dependencyTenantAttribute.copy(certified =
-      CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
+      Some(CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None))
     )
-    val expectedAttribute2 = expectedAttribute1.withNewId(attributeId2)
+    val expectedAttribute2 = expectedAttribute1.copy(certified =
+      Some(CertifiedTenantAttribute(id = attributeId2, assignmentTimestamp = timestamp, revocationTimestamp = None))
+    )
 
     val expectedTenantSeed = TenantSeed(
       id = Some(tenantId),
-      externalId = seed.externalId.toDependency,
+      externalId = ExternalId(seed.externalId.origin, seed.externalId.value),
       features = Nil,
       attributes = Seq(expectedAttribute1, expectedAttribute2),
       name = "test_name",
@@ -194,7 +235,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -220,35 +261,35 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val newAttributeSeed2              = InternalAttributeSeed(origin = "origin3", code = "code3")
 
     val noChangesExistingAttribute =
-      dependencyAttribute.copy(
+      persistentAttribute.copy(
         id = noChangesExistingAttributeId,
-        origin = noChangesExistingAttributeSeed.origin.some,
-        code = noChangesExistingAttributeSeed.code.some
+        origin = Some(noChangesExistingAttributeSeed.origin),
+        code = Some(noChangesExistingAttributeSeed.code)
       )
     val updatedExistingAttribute   =
-      dependencyAttribute.copy(
+      persistentAttribute.copy(
         id = updatedExistingAttributeId,
-        origin = updatedExistingAttributeSeed.origin.some,
-        code = updatedExistingAttributeSeed.code.some
+        origin = Some(updatedExistingAttributeSeed.origin),
+        code = Some(updatedExistingAttributeSeed.code)
       )
     val newAttribute1              =
-      dependencyAttribute.copy(
+      persistentAttribute.copy(
         id = newAttributeId1,
-        origin = newAttributeSeed1.origin.some,
-        code = newAttributeSeed1.code.some
+        origin = Some(newAttributeSeed1.origin),
+        code = Some(newAttributeSeed1.code)
       )
     val newAttribute2              =
-      dependencyAttribute.copy(
+      persistentAttribute.copy(
         id = newAttributeId2,
-        origin = newAttributeSeed2.origin.some,
-        code = newAttributeSeed2.code.some
+        origin = Some(newAttributeSeed2.origin),
+        code = Some(newAttributeSeed2.code)
       )
 
     val existingTenant =
-      dependencyTenant.copy(attributes =
-        Seq(
-          dependencyTenantAttribute.withNewId(noChangesExistingAttributeId).withRevocation(None),
-          dependencyTenantAttribute.withNewId(updatedExistingAttributeId).withRevocation(Some(timestamp))
+      persistentTenant.copy(attributes =
+        List(
+          persistentCertifiedAttribute.copy(id = noChangesExistingAttributeId),
+          persistentCertifiedAttribute.copy(id = updatedExistingAttributeId, revocationTimestamp = Some(timestamp))
         )
       )
 
@@ -258,12 +299,12 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       )
 
     val expectedNewAttribute1 = dependencyTenantAttribute.copy(certified =
-      CertifiedTenantAttribute(id = newAttributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
+      Some(CertifiedTenantAttribute(id = newAttributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None))
     )
     val expectedNewAttribute2 = expectedNewAttribute1.withNewId(newAttributeId2)
 
     mockDateTimeGet()
-    mockGetTenantByExternalId(seed.externalId.toDependency, existingTenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), existingTenant)
 
     mockGetAttributeByExternalId(
       noChangesExistingAttribute.origin.get,
@@ -305,7 +346,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       assert(status == StatusCodes.OK)
     }
   }
-
   "Internal request - Update of an existing tenant with new attributes changing Tenant kind must succeed" in {
 
     implicit val context: Seq[(String, String)] = internalContext
@@ -321,36 +361,37 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val newAttributeSeed2              = InternalAttributeSeed(origin = "origin3", code = "code3")
 
     val noChangesExistingAttribute =
-      dependencyAttribute.copy(
+      persistentAttribute.copy(
         id = noChangesExistingAttributeId,
-        origin = noChangesExistingAttributeSeed.origin.some,
-        code = noChangesExistingAttributeSeed.code.some
+        origin = Some(noChangesExistingAttributeSeed.origin),
+        code = Some(noChangesExistingAttributeSeed.code)
       )
     val updatedExistingAttribute   =
-      dependencyAttribute.copy(
+      persistentAttribute.copy(
         id = updatedExistingAttributeId,
-        origin = updatedExistingAttributeSeed.origin.some,
-        code = updatedExistingAttributeSeed.code.some
+        origin = Some(updatedExistingAttributeSeed.origin),
+        code = Some(updatedExistingAttributeSeed.code)
       )
     val newAttribute1              =
-      dependencyAttribute.copy(
+      persistentAttribute.copy(
         id = newAttributeId1,
-        origin = newAttributeSeed1.origin.some,
-        code = newAttributeSeed1.code.some
+        origin = Some(newAttributeSeed1.origin),
+        code = Some(newAttributeSeed1.code)
       )
     val newAttribute2              =
-      dependencyAttribute.copy(
+      persistentAttribute.copy(
         id = newAttributeId2,
-        origin = newAttributeSeed2.origin.some,
-        code = newAttributeSeed2.code.some
+        origin = Some(newAttributeSeed2.origin),
+        code = Some(newAttributeSeed2.code)
       )
 
     val existingTenant =
-      dependencyTenant.copy(attributes =
-        Seq(
-          dependencyTenantAttribute.withNewId(noChangesExistingAttributeId).withRevocation(None),
-          dependencyTenantAttribute.withNewId(updatedExistingAttributeId).withRevocation(Some(timestamp))
-        )
+      persistentTenant.copy(
+        attributes = List(
+          persistentCertifiedAttribute.copy(id = noChangesExistingAttributeId),
+          persistentCertifiedAttribute.copy(id = updatedExistingAttributeId, revocationTimestamp = Some(timestamp))
+        ),
+        kind = Some(PersistentTenantKind.PA)
       )
 
     val seed =
@@ -359,12 +400,12 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       )
 
     val expectedNewAttribute1 = dependencyTenantAttribute.copy(certified =
-      CertifiedTenantAttribute(id = newAttributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
+      Some(CertifiedTenantAttribute(id = newAttributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None))
     )
     val expectedNewAttribute2 = expectedNewAttribute1.withNewId(newAttributeId2)
 
     mockDateTimeGet()
-    mockGetTenantByExternalId(seed.externalId.toDependency, existingTenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), existingTenant)
 
     mockGetAttributeByExternalId(
       noChangesExistingAttribute.origin.get,
@@ -414,31 +455,33 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val newTenantId       = UUID.randomUUID()
     val newTenant         = dependencyTenant.copy(id = newTenantId)
     val requesterTenantId = organizationId
-    val requesterTenant   = dependencyTenant.copy(
-      id = requesterTenantId,
-      features = Seq(TenantFeature(certifier = Some(Certifier("CUSTOM_ORIGIN"))))
-    )
-    val attributeId1      = UUID.randomUUID()
-    val attributeId2      = UUID.randomUUID()
+    val requesterTenant   =
+      persistentTenant.copy(
+        id = requesterTenantId,
+        features = List(PersistentTenantFeature.PersistentCertifier(certifierId = "CUSTOM_ORIGIN"))
+      )
+
+    val attributeId1 = UUID.randomUUID()
+    val attributeId2 = UUID.randomUUID()
 
     val attributeSeed1 = M2MAttributeSeed(code = "code1")
     val attributeSeed2 = M2MAttributeSeed(code = "code2")
 
     val attribute1 =
-      dependencyAttribute.copy(id = attributeId1, origin = "CUSTOM_ORIGIN".some, code = attributeSeed1.code.some)
+      persistentAttribute.copy(id = attributeId1, origin = Some("CUSTOM_ORIGIN"), code = Some(attributeSeed1.code))
     val attribute2 =
-      dependencyAttribute.copy(id = attributeId2, origin = "CUSTOM_ORIGIN".some, code = attributeSeed2.code.some)
+      persistentAttribute.copy(id = attributeId2, origin = Some("CUSTOM_ORIGIN"), code = Some(attributeSeed2.code))
 
     val seed = m2mTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
     val expectedAttribute1 = dependencyTenantAttribute.copy(certified =
-      CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
+      Some(CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None))
     )
     val expectedAttribute2 = expectedAttribute1.withNewId(attributeId2)
 
     val expectedTenantSeed = TenantSeed(
       id = Some(newTenantId),
-      externalId = seed.externalId.toDependency,
+      externalId = ExternalId(seed.externalId.origin, seed.externalId.value),
       features = Nil,
       attributes = Seq(expectedAttribute1, expectedAttribute2),
       name = "test_name",
@@ -449,7 +492,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockUuidGet(newTenantId)
 
     mockGetTenantById(requesterTenantId, requesterTenant)
-    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -469,28 +512,32 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val newTenant         = dependencyTenant.copy(id = newTenantId)
     val requesterTenantId = organizationId
     val requesterTenant   =
-      dependencyTenant.copy(id = requesterTenantId, features = Seq(TenantFeature(certifier = Some(Certifier("IPA")))))
-    val attributeId1      = UUID.randomUUID()
-    val attributeId2      = UUID.randomUUID()
+      persistentTenant.copy(
+        id = requesterTenantId,
+        features = List(PersistentTenantFeature.PersistentCertifier(certifierId = "IPA"))
+      )
+
+    val attributeId1 = UUID.randomUUID()
+    val attributeId2 = UUID.randomUUID()
 
     val attributeSeed1 = M2MAttributeSeed(code = "L37")
     val attributeSeed2 = M2MAttributeSeed(code = "code2")
 
     val attribute1 =
-      dependencyAttribute.copy(id = attributeId1, origin = "IPA".some, code = attributeSeed1.code.some)
+      persistentAttribute.copy(id = attributeId1, origin = Some("IPA"), code = Some(attributeSeed1.code))
     val attribute2 =
-      dependencyAttribute.copy(id = attributeId2, origin = "IPA".some, code = attributeSeed2.code.some)
+      persistentAttribute.copy(id = attributeId2, origin = Some("IPA"), code = Some(attributeSeed2.code))
 
     val seed = m2mTenantSeed.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
     val expectedAttribute1 = dependencyTenantAttribute.copy(certified =
-      CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
+      Some(CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None))
     )
     val expectedAttribute2 = expectedAttribute1.withNewId(attributeId2)
 
     val expectedTenantSeed = TenantSeed(
       id = Some(newTenantId),
-      externalId = seed.externalId.toDependency,
+      externalId = ExternalId(seed.externalId.origin, seed.externalId.value),
       features = Nil,
       attributes = Seq(expectedAttribute1, expectedAttribute2),
       name = "test_name",
@@ -501,7 +548,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockUuidGet(newTenantId)
 
     mockGetTenantById(requesterTenantId, requesterTenant)
-    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -518,33 +565,36 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     implicit val context: Seq[(String, String)] = m2mContext
 
     val newTenantId       = UUID.randomUUID()
-    val newTenant         = dependencyTenantNotIPA.copy(id = newTenantId)
+    val certifierId       = "CUSTOM_ORIGIN"
+    val newTenant         = dependencyTenant.copy(id = newTenantId, externalId = ExternalId("NOT_IPA", "org"))
     val requesterTenantId = organizationId
-    val requesterTenant   = dependencyTenant.copy(
-      id = requesterTenantId,
-      features = Seq(TenantFeature(certifier = Some(Certifier("CUSTOM_ORIGIN"))))
-    )
-    val attributeId1      = UUID.randomUUID()
-    val attributeId2      = UUID.randomUUID()
+
+    val requesterTenant =
+      persistentTenant.copy(
+        id = requesterTenantId,
+        features = List(PersistentTenantFeature.PersistentCertifier(certifierId))
+      )
+    val attributeId1    = UUID.randomUUID()
+    val attributeId2    = UUID.randomUUID()
 
     val attributeSeed1 = M2MAttributeSeed(code = "code1")
     val attributeSeed2 = M2MAttributeSeed(code = "code2")
 
     val attribute1 =
-      dependencyAttribute.copy(id = attributeId1, origin = "CUSTOM_ORIGIN".some, code = attributeSeed1.code.some)
+      persistentAttribute.copy(id = attributeId1, origin = Some(certifierId), code = Some(attributeSeed1.code))
     val attribute2 =
-      dependencyAttribute.copy(id = attributeId2, origin = "CUSTOM_ORIGIN".some, code = attributeSeed2.code.some)
+      persistentAttribute.copy(id = attributeId2, origin = Some(certifierId), code = Some(attributeSeed2.code))
 
     val seed = m2mTenantSeedNotIpa.copy(certifiedAttributes = Seq(attributeSeed1, attributeSeed2))
 
     val expectedAttribute1 = dependencyTenantAttribute.copy(certified =
-      CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
+      Some(CertifiedTenantAttribute(id = attributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None))
     )
     val expectedAttribute2 = expectedAttribute1.withNewId(attributeId2)
 
     val expectedTenantSeed = TenantSeed(
       id = Some(newTenantId),
-      externalId = seed.externalId.toDependency,
+      externalId = ExternalId(seed.externalId.origin, seed.externalId.value),
       features = Nil,
       attributes = Seq(expectedAttribute1, expectedAttribute2),
       name = "test_name",
@@ -555,7 +605,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockUuidGet(newTenantId)
 
     mockGetTenantById(requesterTenantId, requesterTenant)
-    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
@@ -574,79 +624,9 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val requesterTenantId = organizationId
     val certifierId       = "CUSTOM_ORIGIN"
     val code              = "code"
-    val requesterTenant   = dependencyTenant.copy(
+    val requesterTenant   = persistentTenant.copy(
       id = requesterTenantId,
-      features = TenantFeature(certifier = Certifier(certifierId).some) :: Nil
-    )
-    val origin            = "origin"
-    val externalId        = "externalId"
-
-    mockGetTenantById(requesterTenantId, requesterTenant)
-
-    val attributeId     = UUID.randomUUID()
-    val tenantAttribute =
-      TenantAttribute(certified = CertifiedTenantAttribute(attributeId, OffsetDateTime.now, timestamp.some).some)
-
-    val tenantToModify = dependencyTenant.copy(attributes = tenantAttribute :: Nil)
-
-    val attribute = dependencyAttribute.copy(id = attributeId, origin = certifierId.some, code = code.some)
-
-    mockGetTenantByExternalId(ExternalId(origin, externalId), tenantToModify)
-    mockGetAttributeByExternalId(certifierId, code, attribute)
-    mockDateTimeGet()
-    mockUpdateTenantAttribute(dependencyTenant.id, attributeId, tenantAttribute)
-    mockComputeAgreementState(dependencyTenant.id, attributeId)
-
-    val expectedTenantUpdate =
-      TenantDelta(selfcareId = None, features = Nil, mails = Nil, kind = TenantKind.PA)
-
-    mockUpdateTenant(tenantToModify.id, expectedTenantUpdate)
-
-    Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
-      assert(status == StatusCodes.NoContent)
-    }
-  }
-
-  "M2M request - Revocation of an attribute in a tenant must fail if attribute is not found" in {
-
-    implicit val context: Seq[(String, String)] = m2mContext
-
-    val requesterTenantId = organizationId
-    val certifierId       = "CUSTOM_ORIGIN"
-    val code              = "code"
-    val requesterTenant   = dependencyTenant.copy(
-      id = requesterTenantId,
-      features = TenantFeature(certifier = Certifier(certifierId).some) :: Nil
-    )
-    val origin            = "origin"
-    val externalId        = "externalId"
-
-    mockGetTenantById(requesterTenantId, requesterTenant)
-
-    val attributeId     = UUID.randomUUID()
-    val tenantAttribute =
-      TenantAttribute(certified = CertifiedTenantAttribute(attributeId, OffsetDateTime.now, timestamp.some).some)
-
-    val tenantToModify = dependencyTenant.copy(attributes = tenantAttribute :: Nil)
-
-    mockGetTenantByExternalId(ExternalId(origin, externalId), tenantToModify)
-    mockGetAttributeByExternalIdNotFound(certifierId, code)
-
-    Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
-      assert(status == StatusCodes.NotFound)
-    }
-  }
-
-  "M2M request - Revocation of an attribute in a tenant must fail if attribute doesn't correspond" in {
-
-    implicit val context: Seq[(String, String)] = m2mContext
-
-    val requesterTenantId = organizationId
-    val certifierId       = "CUSTOM_ORIGIN"
-    val code              = "code"
-    val requesterTenant   = dependencyTenant.copy(
-      id = requesterTenantId,
-      features = TenantFeature(certifier = Certifier(certifierId).some) :: Nil
+      features = List(PersistentTenantFeature.PersistentCertifier(certifierId))
     )
     val origin            = "origin"
     val externalId        = "externalId"
@@ -655,25 +635,97 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val attributeId = UUID.randomUUID()
 
-    val tenantToModify = dependencyTenant.copy(attributes = Nil)
+    val dependencyAttribute = dependencyTenantAttribute.copy(certified =
+      Some(
+        CertifiedTenantAttribute(
+          id = attributeId,
+          assignmentTimestamp = timestamp,
+          revocationTimestamp = Some(timestamp)
+        )
+      )
+    )
 
-    val attribute = dependencyAttribute.copy(id = attributeId, origin = certifierId.some, code = code.some)
+    val attribute      = persistentAttribute.copy(id = attributeId, origin = Some(certifierId), code = Some(code))
+    val tenantToModify = persistentTenant.copy(attributes = List(persistentCertifiedAttribute.copy(id = attributeId)))
 
-    mockGetTenantByExternalId(ExternalId(origin, externalId), tenantToModify)
+    mockGetTenantByExternalId(PersistentExternalId(origin, externalId), tenantToModify)
+    mockGetAttributeByExternalId(certifierId, code, attribute)
+    mockDateTimeGet()
+    mockUpdateTenantAttribute(tenantToModify.id, attributeId, dependencyAttribute)
+
+    val expectedTenantUpdate =
+      TenantDelta(selfcareId = None, features = Nil, mails = Nil, kind = TenantKind.PA)
+
+    mockComputeAgreementState(dependencyTenant.id, attributeId)
+
+    mockUpdateTenant(tenantToModify.id, expectedTenantUpdate)
+
+    Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
+      assert(status == StatusCodes.NoContent)
+    }
+  }
+  "M2M request - Revocation of an attribute in a tenant must fail if attribute is not found" in {
+
+    implicit val context: Seq[(String, String)] = m2mContext
+
+    val requesterTenantId = organizationId
+    val certifierId       = "CUSTOM_ORIGIN"
+    val code              = "code"
+    val requesterTenant   = persistentTenant.copy(
+      id = requesterTenantId,
+      features = List(PersistentTenantFeature.PersistentCertifier(certifierId))
+    )
+    val origin            = "origin"
+    val externalId        = "externalId"
+
+    mockGetTenantById(requesterTenantId, requesterTenant)
+
+    val attributeId    = UUID.randomUUID()
+    val tenantToModify = persistentTenant.copy(attributes = List(persistentCertifiedAttribute.copy(id = attributeId)))
+
+    mockGetTenantByExternalId(PersistentExternalId(origin, externalId), tenantToModify)
+    mockGetAttributeByExternalIdNotFound(certifierId, code)
+
+    Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
+      assert(status == StatusCodes.NotFound)
+    }
+  }
+  "M2M request - Revocation of an attribute in a tenant must fail if attribute doesn't correspond" in {
+
+    implicit val context: Seq[(String, String)] = m2mContext
+
+    val requesterTenantId = organizationId
+    val certifierId       = "CUSTOM_ORIGIN"
+    val code              = "code"
+    val requesterTenant   = persistentTenant.copy(
+      id = requesterTenantId,
+      features = List(PersistentTenantFeature.PersistentCertifier(certifierId))
+    )
+    val origin            = "origin"
+    val externalId        = "externalId"
+
+    mockGetTenantById(requesterTenantId, requesterTenant)
+
+    val attributeId = UUID.randomUUID()
+
+    val tenantToModify = persistentTenant.copy(attributes = Nil)
+
+    val attribute = persistentAttribute.copy(id = attributeId, origin = Some(certifierId), code = Some(code))
+
+    mockGetTenantByExternalId(PersistentExternalId(origin, externalId), tenantToModify)
     mockGetAttributeByExternalId(certifierId, code, attribute)
 
     Get() ~> tenantService.m2mRevokeAttribute(origin, externalId, code) ~> check {
       assert(status == StatusCodes.BadRequest)
     }
   }
-
   "M2M request - Revocation of an attribute in a tenant must fail if tenant is not a certifier" in {
 
     implicit val context: Seq[(String, String)] = m2mContext
 
     val requesterTenantId = organizationId
     val code              = "code"
-    val requesterTenant   = dependencyTenant.copy(id = requesterTenantId, features = Nil)
+    val requesterTenant   = persistentTenant.copy(id = requesterTenantId, features = Nil)
     val origin            = "origin"
     val externalId        = "externalId"
 
@@ -688,10 +740,11 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     implicit val context: Seq[(String, String)] = m2mContext
 
+    val certifierId       = "CUSTOM_ORIGIN"
     val requesterTenantId = organizationId
-    val requesterTenant   = dependencyTenant.copy(
+    val requesterTenant   = persistentTenant.copy(
       id = requesterTenantId,
-      features = Seq(TenantFeature(certifier = Some(Certifier("CUSTOM_ORIGIN"))))
+      features = List(PersistentTenantFeature.PersistentCertifier(certifierId))
     )
 
     val noChangesExistingAttributeId = UUID.randomUUID()
@@ -705,27 +758,30 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val updatedExistingAttributeSeed   = M2MAttributeSeed(code = "code4")
 
     val noChangesExistingAttribute =
-      dependencyAttribute.copy(
+      persistentAttribute.copy(
         id = noChangesExistingAttributeId,
-        origin = "CUSTOM_ORIGIN".some,
-        code = noChangesExistingAttributeSeed.code.some
+        origin = Some(certifierId),
+        code = Some(noChangesExistingAttributeSeed.code)
       )
-    val updatedExistingAttribute   =
-      dependencyAttribute.copy(
+
+    val updatedExistingAttribute =
+      persistentAttribute.copy(
         id = updatedExistingAttributeId,
-        origin = "CUSTOM_ORIGIN".some,
-        code = updatedExistingAttributeSeed.code.some
+        origin = Some(certifierId),
+        code = Some(updatedExistingAttributeSeed.code)
       )
-    val newAttribute1              =
-      dependencyAttribute.copy(id = newAttributeId1, origin = "CUSTOM_ORIGIN".some, code = newAttributeSeed1.code.some)
-    val newAttribute2              =
-      dependencyAttribute.copy(id = newAttributeId2, origin = "CUSTOM_ORIGIN".some, code = newAttributeSeed2.code.some)
+
+    val newAttribute1 =
+      persistentAttribute.copy(id = newAttributeId1, origin = Some(certifierId), code = Some(newAttributeSeed1.code))
+
+    val newAttribute2 =
+      persistentAttribute.copy(id = newAttributeId2, origin = Some(certifierId), code = Some(newAttributeSeed2.code))
 
     val existingTenant =
-      dependencyTenant.copy(attributes =
-        Seq(
-          dependencyTenantAttribute.withNewId(noChangesExistingAttributeId).withRevocation(None),
-          dependencyTenantAttribute.withNewId(updatedExistingAttributeId).withRevocation(Some(timestamp))
+      persistentTenant.copy(attributes =
+        List(
+          persistentCertifiedAttribute.copy(id = noChangesExistingAttributeId),
+          persistentCertifiedAttribute.copy(id = updatedExistingAttributeId, revocationTimestamp = Some(timestamp))
         )
       )
 
@@ -735,14 +791,14 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       )
 
     val expectedNewAttribute1 = dependencyTenantAttribute.copy(certified =
-      CertifiedTenantAttribute(id = newAttributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None).some
+      Some(CertifiedTenantAttribute(id = newAttributeId1, assignmentTimestamp = timestamp, revocationTimestamp = None))
     )
     val expectedNewAttribute2 = expectedNewAttribute1.withNewId(newAttributeId2)
 
     mockDateTimeGet()
 
     mockGetTenantById(requesterTenantId, requesterTenant)
-    mockGetTenantByExternalId(seed.externalId.toDependency, existingTenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), existingTenant)
 
     mockGetAttributeByExternalId(
       noChangesExistingAttribute.origin.get,
@@ -784,13 +840,12 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       assert(status == StatusCodes.OK)
     }
   }
-
   "M2M request - Must fail if requester is not a Certifier" in {
 
     implicit val context: Seq[(String, String)] = m2mContext
 
     val requesterTenantId = organizationId
-    val requesterTenant   = dependencyTenant.copy(id = requesterTenantId, features = Nil)
+    val requesterTenant   = persistentTenant.copy(id = requesterTenantId, features = Nil)
 
     val attributeSeed = M2MAttributeSeed(code = "code1")
 
@@ -815,7 +870,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val expectedTenantSeed   =
       TenantSeed(
         id = Some(tenantId),
-        externalId = seed.externalId.toDependency,
+        externalId = ExternalId(seed.externalId.origin, seed.externalId.value),
         features = Nil,
         attributes = Nil,
         name = "test_name",
@@ -827,7 +882,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockCreateTenant(expectedTenantSeed, tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
@@ -836,7 +891,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       assert(status == StatusCodes.OK)
     }
   }
-
   "SelfCare request - Creation of a new tenant with kind PRIVATE must succeed" in {
     implicit val context: Seq[(String, String)] = selfcareContext
 
@@ -847,7 +901,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val expectedTenantSeed   =
       TenantSeed(
         id = Some(tenantId),
-        externalId = seed.externalId.toDependency,
+        externalId = ExternalId(seed.externalId.origin, seed.externalId.value),
         features = Nil,
         attributes = Nil,
         name = "test_name",
@@ -859,7 +913,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
     mockUuidGet(tenantId)
 
-    mockGetTenantByExternalIdNotFound(seed.externalId.toDependency)
+    mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockCreateTenant(expectedTenantSeed, tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
@@ -874,18 +928,23 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val tenantId = organizationId
     val seed     = selfcareTenantSeed
-    val tenant   = dependencyTenant.copy(
+    val tenant   = persistentTenant.copy(
       id = tenantId,
       selfcareId = None,
-      features = Seq(TenantFeature(certifier = Some(Certifier("something"))))
+      features = List(PersistentTenantFeature.PersistentCertifier("something"))
     )
 
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = Some(seed.selfcareId), features = tenant.features, mails = Nil, kind = TenantKind.PA)
+      TenantDelta(
+        selfcareId = Some(seed.selfcareId),
+        features = Seq(TenantFeature(certifier = Some(Certifier("something")))),
+        mails = Nil,
+        kind = TenantKind.PA
+      )
 
     mockDateTimeGet()
 
-    mockGetTenantByExternalId(seed.externalId.toDependency, tenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
@@ -899,15 +958,15 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val tenantId   = organizationId
     val selfcareId = UUID.randomUUID().toString
     val seed       = selfcareTenantSeed.copy(selfcareId = selfcareId)
-    val tenant     = dependencyTenant.copy(
+    val tenant     = persistentTenant.copy(
       id = tenantId,
       selfcareId = Some(selfcareId),
-      features = Seq(TenantFeature(certifier = Some(Certifier("something"))))
+      features = List(PersistentTenantFeature.PersistentCertifier("something"))
     )
 
     mockDateTimeGet()
 
-    mockGetTenantByExternalId(seed.externalId.toDependency, tenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -921,15 +980,15 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val existingSelfcareId = UUID.randomUUID().toString
     val newSelfcareId      = UUID.randomUUID().toString
     val seed               = selfcareTenantSeed.copy(selfcareId = newSelfcareId)
-    val tenant             = dependencyTenant.copy(
+    val tenant             = persistentTenant.copy(
       id = tenantId,
       selfcareId = Some(existingSelfcareId),
-      features = Seq(TenantFeature(certifier = Some(Certifier("something"))))
+      features = List(PersistentTenantFeature.PersistentCertifier("something"))
     )
 
     mockDateTimeGet()
 
-    mockGetTenantByExternalId(seed.externalId.toDependency, tenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.Conflict)
@@ -943,15 +1002,15 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val existingSelfcareId = UUID.randomUUID().toString
     val newSelfcareId      = UUID.randomUUID().toString
     val seed               = selfcareTenantSeed.copy(selfcareId = newSelfcareId)
-    val tenant             = dependencyTenant.copy(
+    val tenant             = persistentTenant.copy(
       id = tenantId,
       selfcareId = Some(existingSelfcareId),
-      features = Seq(TenantFeature(certifier = Some(Certifier("something"))))
+      features = List(PersistentTenantFeature.PersistentCertifier("something"))
     )
 
     mockDateTimeGet()
 
-    mockGetTenantByExternalId(seed.externalId.toDependency, tenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.Forbidden)
@@ -963,25 +1022,29 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     val tenantId = UUID.randomUUID()
     val seed     = selfcareTenantSeed
-    val tenant   = dependencyTenant.copy(
+    val tenant   = persistentTenant.copy(
       id = tenantId,
       selfcareId = None,
-      features = Seq(TenantFeature(certifier = Some(Certifier("something"))))
+      features = List(PersistentTenantFeature.PersistentCertifier("something"))
     )
 
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = Some(seed.selfcareId), features = tenant.features, mails = Nil, kind = TenantKind.PA)
+      TenantDelta(
+        selfcareId = Some(seed.selfcareId),
+        features = Seq(TenantFeature(certifier = Some(Certifier("something")))),
+        mails = Nil,
+        kind = TenantKind.PA
+      )
 
     mockDateTimeGet()
 
-    mockGetTenantByExternalId(seed.externalId.toDependency, tenant)
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
     }
   }
-
 }
 
 object TenantCreationSpec {

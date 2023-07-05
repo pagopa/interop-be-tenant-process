@@ -25,19 +25,17 @@ object Dependencies {
 
   private[this] object pagopa {
     lazy val namespace                         = "it.pagopa"
-    lazy val attributeRegistryManagementClient =
-      namespace %% "interop-be-attribute-registry-management-client" % attributeRegistryManagementVersion
+    lazy val attributeRegistryManagementModels =
+      namespace %% "interop-be-attribute-registry-management-models" % attributeRegistryManagementVersion
     lazy val tenantManagementClient = namespace %% "interop-be-tenant-management-client" % tenantManagementVersion
     lazy val tenantManagementModels = namespace %% "interop-be-tenant-management-models" % tenantManagementVersion
 
     lazy val agreementProcessClient    = namespace %% "interop-be-agreement-process-client" % agreementProcessVersion
-    lazy val agreementManagementClient =
-      namespace %% "interop-be-agreement-management-client" % agreementManagementVersion
     lazy val agreementManagementModels =
       namespace %% "interop-be-agreement-management-models" % agreementManagementVersion
 
-    lazy val catalogManagementClient =
-      namespace %% "interop-be-catalog-management-client" % catalogManagementVersion
+    lazy val catalogManagementModels =
+      namespace %% "interop-be-catalog-management-models" % catalogManagementVersion
 
     lazy val commonsUtils = namespace %% "interop-commons-utils" % commonsVersion
     lazy val jwt          = namespace %% "interop-commons-jwt"   % commonsVersion
@@ -100,13 +98,12 @@ object Dependencies {
       cats.core                                % Compile,
       logback.classic                          % Compile,
       mustache.mustache                        % Compile,
-      pagopa.attributeRegistryManagementClient % Compile,
+      pagopa.attributeRegistryManagementModels % Compile,
       pagopa.tenantManagementClient            % Compile,
       pagopa.tenantManagementModels            % Compile,
       pagopa.agreementProcessClient            % Compile,
-      pagopa.agreementManagementClient         % Compile,
       pagopa.agreementManagementModels         % Compile,
-      pagopa.catalogManagementClient           % Compile,
+      pagopa.catalogManagementModels           % Compile,
       pagopa.commonsUtils                      % Compile,
       pagopa.commonsCqrs                       % Compile,
       pagopa.jwt                               % Compile,
