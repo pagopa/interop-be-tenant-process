@@ -32,6 +32,17 @@
       ]
     },
     {
+      "route": "getTenantByExternalId",
+      "verb": "GET",
+      "roles": [
+        "admin",
+        "api",
+        "m2m",
+        "security",
+        "support"
+      ]
+    },
+    {
       "route": "internalUpsertTenant",
       "verb": "POST",
       "roles": [
