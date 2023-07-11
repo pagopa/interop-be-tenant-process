@@ -54,5 +54,18 @@ class TenantRetrieveSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         assert(status == StatusCodes.OK)
       }
     }
+
+    "Get Tenant by selfcare Id" in {
+
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val selfcareId = UUID.randomUUID
+
+      mockGetTenantBySelfcareId(selfcareId)
+
+      Get() ~> tenantService.getTenantBySelfcareId(selfcareId.toString) ~> check {
+        assert(status == StatusCodes.OK)
+      }
+    }
   }
 }

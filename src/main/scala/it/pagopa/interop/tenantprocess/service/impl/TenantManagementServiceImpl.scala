@@ -108,6 +108,15 @@ final case class TenantManagementServiceImpl(
       .toFuture(TenantAttributeNotFound(tenantId, attributeId))
   } yield attribute
 
+  def getTenantBySelfcareId(selfcareId: UUID)(implicit contexts: Seq[(String, String)]): Future[Tenant] = withHeaders {
+    (bearerToken, correlationId, ip) =>
+      val request =
+        tenantApi.getTenantBySelfcareId(xCorrelationId = correlationId, selfcareId = selfcareId, xForwardedFor = ip)(
+          BearerToken(bearerToken)
+        )
+      invoker.invoke(request, s"Retrieving tenant with selfcareId $selfcareId")
+  }
+
   override def getTenantById(
     tenantId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =

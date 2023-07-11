@@ -301,6 +301,35 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /tenants/selfcare/{selfcareId}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - name: selfcareId
+        in: path
+        description: the selfcare id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - tenant
+      operationId: getTenantBySelfcareId
+      description: Retrieve the Tenant
+      responses:
+        '200':
+          description: Tenant retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '404':
+          description: Tenant Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /tenants/{id}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'

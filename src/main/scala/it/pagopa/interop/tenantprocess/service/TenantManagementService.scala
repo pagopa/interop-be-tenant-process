@@ -27,6 +27,8 @@ trait TenantManagementService {
     contexts: Seq[(String, String)]
   ): Future[Tenant]
 
+  def getTenantBySelfcareId(selfcareId: UUID)(implicit contexts: Seq[(String, String)]): Future[Tenant]
+
   def getTenantById(
     tenantId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant]
