@@ -73,12 +73,12 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(result.copy(id = tenantId)))
 
-  def mockGetTenantBySelfcareId(selfcareId: UUID, result: Tenant = dependencyTenant) =
+  def mockGetTenantBySelfcareId(selfcareId: UUID, result: PersistentTenant = persistentTenant) =
     (mockTenantManagement
-      .getTenantBySelfcareId(_: UUID)(_: Seq[(String, String)]))
-      .expects(selfcareId, *)
+      .getTenantBySelfcareId(_: UUID)(_: ExecutionContext, _: ReadModelService))
+      .expects(selfcareId, *, *)
       .once()
-      .returns(Future.successful(result.copy(id = tenantId)))
+      .returns(Future.successful(result.copy(selfcareId = Some(selfcareId.toString))))
 
   def mockGetProducers(
     name: Option[String],
