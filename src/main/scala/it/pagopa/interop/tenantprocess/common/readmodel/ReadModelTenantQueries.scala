@@ -16,6 +16,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object ReadModelTenantQueries extends ReadModelQuery {
 
+  def getTenantBySelfcareId(
+    selfcareId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Option[PersistentTenant]] =
+    readModel.findOne[PersistentTenant](
+      collectionName = "tenants",
+      filter = Filters.eq("data.selfcareId", selfcareId.toString)
+    )
+
   def getTenantById(
     tenantId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Option[PersistentTenant]] =

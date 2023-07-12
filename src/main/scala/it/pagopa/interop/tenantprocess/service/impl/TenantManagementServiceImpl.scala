@@ -9,7 +9,8 @@ import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
   TenantByIdNotFound,
   TenantNotFound,
-  TenantAttributeNotFound
+  TenantAttributeNotFound,
+  SelcareIdNotFound
 }
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
@@ -107,6 +108,11 @@ final case class TenantManagementServiceImpl(
       .find(_.id == attributeId)
       .toFuture(TenantAttributeNotFound(tenantId, attributeId))
   } yield attribute
+
+  override def getTenantBySelfcareId(
+    selfcareId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =
+    ReadModelTenantQueries.getTenantBySelfcareId(selfcareId).flatMap(_.toFuture(SelcareIdNotFound(selfcareId)))
 
   override def getTenantById(
     tenantId: UUID

@@ -32,6 +32,18 @@
       ]
     },
     {
+      "route": "getTenantBySelfcareId",
+      "verb": "GET",
+      "roles": [
+        "admin",
+        "api",
+        "m2m",
+        "security",
+        "internal",
+        "support"
+      ]
+    },
+    {
       "route": "getTenantByExternalId",
       "verb": "GET",
       "roles": [

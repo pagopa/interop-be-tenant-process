@@ -102,6 +102,11 @@ object FakeDependencies extends SpecData {
       readModel: ReadModelService
     ): Future[PaginatedResult[PersistentTenant]] =
       Future.successful(paginatedResults)
+
+    override def getTenantBySelfcareId(
+      selfcareId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =
+      Future.successful(fakePersistentTenant)
   }
 
   case class FakeAgreementProcess() extends AgreementProcessService {
