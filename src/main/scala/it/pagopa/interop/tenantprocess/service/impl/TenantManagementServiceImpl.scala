@@ -115,12 +115,11 @@ final case class TenantManagementServiceImpl(
         tenantApi.getTenantBySelfcareId(xCorrelationId = correlationId, selfcareId = selfcareId, xForwardedFor = ip)(
           BearerToken(bearerToken)
         )
-      invoker
-        .invoke(request, s"Retrieving tenant with selfcareId $selfcareId")
-        .recoverWith {
-          case err: ApiError[_] if err.code == 404 =>
-            Future.failed(SelcareIdNotFound(selfcareId))
-        }
+      invoker.invoke(request, s"Retrieving tenant with selfcareId $selfcareId")
+      .recoverWith {
+        case err: ApiError[_] if err.code == 404 =>
+          Future.failed(SelcareIdNotFound(selfcareId))
+      }
   }
 
   override def getTenantById(
