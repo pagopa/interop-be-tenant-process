@@ -39,6 +39,7 @@
         "api",
         "m2m",
         "security",
+        "internal",
         "support"
       ]
     },
