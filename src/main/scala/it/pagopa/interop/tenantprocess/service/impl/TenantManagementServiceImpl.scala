@@ -9,7 +9,8 @@ import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
   TenantByIdNotFound,
   TenantNotFound,
-  TenantAttributeNotFound
+  TenantAttributeNotFound,
+  SelcareIdNotFound
 }
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
@@ -114,7 +115,12 @@ final case class TenantManagementServiceImpl(
         tenantApi.getTenantBySelfcareId(xCorrelationId = correlationId, selfcareId = selfcareId, xForwardedFor = ip)(
           BearerToken(bearerToken)
         )
-      invoker.invoke(request, s"Retrieving tenant with selfcareId $selfcareId")
+      invoker
+        .invoke(request, s"Retrieving tenant with selfcareId $selfcareId")
+        .recoverWith {
+          case err: ApiError[_] if err.code == 404 =>
+            Future.failed(SelcareIdNotFound(selfcareId))
+        }
   }
 
   override def getTenantById(
