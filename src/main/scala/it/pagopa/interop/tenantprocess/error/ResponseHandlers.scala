@@ -163,7 +163,7 @@ object ResponseHandlers extends AkkaResponses {
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
     result match {
       case Success(s)                      => success(s)
-      case Failure(ex: TenantByIdNotFound) => notFound(ex, logMessage)
+      case Failure(ex: SelcareIdNotFound)  => notFound(ex, logMessage)
       case Failure(ex)                     => internalServerError(ex, logMessage)
     }
 

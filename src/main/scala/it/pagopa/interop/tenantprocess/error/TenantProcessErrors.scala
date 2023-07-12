@@ -85,4 +85,8 @@ object TenantProcessErrors {
 
   final case class EServiceNotFound(id: UUID)
       extends ComponentError("0020", s"EService ${id.toString} not found in the catalog")
+
+      final case class SelcareIdNotFound(selfcareId: UUID)
+      extends ComponentError("0021", s"Tenant with selfcare id ${selfcareId.toString} not found in the catalog")
+
 }
