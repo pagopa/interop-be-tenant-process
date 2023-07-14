@@ -97,6 +97,12 @@ object FakeDependencies extends SpecData {
     ): Future[PaginatedResult[PersistentTenant]] =
       Future.successful(paginatedResults)
 
+    override def getTenants(name: Option[String], offset: Int, limit: Int)(implicit
+      ec: ExecutionContext,
+      readModel: ReadModelService
+    ): Future[PaginatedResult[PersistentTenant]] =
+      Future.successful(paginatedResults)
+
     override def listProducers(name: Option[String], offset: Int, limit: Int)(implicit
       ec: ExecutionContext,
       readModel: ReadModelService

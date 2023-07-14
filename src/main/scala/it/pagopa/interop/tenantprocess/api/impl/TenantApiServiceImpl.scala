@@ -101,6 +101,23 @@ final case class TenantApiServiceImpl(
     }
   }
 
+  override def getTenants(name: Option[String], offset: Int, limit: Int)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerTenants: ToEntityMarshaller[Tenants],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, SUPPORT_ROLE) {
+    val operationLabel = s"Retrieving Tenants with name = $name, limit = $limit, offset = $offset"
+    logger.info(operationLabel)
+
+    val result: Future[Tenants] = tenantManagementService
+      .getTenants(name, offset, limit)
+      .map(result => Tenants(results = result.results.map(_.toApi), totalCount = result.totalCount))
+
+    onComplete(result) {
+      getTenantsResponse[Tenants](operationLabel)(getTenants200)
+    }
+  }
+
   override def updateTenant(id: String, tenantDelta: TenantDelta)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],

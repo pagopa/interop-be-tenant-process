@@ -42,6 +42,21 @@ class TenantRetrieveSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       }
     }
 
+    "List tenants" in {
+
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val offset: Int          = 0
+      val limit: Int           = 50
+      val name: Option[String] = Some("name")
+
+      mockGetTenants(name, offset, limit, Seq(persistentTenant))
+
+      Get() ~> tenantService.getTenants(name, offset, limit) ~> check {
+        assert(status == StatusCodes.OK)
+      }
+    }
+
     "Get Tenant by Id" in {
 
       implicit val context: Seq[(String, String)] = adminContext

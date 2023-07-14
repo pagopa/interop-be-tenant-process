@@ -31,6 +31,11 @@ trait TenantManagementService {
     selfcareId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant]
 
+  def getTenants(name: Option[String], offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PaginatedResult[PersistentTenant]]
+
   def getTenantById(
     tenantId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant]

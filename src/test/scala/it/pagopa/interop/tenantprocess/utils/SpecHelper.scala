@@ -105,6 +105,18 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(PaginatedResult(results = result, totalCount = result.size)))
 
+  def mockGetTenants(
+    name: Option[String],
+    offset: Int,
+    limit: Int,
+    result: Seq[PersistentTenant] = Seq(persistentTenant)
+  ) =
+    (mockTenantManagement
+      .getTenants(_: Option[String], _: Int, _: Int)(_: ExecutionContext, _: ReadModelService))
+      .expects(name, offset, limit, *, *)
+      .once()
+      .returns(Future.successful(PaginatedResult(results = result, totalCount = result.size)))
+
   def mockGetTenantByExternalId(externalId: PersistentExternalId, result: PersistentTenant) =
     (mockTenantManagement
       .getTenantByExternalId(_: PersistentExternalId)(_: ExecutionContext, _: ReadModelService))

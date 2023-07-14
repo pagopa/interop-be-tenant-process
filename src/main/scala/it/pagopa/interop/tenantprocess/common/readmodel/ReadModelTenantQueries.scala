@@ -29,6 +29,38 @@ object ReadModelTenantQueries extends ReadModelQuery {
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Option[PersistentTenant]] =
     readModel.findOne[PersistentTenant](collectionName = "tenants", filter = Filters.eq("data.id", tenantId.toString))
 
+  def getTenants(name: Option[String], offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PaginatedResult[PersistentTenant]] = {
+    val query: Bson               = listTenantsFilters(name)
+    val filterPipeline: Seq[Bson] = Seq(`match`(query))
+
+    for {
+      // Using aggregate to perform case insensitive sorting
+      //   N.B.: Required because DocumentDB does not support collation
+      tenants <- readModel.aggregate[PersistentTenant](
+        "tenants",
+        filterPipeline ++
+          Seq(
+            project(fields(include("data"), computed("lowerName", Document("""{ "$toLower" : "$data.name" }""")))),
+            sort(ascending("lowerName"))
+          ),
+        offset = offset,
+        limit = limit
+      )
+      // Note: This could be obtained using $facet function (avoiding to execute the query twice),
+      //   but it is not supported by DocumentDB
+      count   <- readModel.aggregate[TotalCountResult](
+        "tenants",
+        filterPipeline ++
+          Seq(count("totalCount"), project(computed("data", Document("""{ "totalCount" : "$totalCount" }""")))),
+        offset = 0,
+        limit = Int.MaxValue
+      )
+    } yield PaginatedResult(results = tenants, totalCount = count.headOption.map(_.totalCount).getOrElse(0))
+  }
+
   def getTenantByExternalId(origin: String, value: String)(implicit
     ec: ExecutionContext,
     readModel: ReadModelService

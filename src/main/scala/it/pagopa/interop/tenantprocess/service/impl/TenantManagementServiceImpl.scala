@@ -114,6 +114,12 @@ final case class TenantManagementServiceImpl(
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =
     ReadModelTenantQueries.getTenantBySelfcareId(selfcareId).flatMap(_.toFuture(SelcareIdNotFound(selfcareId)))
 
+  def getTenants(name: Option[String], offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PaginatedResult[PersistentTenant]] =
+    ReadModelTenantQueries.getTenants(name, offset, limit)
+
   override def getTenantById(
     tenantId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =
