@@ -151,11 +151,13 @@ object ReadModelTenantQueries extends ReadModelQuery {
   }
 
   private def listTenantsFilters(name: Option[String]): Bson = {
-    val nameFilter = name.flatMap {
-      case n if n.nonEmpty => Some(Filters.regex("data.name", n, "i"))
-      case _               => None
+    val nameFilter           = name match {
+      case Some(n) if n.nonEmpty => List(Filters.regex("data.name", n, "i"))
+      case _                     => Nil
     }
+    val withSelfcareIdFilter = Filters.exists("data.selfcareId", true)
 
-    mapToVarArgs(nameFilter.toList)(Filters.and).getOrElse(Filters.empty())
+    val filters = withSelfcareIdFilter :: nameFilter
+    mapToVarArgs(filters)(Filters.and).getOrElse(Filters.empty())
   }
 }
