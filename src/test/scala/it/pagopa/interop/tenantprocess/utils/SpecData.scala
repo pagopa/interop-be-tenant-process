@@ -4,32 +4,32 @@ import it.pagopa.interop.tenantmanagement.client.{model => Dependency}
 import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute._
 import it.pagopa.interop.tenantmanagement.model.tenant.{
+  PersistentCertifiedAttribute,
+  PersistentDeclaredAttribute,
   PersistentExternalId,
   PersistentTenant,
-  PersistentVerifiedAttribute,
-  PersistentDeclaredAttribute,
-  PersistentCertifiedAttribute,
-  PersistentTenantVerifier,
+  PersistentTenantAttribute,
   PersistentTenantRevoker,
-  PersistentTenantAttribute
+  PersistentTenantVerifier,
+  PersistentVerifiedAttribute
 }
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.agreementmanagement.model.agreement.{
-  PersistentAgreement,
   Active,
+  PersistentAgreement,
   PersistentStamps,
   PersistentVerifiedAttribute => AgreementPersistentVerifiedAttribute
 }
-
+import it.pagopa.interop.agreementprocess.client.{model => AgreementDependency}
 import it.pagopa.interop.catalogmanagement.model.{
-  Rest,
+  Automatic,
   CatalogAttributeValue,
-  CatalogItem,
   CatalogAttributes,
-  SingleAttribute,
   CatalogDescriptor,
+  CatalogItem,
   Published,
-  Automatic
+  Rest,
+  SingleAttribute
 }
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -55,7 +55,7 @@ trait SpecData {
   val selfcareTenantSeedNotIpa: SelfcareTenantSeed =
     SelfcareTenantSeed(ExternalId("NOT_IPA", s"tenant-${UUID.randomUUID()}"), UUID.randomUUID().toString, "test_name")
 
-  val dependencyTenant: Dependency.Tenant      = Dependency.Tenant(
+  val dependencyTenant: Dependency.Tenant = Dependency.Tenant(
     id = tenantId,
     selfcareId = None,
     externalId = Dependency.ExternalId("IPA", "org"),
@@ -67,6 +67,7 @@ trait SpecData {
     name = "test_name",
     kind = None
   )
+
   val persistentAttribute: PersistentAttribute = PersistentAttribute(
     id = UUID.randomUUID(),
     origin = Some("origin"),
@@ -81,6 +82,16 @@ trait SpecData {
     Some(
       Dependency
         .CertifiedTenantAttribute(id = UUID.randomUUID(), assignmentTimestamp = timestamp, revocationTimestamp = None)
+    )
+  )
+
+  def agreementCertifiedTenantAttribute(
+    id: UUID = UUID.randomUUID(),
+    revocationTimestamp: Option[OffsetDateTime] = None
+  ): AgreementDependency.TenantAttribute = AgreementDependency.TenantAttribute(certified =
+    Some(
+      AgreementDependency
+        .CertifiedTenantAttribute(id = id, assignmentTimestamp = timestamp, revocationTimestamp = revocationTimestamp)
     )
   )
 
@@ -119,7 +130,22 @@ trait SpecData {
     extensionDate = Some(timestamp)
   )
 
+  val agreementTenantVerifier: AgreementDependency.TenantVerifier = AgreementDependency.TenantVerifier(
+    id = UUID.randomUUID(),
+    verificationDate = timestamp,
+    expirationDate = None,
+    extensionDate = Some(timestamp)
+  )
+
   val persistentTenantRevoker: PersistentTenantRevoker = PersistentTenantRevoker(
+    id = UUID.randomUUID(),
+    verificationDate = timestamp,
+    expirationDate = None,
+    extensionDate = None,
+    revocationDate = timestamp
+  )
+
+  val agreementTenantRevoker: AgreementDependency.TenantRevoker = AgreementDependency.TenantRevoker(
     id = UUID.randomUUID(),
     verificationDate = timestamp,
     expirationDate = None,
@@ -136,6 +162,16 @@ trait SpecData {
   val persistentDeclaredAttribute: PersistentDeclaredAttribute =
     PersistentDeclaredAttribute(id = UUID.randomUUID(), assignmentTimestamp = timestamp, revocationTimestamp = None)
 
+  def agreementDeclaredTenantAttribute(
+    id: UUID = UUID.randomUUID(),
+    revocationTimestamp: Option[OffsetDateTime] = None
+  ): AgreementDependency.TenantAttribute = AgreementDependency.TenantAttribute(declared =
+    Some(
+      AgreementDependency
+        .DeclaredTenantAttribute(id = id, assignmentTimestamp = timestamp, revocationTimestamp = revocationTimestamp)
+    )
+  )
+
   val persistentVerifiedAttribute: PersistentVerifiedAttribute =
     PersistentVerifiedAttribute(
       id = UUID.randomUUID(),
@@ -143,6 +179,23 @@ trait SpecData {
       verifiedBy = List(persistentTenantVerifier),
       revokedBy = List(persistentTenantRevoker)
     )
+
+  def agreementVerifiedTenantAttribute(
+    id: UUID = UUID.randomUUID(),
+    assignmentTimestamp: OffsetDateTime = timestamp,
+    revokedBy: Seq[AgreementDependency.TenantRevoker] = Seq(agreementTenantRevoker),
+    verifiedBy: Seq[AgreementDependency.TenantVerifier] = Seq(agreementTenantVerifier)
+  ): AgreementDependency.TenantAttribute = AgreementDependency.TenantAttribute(verified =
+    Some(
+      AgreementDependency
+        .VerifiedTenantAttribute(
+          id = id,
+          assignmentTimestamp = assignmentTimestamp,
+          verifiedBy = verifiedBy,
+          revokedBy = revokedBy
+        )
+    )
+  )
 
   def persistentAgreement(
     eServiceId: UUID = UUID.randomUUID(),
