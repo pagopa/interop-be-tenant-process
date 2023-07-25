@@ -515,10 +515,12 @@ final case class TenantApiServiceImpl(
   private def updateTenantCertifiedAttributes(attributes: Seq[ExternalId], timestamp: OffsetDateTime)(
     tenant: DependencyTenant
   )(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] = {
+    val compactTenant = CompactTenant(tenant.id, tenant.attributes.map(_.toAgreementApi))
+
     def computeAgreements(attributesIds: Seq[UUID]): Future[Seq[Unit]] =
       Future.traverse(attributesIds)(
         agreementProcessService
-          .computeAgreementsByAttribute(_, CompactTenant(tenant.id, tenant.attributes.map(_.toAgreementApi)))
+          .computeAgreementsByAttribute(_, compactTenant)
       )
 
     def updateTenant(tenant: DependencyTenant, kind: DependencyTenantKind): Future[DependencyTenant] =

@@ -148,12 +148,14 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(result))
 
-  def mockAddTenantAttribute(tenantId: UUID, attribute: TenantAttribute)(implicit contexts: Seq[(String, String)]) =
+  def mockAddTenantAttribute(tenantId: UUID, attribute: TenantAttribute, result: Tenant = dependencyTenant)(implicit
+    contexts: Seq[(String, String)]
+  ) =
     (mockTenantManagement
       .addTenantAttribute(_: UUID, _: TenantAttribute)(_: Seq[(String, String)]))
       .expects(tenantId, attribute, contexts)
       .once()
-      .returns(Future.successful(dependencyTenant))
+      .returns(Future.successful(result.copy(id = tenantId)))
 
   def mockGetTenantAttribute(tenantId: UUID, attributeId: UUID, result: PersistentTenantAttribute) =
     (mockTenantManagement
@@ -169,14 +171,17 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.failed(TenantAttributeNotFound(tenantId, attributeId)))
 
-  def mockUpdateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
-    contexts: Seq[(String, String)]
-  ) =
+  def mockUpdateTenantAttribute(
+    tenantId: UUID,
+    attributeId: UUID,
+    attribute: TenantAttribute,
+    result: Tenant = dependencyTenant
+  )(implicit contexts: Seq[(String, String)]) =
     (mockTenantManagement
       .updateTenantAttribute(_: UUID, _: UUID, _: TenantAttribute)(_: Seq[(String, String)]))
       .expects(tenantId, attributeId, attribute, contexts)
       .once()
-      .returns(Future.successful(dependencyTenant.copy(id = tenantId)))
+      .returns(Future.successful(result.copy(id = tenantId)))
 
   def mockGetAttributeByExternalId(origin: String, value: String, result: PersistentAttribute) =
     (mockAttributeRegistryManagement

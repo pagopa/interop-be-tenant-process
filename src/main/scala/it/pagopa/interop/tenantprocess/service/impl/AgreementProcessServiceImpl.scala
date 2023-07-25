@@ -2,7 +2,7 @@ package it.pagopa.interop.tenantprocess.service.impl
 
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.agreementprocess.client.invoker.BearerToken
-import it.pagopa.interop.agreementprocess.client.model.CompactTenant
+import it.pagopa.interop.agreementprocess.client.model.{CompactTenant, ComputeAgreementStatePayload}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.TypeConversions.EitherOps
 import it.pagopa.interop.commons.utils.extractHeaders
@@ -29,8 +29,7 @@ final case class AgreementProcessServiceImpl(
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = agreementApi.computeAgreementsByAttribute(
         xCorrelationId = correlationId,
-        compactTenant = consumer,
-        attributeId = attributeId,
+        computeAgreementStatePayload = ComputeAgreementStatePayload(attributeId, consumer),
         xForwardedFor = ip
       )(BearerToken(bearerToken))
       result <- invoker
