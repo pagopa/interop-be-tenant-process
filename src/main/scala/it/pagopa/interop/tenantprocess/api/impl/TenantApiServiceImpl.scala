@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Route
 import cats.implicits._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.agreementmanagement.model.{agreement => AgreementPersistentModel}
+import it.pagopa.interop.agreementprocess.client.model.CompactTenant
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
@@ -15,16 +16,16 @@ import it.pagopa.interop.commons.utils.errors.{ComponentError, GenericComponentE
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute._
 import it.pagopa.interop.tenantmanagement.client.model.{
-  TenantFeature => DependencyTenantFeature,
+  CertifiedTenantAttribute => DependencyCertifiedTenantAttribute,
   Certifier => DependencyCertifier,
   ExternalId => DependencyExternalId,
   Tenant => DependencyTenant,
   TenantAttribute => DependencyTenantAttribute,
   TenantDelta => DependencyTenantDelta,
+  TenantFeature => DependencyTenantFeature,
   TenantKind => DependencyTenantKind,
   TenantRevoker => DependencyTenantRevoker,
   TenantVerifier => DependencyTenantVerifier,
-  CertifiedTenantAttribute => DependencyCertifiedTenantAttribute,
   VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.api.TenantApiService
@@ -38,7 +39,7 @@ import it.pagopa.interop.tenantprocess.error.ResponseHandlers._
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
-import it.pagopa.interop.catalogmanagement.model.{SingleAttribute, GroupAttribute}
+import it.pagopa.interop.catalogmanagement.model.{GroupAttribute, SingleAttribute}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
 
 import java.time.{Duration, OffsetDateTime}
@@ -220,7 +221,10 @@ final case class TenantApiServiceImpl(
         attributeExternalId = code
       )
       (tenant, attribute) = result
-      _ <- agreementProcessService.computeAgreementsByAttribute(tenant.id, attribute.id)
+      _ <- agreementProcessService.computeAgreementsByAttribute(
+        attribute.id,
+        CompactTenant(tenant.id, tenant.attributes.map(_.toAgreementApi))
+      )
     } yield ()
 
     onComplete(result) {
@@ -290,7 +294,10 @@ final case class TenantApiServiceImpl(
           attributeExternalId = attributeExternalId
         )
         (tenant, attribute) = result
-        _ <- agreementProcessService.computeAgreementsByAttribute(tenant.id, attribute.id)
+        _ <- agreementProcessService.computeAgreementsByAttribute(
+          attribute.id,
+          CompactTenant(tenant.id, tenant.attributes.map(_.toAgreementApi))
+        )
       } yield ()
 
       onComplete(result) {
@@ -329,7 +336,10 @@ final case class TenantApiServiceImpl(
       requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       _ = logger.info(s"Adding declared attribute ${seed.id} to $requesterTenantUuid")
       tenant <- upsertAttribute(requesterTenantUuid, seed)
-      _      <- agreementProcessService.computeAgreementsByAttribute(requesterTenantUuid, seed.id)
+      _      <- agreementProcessService.computeAgreementsByAttribute(
+        seed.id,
+        CompactTenant(tenant.id, tenant.attributes.map(_.toAgreementApi))
+      )
     } yield tenant.toApi
 
     onComplete(result) {
@@ -357,7 +367,10 @@ final case class TenantApiServiceImpl(
       )
       revokedAttribute = declaredAttribute.copy(revocationTimestamp = now.some).toTenantAttribute
       tenant <- tenantManagementService.updateTenantAttribute(requesterTenantUuid, attributeUuid, revokedAttribute)
-      _      <- agreementProcessService.computeAgreementsByAttribute(requesterTenantUuid, attributeUuid)
+      _      <- agreementProcessService.computeAgreementsByAttribute(
+        attributeUuid,
+        CompactTenant(tenant.id, tenant.attributes.map(_.toAgreementApi))
+      )
     } yield tenant.toApi
 
     onComplete(result) {
@@ -391,7 +404,10 @@ final case class TenantApiServiceImpl(
           seed.toUpdateDependency(now, requesterTenantUuid, attr)
         )
       )
-      _             <- agreementProcessService.computeAgreementsByAttribute(targetTenantUuid, seed.id)
+      _             <- agreementProcessService.computeAgreementsByAttribute(
+        seed.id,
+        CompactTenant(updatedTenant.id, updatedTenant.attributes.map(_.toAgreementApi))
+      )
     } yield updatedTenant.toApi
 
     onComplete(result) {
@@ -472,7 +488,10 @@ final case class TenantApiServiceImpl(
         attributeUuid,
         addRevoker(attribute, now, verifier).toTenantAttribute
       )
-      _             <- agreementProcessService.computeAgreementsByAttribute(targetTenantUuid, attributeUuid)
+      _             <- agreementProcessService.computeAgreementsByAttribute(
+        attributeUuid,
+        CompactTenant(updatedTenant.id, updatedTenant.attributes.map(_.toAgreementApi))
+      )
     } yield updatedTenant.toApi
 
     onComplete(result) {
@@ -496,8 +515,13 @@ final case class TenantApiServiceImpl(
   private def updateTenantCertifiedAttributes(attributes: Seq[ExternalId], timestamp: OffsetDateTime)(
     tenant: DependencyTenant
   )(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] = {
+    val compactTenant = CompactTenant(tenant.id, tenant.attributes.map(_.toAgreementApi))
+
     def computeAgreements(attributesIds: Seq[UUID]): Future[Seq[Unit]] =
-      Future.traverse(attributesIds)(agreementProcessService.computeAgreementsByAttribute(tenant.id, _))
+      Future.traverse(attributesIds)(
+        agreementProcessService
+          .computeAgreementsByAttribute(_, compactTenant)
+      )
 
     def updateTenant(tenant: DependencyTenant, kind: DependencyTenantKind): Future[DependencyTenant] =
       tenantManagementService

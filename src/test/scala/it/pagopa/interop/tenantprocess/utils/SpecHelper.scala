@@ -1,20 +1,21 @@
 package it.pagopa.interop.tenantprocess.utils
 
 import it.pagopa.interop.agreementmanagement.model.agreement._
+import it.pagopa.interop.agreementprocess.client.model.CompactTenant
 import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.PersistentAttribute
 import it.pagopa.interop.catalogmanagement.model._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.utils._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.tenantmanagement.model.tenant.{
-  PersistentTenant,
   PersistentExternalId,
+  PersistentTenant,
   PersistentTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
-  TenantNotFound,
   RegistryAttributeNotFound,
-  TenantAttributeNotFound
+  TenantAttributeNotFound,
+  TenantNotFound
 }
 import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
@@ -147,12 +148,14 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(result))
 
-  def mockAddTenantAttribute(tenantId: UUID, attribute: TenantAttribute)(implicit contexts: Seq[(String, String)]) =
+  def mockAddTenantAttribute(tenantId: UUID, attribute: TenantAttribute, result: Tenant = dependencyTenant)(implicit
+    contexts: Seq[(String, String)]
+  ) =
     (mockTenantManagement
       .addTenantAttribute(_: UUID, _: TenantAttribute)(_: Seq[(String, String)]))
       .expects(tenantId, attribute, contexts)
       .once()
-      .returns(Future.successful(dependencyTenant))
+      .returns(Future.successful(result.copy(id = tenantId)))
 
   def mockGetTenantAttribute(tenantId: UUID, attributeId: UUID, result: PersistentTenantAttribute) =
     (mockTenantManagement
@@ -168,14 +171,17 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.failed(TenantAttributeNotFound(tenantId, attributeId)))
 
-  def mockUpdateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
-    contexts: Seq[(String, String)]
-  ) =
+  def mockUpdateTenantAttribute(
+    tenantId: UUID,
+    attributeId: UUID,
+    attribute: TenantAttribute,
+    result: Tenant = dependencyTenant
+  )(implicit contexts: Seq[(String, String)]) =
     (mockTenantManagement
       .updateTenantAttribute(_: UUID, _: UUID, _: TenantAttribute)(_: Seq[(String, String)]))
       .expects(tenantId, attributeId, attribute, contexts)
       .once()
-      .returns(Future.successful(dependencyTenant.copy(id = tenantId)))
+      .returns(Future.successful(result.copy(id = tenantId)))
 
   def mockGetAttributeByExternalId(origin: String, value: String, result: PersistentAttribute) =
     (mockAttributeRegistryManagement
@@ -198,10 +204,10 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(result.copy(id = id)))
 
-  def mockComputeAgreementState(consumerId: UUID, attributeId: UUID)(implicit contexts: Seq[(String, String)]) =
+  def mockComputeAgreementState(attributeId: UUID, consumer: CompactTenant)(implicit contexts: Seq[(String, String)]) =
     (mockAgreementProcess
-      .computeAgreementsByAttribute(_: UUID, _: UUID)(_: Seq[(String, String)]))
-      .expects(consumerId, attributeId, contexts)
+      .computeAgreementsByAttribute(_: UUID, _: CompactTenant)(_: Seq[(String, String)]))
+      .expects(attributeId, consumer, contexts)
       .once()
       .returns(Future.unit)
 

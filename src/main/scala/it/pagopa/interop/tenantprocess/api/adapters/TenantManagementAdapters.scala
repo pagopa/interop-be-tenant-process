@@ -17,6 +17,7 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantVerifier => DependencyTenantVerifier,
   VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
+import it.pagopa.interop.agreementprocess.client.{model => AgreementDependency}
 import it.pagopa.interop.tenantprocess.model._
 import spray.json._
 
@@ -74,11 +75,23 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       certified = t.certified.map(_.toApi),
       verified = t.verified.map(_.toApi)
     )
+
+    def toAgreementApi: AgreementDependency.TenantAttribute = AgreementDependency.TenantAttribute(
+      declared = t.declared.map(_.toAgreementApi),
+      certified = t.certified.map(_.toAgreementApi),
+      verified = t.verified.map(_.toAgreementApi)
+    )
   }
 
   implicit class DependencyDeclaredTenantAttributeWrapper(private val t: DependencyDeclaredTenantAttribute)
       extends AnyVal {
     def toApi: DeclaredTenantAttribute = DeclaredTenantAttribute(
+      id = t.id,
+      assignmentTimestamp = t.assignmentTimestamp,
+      revocationTimestamp = t.revocationTimestamp
+    )
+
+    def toAgreementApi: AgreementDependency.DeclaredTenantAttribute = AgreementDependency.DeclaredTenantAttribute(
       id = t.id,
       assignmentTimestamp = t.assignmentTimestamp,
       revocationTimestamp = t.revocationTimestamp
@@ -95,6 +108,12 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       assignmentTimestamp = t.assignmentTimestamp,
       revocationTimestamp = t.revocationTimestamp
     )
+
+    def toAgreementApi: AgreementDependency.CertifiedTenantAttribute = AgreementDependency.CertifiedTenantAttribute(
+      id = t.id,
+      assignmentTimestamp = t.assignmentTimestamp,
+      revocationTimestamp = t.revocationTimestamp
+    )
   }
 
   implicit class DependencyVerifiedTenantAttributeWrapper(private val t: DependencyVerifiedTenantAttribute)
@@ -106,12 +125,26 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       revokedBy = t.revokedBy.map(_.toApi)
     )
 
+    def toAgreementApi: AgreementDependency.VerifiedTenantAttribute = AgreementDependency.VerifiedTenantAttribute(
+      id = t.id,
+      assignmentTimestamp = t.assignmentTimestamp,
+      verifiedBy = t.verifiedBy.map(_.toAgreementApi),
+      revokedBy = t.revokedBy.map(_.toAgreementApi)
+    )
+
     def toTenantAttribute: DependencyTenantAttribute =
       DependencyTenantAttribute(declared = None, certified = None, verified = Some(t))
   }
 
   implicit class DependencyTenantVerifierWrapper(private val t: DependencyTenantVerifier) extends AnyVal {
     def toApi: TenantVerifier = TenantVerifier(
+      id = t.id,
+      verificationDate = t.verificationDate,
+      expirationDate = t.expirationDate,
+      extensionDate = t.extensionDate
+    )
+
+    def toAgreementApi: AgreementDependency.TenantVerifier = AgreementDependency.TenantVerifier(
       id = t.id,
       verificationDate = t.verificationDate,
       expirationDate = t.expirationDate,
@@ -127,6 +160,13 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       extensionDate = t.extensionDate,
       revocationDate = t.revocationDate
     )
-  }
 
+    def toAgreementApi: AgreementDependency.TenantRevoker = AgreementDependency.TenantRevoker(
+      id = t.id,
+      verificationDate = t.verificationDate,
+      expirationDate = t.expirationDate,
+      extensionDate = t.extensionDate,
+      revocationDate = t.revocationDate
+    )
+  }
 }

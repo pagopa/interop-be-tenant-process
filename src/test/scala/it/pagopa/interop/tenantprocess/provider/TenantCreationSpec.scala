@@ -2,19 +2,19 @@ package it.pagopa.interop.tenantprocess.provider
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import it.pagopa.interop.agreementprocess.client.model.CompactTenant
 import it.pagopa.interop.commons.utils.USER_ROLES
 import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.provider.TenantCreationSpec._
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import it.pagopa.interop.tenantprocess.model.{InternalAttributeSeed, M2MAttributeSeed}
 import it.pagopa.interop.tenantmanagement.model.tenant.{
+  PersistentExternalId,
   PersistentTenantFeature,
-  PersistentTenantKind,
-  PersistentExternalId
+  PersistentTenantKind
 }
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
-
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -293,6 +293,14 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         )
       )
 
+    val compactTenant = CompactTenant(
+      tenantId,
+      Seq(
+        agreementCertifiedTenantAttribute(noChangesExistingAttributeId),
+        agreementCertifiedTenantAttribute(updatedExistingAttributeId, Some(timestamp))
+      )
+    )
+
     val seed =
       internalTenantSeed.copy(certifiedAttributes =
         Seq(noChangesExistingAttributeSeed, updatedExistingAttributeSeed, newAttributeSeed1, newAttributeSeed2)
@@ -328,9 +336,9 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       dependencyTenantAttribute.withNewId(updatedExistingAttributeId).withRevocation(None)
     )
 
-    mockComputeAgreementState(existingTenant.id, newAttributeId1)
-    mockComputeAgreementState(existingTenant.id, newAttributeId2)
-    mockComputeAgreementState(existingTenant.id, updatedExistingAttributeId)
+    mockComputeAgreementState(newAttributeId1, compactTenant)
+    mockComputeAgreementState(newAttributeId2, compactTenant)
+    mockComputeAgreementState(updatedExistingAttributeId, compactTenant)
 
     mockGetTenantById(existingTenant.id, existingTenant)
 
@@ -394,6 +402,14 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         kind = Some(PersistentTenantKind.PA)
       )
 
+    val compactTenant = CompactTenant(
+      tenantId,
+      Seq(
+        agreementCertifiedTenantAttribute(noChangesExistingAttributeId),
+        agreementCertifiedTenantAttribute(updatedExistingAttributeId, Some(timestamp))
+      )
+    )
+
     val seed =
       internalTenantSeed.copy(certifiedAttributes =
         Seq(noChangesExistingAttributeSeed, updatedExistingAttributeSeed, newAttributeSeed1, newAttributeSeed2)
@@ -429,9 +445,9 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       dependencyTenantAttribute.withNewId(updatedExistingAttributeId).withRevocation(None)
     )
 
-    mockComputeAgreementState(existingTenant.id, newAttributeId1)
-    mockComputeAgreementState(existingTenant.id, newAttributeId2)
-    mockComputeAgreementState(existingTenant.id, updatedExistingAttributeId)
+    mockComputeAgreementState(newAttributeId1, compactTenant)
+    mockComputeAgreementState(newAttributeId2, compactTenant)
+    mockComputeAgreementState(updatedExistingAttributeId, compactTenant)
 
     mockGetTenantById(existingTenant.id, existingTenant)
 
@@ -656,7 +672,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val expectedTenantUpdate =
       TenantDelta(selfcareId = None, features = Nil, mails = Nil, kind = TenantKind.PA)
 
-    mockComputeAgreementState(dependencyTenant.id, attributeId)
+    mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
 
     mockUpdateTenant(tenantToModify.id, expectedTenantUpdate)
 
@@ -785,6 +801,14 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         )
       )
 
+    val compactTenant = CompactTenant(
+      tenantId,
+      Seq(
+        agreementCertifiedTenantAttribute(noChangesExistingAttributeId),
+        agreementCertifiedTenantAttribute(updatedExistingAttributeId, Some(timestamp))
+      )
+    )
+
     val seed =
       m2mTenantSeed.copy(certifiedAttributes =
         Seq(noChangesExistingAttributeSeed, updatedExistingAttributeSeed, newAttributeSeed1, newAttributeSeed2)
@@ -822,9 +846,9 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       dependencyTenantAttribute.withNewId(updatedExistingAttributeId).withRevocation(None)
     )
 
-    mockComputeAgreementState(existingTenant.id, newAttributeId1)
-    mockComputeAgreementState(existingTenant.id, newAttributeId2)
-    mockComputeAgreementState(existingTenant.id, updatedExistingAttributeId)
+    mockComputeAgreementState(newAttributeId1, compactTenant)
+    mockComputeAgreementState(newAttributeId2, compactTenant)
+    mockComputeAgreementState(updatedExistingAttributeId, compactTenant)
 
     mockGetTenantById(existingTenant.id, existingTenant)
 

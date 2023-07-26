@@ -2,6 +2,7 @@ package it.pagopa.interop.tenantprocess.provider
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import it.pagopa.interop.agreementprocess.client.model.CompactTenant
 import it.pagopa.interop.tenantmanagement.client.{model => Dependency}
 import it.pagopa.interop.tenantprocess.model.DeclaredTenantAttributeSeed
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
@@ -29,7 +30,7 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockDateTimeGet()
       mockGetTenantAttributeNotFound(organizationId, attributeId)
       mockAddTenantAttribute(organizationId, managementSeed)
-      mockComputeAgreementState(organizationId, attributeId)
+      mockComputeAgreementState(attributeId, CompactTenant(organizationId, Nil))
 
       Post() ~> tenantService.addDeclaredAttribute(seed) ~> check {
         assert(status == StatusCodes.OK)
@@ -58,7 +59,7 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockDateTimeGet()
       mockGetTenantAttribute(organizationId, attribute.id, attribute)
       mockUpdateTenantAttribute(organizationId, attribute.id, managementSeed)
-      mockComputeAgreementState(organizationId, attribute.id)
+      mockComputeAgreementState(attribute.id, CompactTenant(organizationId, Nil))
 
       Post() ~> tenantService.revokeDeclaredAttribute(attribute.id.toString) ~> check {
         assert(status == StatusCodes.OK)
@@ -91,7 +92,7 @@ class DeclaredAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockDateTimeGet()
       mockGetTenantAttribute(organizationId, attributeId, existingAttribute)
       mockUpdateTenantAttribute(organizationId, attributeId, managementSeed)
-      mockComputeAgreementState(organizationId, attributeId)
+      mockComputeAgreementState(attributeId, CompactTenant(organizationId, Nil))
 
       Post() ~> tenantService.addDeclaredAttribute(seed) ~> check {
         assert(status == StatusCodes.OK)

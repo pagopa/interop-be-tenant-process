@@ -4,16 +4,17 @@ import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.tenantmanagement.client.model._
 import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.tenantmanagement.model.tenant.{
+  PersistentCertifiedAttribute,
   PersistentExternalId,
   PersistentTenant,
   PersistentTenantAttribute,
-  PersistentCertifiedAttribute,
   PersistentTenantFeature,
   PersistentTenantKind
 }
-import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.{PersistentAttribute, Certified}
+import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.{Certified, PersistentAttribute}
 import it.pagopa.interop.catalogmanagement.model.CatalogItem
 import it.pagopa.interop.agreementmanagement.model.agreement.{PersistentAgreement, PersistentAgreementState}
+import it.pagopa.interop.agreementprocess.client.model.CompactTenant
 import it.pagopa.interop.tenantprocess.service._
 import org.mongodb.scala.bson.conversions.Bson
 import spray.json.JsonReader
@@ -116,7 +117,7 @@ object FakeDependencies extends SpecData {
   }
 
   case class FakeAgreementProcess() extends AgreementProcessService {
-    override def computeAgreementsByAttribute(consumerId: UUID, attributeId: UUID)(implicit
+    override def computeAgreementsByAttribute(attributeId: UUID, consumer: CompactTenant)(implicit
       contexts: Seq[(String, String)]
     ): Future[Unit] = Future.unit
   }
