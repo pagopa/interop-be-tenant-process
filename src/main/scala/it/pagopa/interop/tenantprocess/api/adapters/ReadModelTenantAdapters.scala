@@ -37,7 +37,7 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
   }
 
   implicit class PersistentMailWrapper(private val m: PersistentTenantMail) extends AnyVal {
-    def toApi: Mail                   = Mail(kind = m.kind.toApi, address = m.address, createdAt = m.createdAt)
+    def toApi: Mail                   = Mail(kind = m.kind.toApi, address = m.address, createdAt = m.createdAt, description = m.description)
     def toManagement: Management.Mail = Management.Mail(
       kind = m.kind.toManagement,
       address = m.address,
