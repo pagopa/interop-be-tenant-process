@@ -67,12 +67,51 @@ final case class TenantApiServiceImpl(
   private implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
-  override def assignCertifiedAttribute(tenantId: String, certifiedTenantAttributeSeed: CertifiedTenantAttributeSeed)(
+  override def assignCertifiedAttribute(tenantId: String, seed: CertifiedTenantAttributeSeed)(
     implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
-  ): Route = ???
+  ): Route = authorize(ADMIN_ROLE) {
+    val operationLabel = s"Assigning attribute ${seed.attributeId} to tenant $tenantId"
+    logger.info(operationLabel)
+
+    // val now: OffsetDateTime = dateTimeSupplier.get()
+
+    def validateCertifiedAttribute(attribute: PersistentAttribute, certifier: DependencyCertifier): Future[Unit] = {
+       logger.info(attribute.description)
+       logger.info(certifier.certifierId)
+      Future.unit
+    }
+
+    val result: Future[Tenant] = for {
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
+      targetTenantUuid    <- tenantId.toFutureUUID
+      certifier      <- validateCertifierTenant(requesterTenantUuid)
+      _            <- if (requesterTenantUuid == targetTenantUuid) Future.failed(VerifiedAttributeSelfVerification) else Future.unit
+      attribute            <- attributeRegistryManagementService.getAttributeById(seed.attributeId)
+      _ <- validateCertifiedAttribute(attribute, certifier)
+      targetTenant <- tenantManagementService.getTenantById(targetTenantUuid).map(_.toManagement)
+      tenantAttribute = targetTenant.attributes.flatMap(_.certified).find(_.id == seed.attributeId)
+      // updatedTenant <- tenantAttribute.fold(
+      //   tenantManagementService.addTenantAttribute(targetTenantUuid, seed.toCreateDependency(now, requesterTenantUuid))
+      // )(attr =>
+      //   tenantManagementService.updateTenantAttribute(
+      //     targetTenantUuid,
+      //     seed.attributeId,
+      //     seed.toUpdateDependency(now, requesterTenantUuid, attr)
+      //   )
+      // )
+      // _             <- agreementProcessService.computeAgreementsByAttribute(
+      //   seed.attributeId,
+      //   CompactTenant(updatedTenant.id, updatedTenant.attributes.map(_.toAgreementApi))
+      // )
+    } yield targetTenant.toApi
+
+    onComplete(result) {
+      assignCertifiedAttributeResponse[Tenant](operationLabel)(assignCertifiedAttribute200)
+    }
+  }
 
   override def getProducers(name: Option[String], offset: Int, limit: Int)(implicit
     contexts: Seq[(String, String)],
@@ -175,6 +214,13 @@ final case class TenantApiServiceImpl(
     }
   }
 
+  def validateCertifierTenant(tenantId: UUID): Future[DependencyCertifier] = for {
+        requesterTenant     <- tenantManagementService.getTenantById(tenantId).map(_.toManagement)
+        maybeCertifier = requesterTenant.features
+          .collectFirst { case DependencyTenantFeature(Some(certifier)) => certifier }
+        certifier <- maybeCertifier.toFuture(TenantIsNotACertifier(tenantId))
+      } yield certifier
+
   override def m2mUpsertTenant(seed: M2MTenantSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
@@ -186,16 +232,9 @@ final case class TenantApiServiceImpl(
 
       val now: OffsetDateTime = dateTimeSupplier.get()
 
-      def validateCertifierTenant: Future[DependencyCertifier] = for {
-        requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
-        requesterTenant     <- tenantManagementService.getTenantById(requesterTenantUuid).map(_.toManagement)
-        maybeCertifier = requesterTenant.features
-          .collectFirst { case DependencyTenantFeature(Some(certifier)) => certifier }
-        certifier <- maybeCertifier.toFuture(TenantIsNotACertifier(requesterTenantUuid))
-      } yield certifier
-
       val result: Future[Tenant] = for {
-        certifier      <- validateCertifierTenant
+        requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
+        certifier      <- validateCertifierTenant(requesterTenantUuid)
         existingTenant <- findTenant(seed.externalId)
         attributesId = seed.certifiedAttributes.map(a => ExternalId(certifier.certifierId, a.code))
         tenant <- existingTenant.fold(
