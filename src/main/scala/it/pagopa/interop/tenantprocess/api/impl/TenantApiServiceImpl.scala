@@ -67,6 +67,13 @@ final case class TenantApiServiceImpl(
   private implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
+  override def assignCertifiedAttribute(tenantId: String, certifiedTenantAttributeSeed: CertifiedTenantAttributeSeed)(
+    implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = ???
+
   override def getProducers(name: Option[String], offset: Int, limit: Int)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerTenants: ToEntityMarshaller[Tenants],

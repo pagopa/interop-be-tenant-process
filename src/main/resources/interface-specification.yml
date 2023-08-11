@@ -521,6 +521,54 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /tenants/{tenantId}/attributes/certified:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - name: tenantId
+        in: path
+        description: Tenant id which certified attribute has to be associated
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - tenant
+      operationId: assignCertifiedAttribute
+      description: Add a certified attribute to a Tenant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CertifiedTenantAttributeSeed'
+        required: true
+      responses:
+        '200':
+          description: Assign certified attribute to Tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Tenant Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
   /tenants/{tenantId}/attributes/verified:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -910,6 +958,14 @@ components:
           format: uuid
       required:
         - id
+    CertifiedTenantAttributeSeed:
+      type: object
+      properties:
+        attributeId:
+          type: string
+          format: uuid
+      required:
+        - attributeId    
     VerifiedTenantAttributeSeed:
       type: object
       properties:

@@ -39,4 +39,7 @@ object TenantApiMarshallerImpl extends TenantApiMarshaller with SprayJsonSupport
     : FromEntityUnmarshaller[UpdateVerifiedTenantAttributeSeed] =
     sprayJsonUnmarshaller[UpdateVerifiedTenantAttributeSeed]
 
+  override implicit def fromEntityUnmarshallerCertifiedTenantAttributeSeed
+    : FromEntityUnmarshaller[CertifiedTenantAttributeSeed] = sprayJsonUnmarshaller[CertifiedTenantAttributeSeed]
+
 }
