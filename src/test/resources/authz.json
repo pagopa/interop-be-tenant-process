@@ -69,6 +69,13 @@
       ]
     },
     {
+      "route": "internalAssignCertifiedAttribute",
+      "verb": "POST",
+      "roles": [
+        "internal"
+      ]
+    },
+    {
       "route": "m2mUpsertTenant",
       "verb": "POST",
       "roles": [

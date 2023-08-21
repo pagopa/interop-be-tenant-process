@@ -13,5 +13,4 @@ object AttributeRegistryManagementAdapters {
       CertifiedTenantAttribute(id = a.id, assignmentTimestamp = now, revocationTimestamp = None).some
     )
   }
-
 }

@@ -89,4 +89,9 @@ object TenantProcessErrors {
   final case class SelcareIdNotFound(selfcareId: UUID)
       extends ComponentError("0021", s"Tenant with selfcare id ${selfcareId.toString} not found in the catalog")
 
+  final case class CertifiedAttributeAlreadyInTenant(tenantId: UUID, attributeOrigin: String, attributeCode: String)
+      extends ComponentError(
+        "0022",
+        s"Certified Attribute ($attributeOrigin, $attributeCode) already in tenant $tenantId"
+      )
 }
