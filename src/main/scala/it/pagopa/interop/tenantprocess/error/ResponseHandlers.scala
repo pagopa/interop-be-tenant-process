@@ -198,7 +198,7 @@ object ResponseHandlers extends AkkaResponses {
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
     result match {
       case Success(s)                                     => success(s)
-      case Failure(ex: CertifiedAttributeAlreadyInTenant) => badRequest(ex, logMessage)
+      case Failure(ex: CertifiedAttributeAlreadyInTenant) => conflict(ex, logMessage)
       case Failure(ex: TenantNotFound)                    => notFound(ex, logMessage)
       case Failure(ex: RegistryAttributeNotFound)         => notFound(ex, logMessage)
       case Failure(ex)                                    => internalServerError(ex, logMessage)
