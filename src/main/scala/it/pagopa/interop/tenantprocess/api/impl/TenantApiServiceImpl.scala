@@ -305,6 +305,35 @@ final case class TenantApiServiceImpl(
       }
     }
 
+  override def internalAssignCertifiedAttribute(
+    tenantOrigin: String,
+    tenantExternalId: String,
+    attributeOrigin: String,
+    attributeExternalId: String
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
+    authorize(INTERNAL_ROLE) {
+      val operationLabel =
+        s"Assigning certified attribute ($attributeOrigin/$attributeExternalId) to tenant ($tenantOrigin/$tenantExternalId)"
+      logger.info(operationLabel)
+
+      val result: Future[Unit] = for {
+        (tenant, attributeId) <- assignCertifiedAttribute(
+          tenantOrigin = tenantOrigin,
+          tenantExternalId = tenantExternalId,
+          attributeOrigin = attributeOrigin,
+          attributeExternalId = attributeExternalId
+        )
+        _                     <- agreementProcessService.computeAgreementsByAttribute(
+          attributeId,
+          CompactTenant(tenant.id, tenant.attributes.map(_.toAgreementApi))
+        )
+      } yield ()
+
+      onComplete(result) {
+        internalAssignCertifiedAttributeResponse[Unit](operationLabel)(_ => internalAssignCertifiedAttribute204)
+      }
+    }
+
   override def addDeclaredAttribute(seed: DeclaredTenantAttributeSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
@@ -691,6 +720,42 @@ final case class TenantApiServiceImpl(
         )
     }
   } yield (updatedTenant, attributeToModify)
+
+  private def assignCertifiedAttribute(
+    tenantOrigin: String,
+    tenantExternalId: String,
+    attributeOrigin: String,
+    attributeExternalId: String
+  )(implicit contexts: Seq[(String, String)]): Future[(DependencyTenant, UUID)] = for {
+    tenantToModify    <- tenantManagementService
+      .getTenantByExternalId(PersistentExternalId(tenantOrigin, tenantExternalId))
+      .map(_.toManagement)
+    attributeToAssign <- attributeRegistryManagementService
+      .getAttributeByExternalCode(attributeOrigin, attributeExternalId)
+    maybeAttribute = tenantToModify.attributes
+      .flatMap(_.certified)
+      .filter(_.revocationTimestamp.isEmpty)
+      .find(_.id == attributeToAssign.id)
+    now            = dateTimeSupplier.get()
+    updatedTenant <- maybeAttribute.fold(
+      tenantManagementService.addTenantAttribute(tenantToModify.id, attributeToAssign.toCertifiedSeed(now))
+    )(_ => Future.failed(CertifiedAttributeAlreadyInTenant(tenantToModify.id, attributeOrigin, attributeExternalId)))
+
+    tenantKind    <- getTenantKindLoadingCertifiedAttributes(updatedTenant.attributes, updatedTenant.externalId)
+    updatedTenant <- updatedTenant.kind match {
+      case Some(x) if (x == tenantKind) => Future.successful(updatedTenant)
+      case _                            =>
+        tenantManagementService.updateTenant(
+          updatedTenant.id,
+          DependencyTenantDelta(
+            selfcareId = updatedTenant.selfcareId,
+            features = updatedTenant.features,
+            mails = updatedTenant.mails.map(_.toSeed),
+            kind = tenantKind
+          )
+        )
+    }
+  } yield (updatedTenant, attributeToAssign.id)
 
   private def assertAttributeVerificationAllowed(producerId: UUID, consumerId: UUID, attributeId: UUID): Future[Unit] =
     assertVerifiedAttributeOperationAllowed(

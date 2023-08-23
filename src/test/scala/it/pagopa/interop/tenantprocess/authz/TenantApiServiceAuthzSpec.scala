@@ -88,6 +88,13 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     )
   }
 
+  test("Tenant api should accept authorized roles for internalAssignCertifiedAttribute") {
+    validateAuthorization(
+      endpoints("internalAssignCertifiedAttribute"),
+      { implicit c: Seq[(String, String)] => tenantService.internalAssignCertifiedAttribute("", "", "", "") }
+    )
+  }
+
   test("Tenant api should accept authorized roles for m2mUpsertTenant") {
     validateAuthorization(
       endpoints("m2mUpsertTenant"),

@@ -85,6 +85,26 @@ paths:
         required: true
         schema:
           type: string
+    post:
+      tags:
+        - tenant
+      operationId: internalAssignCertifiedAttribute
+      description: Assigns a Certified attribute to the requesting Tenant
+      responses:
+        '204':
+          description: Updated Tenant
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Attribute already assigned to Tenant
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
     delete:
       tags:
         - tenant
