@@ -23,13 +23,12 @@ import it.pagopa.interop.agreementmanagement.model.agreement.{
 import it.pagopa.interop.agreementprocess.client.{model => AgreementDependency}
 import it.pagopa.interop.catalogmanagement.model.{
   Automatic,
-  CatalogAttributeValue,
+  CatalogAttribute,
   CatalogAttributes,
   CatalogDescriptor,
   CatalogItem,
   Published,
-  Rest,
-  SingleAttribute
+  Rest
 }
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -255,8 +254,7 @@ trait SpecData {
         agreementApprovalPolicy = Some(Automatic),
         serverUrls = Nil,
         createdAt = OffsetDateTimeSupplier.get().minusDays(10),
-        attributes =
-          CatalogAttributes(Nil, Nil, verified = Seq(SingleAttribute(CatalogAttributeValue(verifiedAttributeId, true))))
+        attributes = CatalogAttributes(Nil, Nil, verified = Seq(Seq(CatalogAttribute(verifiedAttributeId, true))))
       ) :: Nil
     )
 

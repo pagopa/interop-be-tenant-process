@@ -39,7 +39,6 @@ import it.pagopa.interop.tenantprocess.error.ResponseHandlers._
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
-import it.pagopa.interop.catalogmanagement.model.{GroupAttribute, SingleAttribute}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
 
 import java.time.{Duration, OffsetDateTime}
@@ -790,8 +789,8 @@ final case class TenantApiServiceImpl(
       .flatMap(_.attributes.verified)
       .flatMap(attr =>
         attr match {
-          case SingleAttribute(single) => Seq(single.id)
-          case GroupAttribute(group)   => group.map(_.id)
+          case head :: Nil => Seq(head.id)
+          case values      => values.map(_.id)
         }
       )
       .toSet
