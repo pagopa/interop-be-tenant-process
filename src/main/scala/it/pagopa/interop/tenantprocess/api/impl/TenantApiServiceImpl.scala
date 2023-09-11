@@ -787,12 +787,7 @@ final case class TenantApiServiceImpl(
     attributeIds = eServices
       .flatMap(_.descriptors.filter(d => descriptorIds.contains(d.id)))
       .flatMap(_.attributes.verified)
-      .flatMap(attr =>
-        attr match {
-          case head :: Nil => Seq(head.id)
-          case values      => values.map(_.id)
-        }
-      )
+      .flatMap(_.map(_.id))
       .toSet
     _ <- Future.failed(error).unlessA(attributeIds.contains(attributeId))
   } yield ()
