@@ -39,7 +39,6 @@ import it.pagopa.interop.tenantprocess.error.ResponseHandlers._
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
-import it.pagopa.interop.catalogmanagement.model.{GroupAttribute, SingleAttribute}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
 
 import java.time.{Duration, OffsetDateTime}
@@ -788,12 +787,7 @@ final case class TenantApiServiceImpl(
     attributeIds = eServices
       .flatMap(_.descriptors.filter(d => descriptorIds.contains(d.id)))
       .flatMap(_.attributes.verified)
-      .flatMap(attr =>
-        attr match {
-          case SingleAttribute(single) => Seq(single.id)
-          case GroupAttribute(group)   => group.map(_.id)
-        }
-      )
+      .flatMap(_.map(_.id))
       .toSet
     _ <- Future.failed(error).unlessA(attributeIds.contains(attributeId))
   } yield ()
