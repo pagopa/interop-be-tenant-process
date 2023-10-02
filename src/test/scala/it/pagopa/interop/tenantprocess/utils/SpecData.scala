@@ -34,6 +34,7 @@ import it.pagopa.interop.catalogmanagement.model.{
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
+import it.pagopa.interop.catalogmanagement.model.Deliver
 
 trait SpecData {
   final val timestamp                              = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
@@ -255,7 +256,9 @@ trait SpecData {
         serverUrls = Nil,
         createdAt = OffsetDateTimeSupplier.get().minusDays(10),
         attributes = CatalogAttributes(Nil, Nil, verified = Seq(Seq(CatalogAttribute(verifiedAttributeId, true))))
-      ) :: Nil
+      ) :: Nil,
+      mode = Deliver,
+      riskAnalysis = Seq.empty
     )
 
   val paginatedResults: PaginatedResult[PersistentTenant] =
