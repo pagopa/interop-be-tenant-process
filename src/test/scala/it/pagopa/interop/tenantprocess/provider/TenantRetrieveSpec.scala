@@ -2,9 +2,11 @@ package it.pagopa.interop.tenantprocess.provider
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import org.scalatest.wordspec.AnyWordSpecLike
+
 import java.util.UUID
 
 class TenantRetrieveSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest {
@@ -80,6 +82,34 @@ class TenantRetrieveSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
       Get() ~> tenantService.getTenantBySelfcareId(selfcareId.toString) ~> check {
         assert(status == StatusCodes.OK)
+      }
+    }
+
+    "Get Tenant by External Id" in {
+
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val origin = "IPA"
+      val code   = "a_code"
+
+      mockGetTenantByExternalId(PersistentExternalId(origin, code), persistentTenant)
+
+      Get() ~> tenantService.getTenantByExternalId(origin, code) ~> check {
+        assert(status == StatusCodes.OK)
+      }
+    }
+
+    "Get Tenant by External Id - Tenant not found" in {
+
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val origin = "IPA"
+      val code   = "a_code"
+
+      mockGetTenantByExternalIdNotFound(PersistentExternalId(origin, code))
+
+      Get() ~> tenantService.getTenantByExternalId(origin, code) ~> check {
+        assert(status == StatusCodes.NotFound)
       }
     }
   }
