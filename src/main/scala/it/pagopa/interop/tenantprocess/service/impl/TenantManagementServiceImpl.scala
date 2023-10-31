@@ -41,9 +41,9 @@ final case class TenantManagementServiceImpl(
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   override def createTenant(seed: TenantSeed)(implicit contexts: Seq[(String, String)]): Future[Tenant] = withHeaders {
-    (bearerToken, correlationId, ip) =>
+    (bearerToken, correlationId) =>
       val request =
-        tenantApi.createTenant(xCorrelationId = correlationId, seed, xForwardedFor = ip)(BearerToken(bearerToken))
+        tenantApi.createTenant(xCorrelationId = correlationId, seed)(BearerToken(bearerToken))
       invoker.invoke(
         request,
         s"Creating tenant for Origin ${seed.externalId.origin} and Value ${seed.externalId.value}"
@@ -52,13 +52,10 @@ final case class TenantManagementServiceImpl(
 
   override def updateTenant(tenantId: UUID, payload: TenantDelta)(implicit
     contexts: Seq[(String, String)]
-  ): Future[Tenant] = withHeaders { (bearerToken, correlationId, ip) =>
-    val request = tenantApi.updateTenant(
-      xCorrelationId = correlationId,
-      tenantId = tenantId,
-      tenantDelta = payload,
-      xForwardedFor = ip
-    )(BearerToken(bearerToken))
+  ): Future[Tenant] = withHeaders { (bearerToken, correlationId) =>
+    val request = tenantApi.updateTenant(xCorrelationId = correlationId, tenantId = tenantId, tenantDelta = payload)(
+      BearerToken(bearerToken)
+    )
     invoker
       .invoke(request, s"Updating tenant with id $tenantId")
       .recoverWith {
@@ -69,13 +66,11 @@ final case class TenantManagementServiceImpl(
 
   override def addTenantAttribute(tenantId: UUID, attribute: TenantAttribute)(implicit
     contexts: Seq[(String, String)]
-  ): Future[Tenant] = withHeaders { (bearerToken, correlationId, ip) =>
-    val request = attributeApi.addTenantAttribute(
-      xCorrelationId = correlationId,
-      tenantId = tenantId,
-      tenantAttribute = attribute,
-      xForwardedFor = ip
-    )(BearerToken(bearerToken))
+  ): Future[Tenant] = withHeaders { (bearerToken, correlationId) =>
+    val request =
+      attributeApi.addTenantAttribute(xCorrelationId = correlationId, tenantId = tenantId, tenantAttribute = attribute)(
+        BearerToken(bearerToken)
+      )
     val id      = attribute.certified
       .map(_.id)
       .orElse(attribute.verified.map(_.id))
@@ -87,13 +82,12 @@ final case class TenantManagementServiceImpl(
 
   override def updateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
     contexts: Seq[(String, String)]
-  ): Future[Tenant] = withHeaders { (bearerToken, correlationId, ip) =>
+  ): Future[Tenant] = withHeaders { (bearerToken, correlationId) =>
     val request = attributeApi.updateTenantAttribute(
       xCorrelationId = correlationId,
       tenantId = tenantId,
       attributeId = attributeId,
-      tenantAttribute = attribute,
-      xForwardedFor = ip
+      tenantAttribute = attribute
     )(BearerToken(bearerToken))
     invoker.invoke(request, s"Deleting attribute $attributeId from tenant $tenantId")
   }

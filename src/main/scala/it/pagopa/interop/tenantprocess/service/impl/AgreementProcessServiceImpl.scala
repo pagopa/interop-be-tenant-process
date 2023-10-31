@@ -26,11 +26,10 @@ final case class AgreementProcessServiceImpl(
   ): Future[Unit] = {
     implicit val ec: ExecutionContext = blockingEc
     for {
-      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      (bearerToken, correlationId) <- extractHeaders(contexts).toFuture
       request = agreementApi.computeAgreementsByAttribute(
         xCorrelationId = correlationId,
-        computeAgreementStatePayload = ComputeAgreementStatePayload(attributeId, consumer),
-        xForwardedFor = ip
+        computeAgreementStatePayload = ComputeAgreementStatePayload(attributeId, consumer)
       )(BearerToken(bearerToken))
       result <- invoker
         .invoke(request, s"Agreements state compute triggered for Tenant ${consumer.id} and Attribute $attributeId")
