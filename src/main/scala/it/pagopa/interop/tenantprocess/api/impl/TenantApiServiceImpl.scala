@@ -857,8 +857,10 @@ final case class TenantApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Unit] = for {
-      tenantUuid <- tenantId.toFutureUUID
-      _          <- tenantManagementService.addTenantMail(tenantUuid, mailSeed.toDependency)
+      tenantUuid    <- tenantId.toFutureUUID
+      requesterUuid <- getOrganizationIdFutureUUID(contexts)
+      _             <- assertRequesterAllowed(tenantUuid)(requesterUuid)
+      _             <- tenantManagementService.addTenantMail(tenantUuid, mailSeed.toDependency)
     } yield ()
 
     onComplete(result) {
@@ -874,8 +876,10 @@ final case class TenantApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Unit] = for {
-      tenantUuid <- tenantId.toFutureUUID
-      _          <- tenantManagementService.deleteTenantMail(tenantUuid, mailId)
+      tenantUuid    <- tenantId.toFutureUUID
+      requesterUuid <- getOrganizationIdFutureUUID(contexts)
+      _             <- assertRequesterAllowed(tenantUuid)(requesterUuid)
+      _             <- tenantManagementService.deleteTenantMail(tenantUuid, mailId)
     } yield ()
 
     onComplete(result) {

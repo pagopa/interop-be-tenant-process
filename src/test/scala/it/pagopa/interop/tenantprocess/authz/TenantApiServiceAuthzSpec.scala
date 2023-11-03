@@ -192,7 +192,7 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     validateAuthorization(
       endpoints("addTenantMail"),
       { implicit c: Seq[(String, String)] =>
-        tenantService.addTenantMail(UUID.randomUUID().toString, fakeMailSeed)
+        tenantService.addTenantMail(c.find(_._1 == ORGANIZATION_ID_CLAIM).get.toString, fakeMailSeed)
       }
     )
   }
@@ -201,7 +201,7 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     validateAuthorization(
       endpoints("deleteTenantMail"),
       { implicit c: Seq[(String, String)] =>
-        tenantService.deleteTenantMail(UUID.randomUUID().toString, "fakeM")
+        tenantService.deleteTenantMail(c.find(_._1 == ORGANIZATION_ID_CLAIM).get.toString, "fake")
       }
     )
   }
