@@ -19,7 +19,7 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def m2mAttributeSeedFormat: RootJsonFormat[M2MAttributeSeed] = jsonFormat1(M2MAttributeSeed)
   implicit def m2mTenantSeedFormat: RootJsonFormat[M2MTenantSeed]       = jsonFormat3(M2MTenantSeed)
 
-  implicit def selfcareTenantSeedFormat: RootJsonFormat[SelfcareTenantSeed] = jsonFormat3(SelfcareTenantSeed)
+  implicit def selfcareTenantSeedFormat: RootJsonFormat[SelfcareTenantSeed] = jsonFormat4(SelfcareTenantSeed)
 
   implicit def certifierFormat: RootJsonFormat[Certifier]             = jsonFormat1(Certifier)
   implicit def tenantFeatureFormat: RootJsonFormat[TenantFeature]     = jsonFormat1(TenantFeature)

@@ -58,7 +58,8 @@ object AdaptableSeed {
         features = Nil,
         attributes = attributes,
         name = a.name,
-        kind = kind
+        kind = kind,
+        onboardedAt = a.onboardedAt
       )
   }
 }
