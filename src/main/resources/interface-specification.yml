@@ -849,7 +849,10 @@ components:
         name:
           type: string
         kind:
-          $ref: '#/components/schemas/TenantKind'  
+          $ref: '#/components/schemas/TenantKind'
+        onboardedAt:
+          type: string
+          format: date-time  
       required:
         - id
         - certifier
@@ -1115,6 +1118,7 @@ components:
       type: string
       enum:
         - CONTACT_EMAIL
+        - DIGITAL_ADDRESS
     Problem:
       properties:
         type:

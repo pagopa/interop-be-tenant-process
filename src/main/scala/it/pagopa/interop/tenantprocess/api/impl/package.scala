@@ -42,7 +42,7 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def tenantVerifierFormat: RootJsonFormat[TenantVerifier] = jsonFormat4(TenantVerifier)
   implicit def tenantRevokerFormat: RootJsonFormat[TenantRevoker]   = jsonFormat5(TenantRevoker)
 
-  implicit def tenantFormat: RootJsonFormat[Tenant]             = jsonFormat10(Tenant)
+  implicit def tenantFormat: RootJsonFormat[Tenant]             = jsonFormat11(Tenant)
   implicit def tenantsFormat: RootJsonFormat[Tenants]           = jsonFormat2(Tenants)
   implicit def problemErrorFormat: RootJsonFormat[ProblemError] = jsonFormat2(ProblemError)
   implicit def problemFormat: RootJsonFormat[Problem]           = jsonFormat6(Problem)

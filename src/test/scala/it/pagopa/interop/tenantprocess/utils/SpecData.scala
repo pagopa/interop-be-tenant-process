@@ -104,7 +104,8 @@ trait SpecData {
     updatedAt = None,
     mails = Nil,
     name = "test_name",
-    kind = None
+    kind = None,
+    onboardedAt = None
   )
 
   val persistentTenantNotIPA: PersistentTenant = PersistentTenant(
@@ -117,7 +118,8 @@ trait SpecData {
     updatedAt = None,
     mails = Nil,
     name = "test_name",
-    kind = None
+    kind = None,
+    onboardedAt = None
   )
 
   val fakeMailSeed = MailSeed(MailKind.CONTACT_EMAIL, address = "fakeAddress", description = None)
