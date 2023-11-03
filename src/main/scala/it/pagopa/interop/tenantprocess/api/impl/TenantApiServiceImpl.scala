@@ -235,8 +235,10 @@ final case class TenantApiServiceImpl(
       tenant         <- existingTenant
         .fold(createTenant(seed, Nil, now, getTenantKind(Nil, seed.externalId).fromAPI))(Future.successful)
       tenantKind     <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
-      updatedTenant  <- updateSelfcareId(tenant, tenantKind)
-    } yield updatedTenant.toApi
+      _              <- updateSelfcareId(tenant, tenantKind)
+      _              <- tenantManagementService.addTenantMail(tenant.id, seed.digitalAddress.toDependency)
+      tenant         <- tenantManagementService.getTenantById(tenant.id)
+    } yield tenant.toApi
 
     onComplete(result) {
       selfcareUpsertTenantResponse[Tenant](operationLabel)(selfcareUpsertTenant200)

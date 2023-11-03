@@ -1071,6 +1071,8 @@ components:
           type: string
           minLength: 1
           maxLength: 1000
+        digitalAddress:
+          $ref: '#/components/schemas/MailSeed'  
         onboardedAt:
           type: string
           format: date-time  
@@ -1078,6 +1080,8 @@ components:
         - externalId
         - selfcareId
         - name
+        - digitalAddress
+        - onboardedAt
     MailSeed:
       description: A specific kind of mail
       type: object

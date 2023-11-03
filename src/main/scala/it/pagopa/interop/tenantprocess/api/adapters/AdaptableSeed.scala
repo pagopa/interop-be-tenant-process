@@ -59,7 +59,7 @@ object AdaptableSeed {
         attributes = attributes,
         name = a.name,
         kind = kind,
-        onboardedAt = a.onboardedAt
+        onboardedAt = Some(a.onboardedAt)
       )
   }
 }

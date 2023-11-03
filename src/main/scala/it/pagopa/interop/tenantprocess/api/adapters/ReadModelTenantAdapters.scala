@@ -20,6 +20,7 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
       attributes = t.attributes.map(_.toApi),
       createdAt = t.createdAt,
       updatedAt = t.updatedAt,
+      onboardedAt = t.onboardedAt,
       mails = t.mails.map(_.toApi)
     )
     def toManagement: Management.Tenant = Management.Tenant(
@@ -32,6 +33,7 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
       attributes = t.attributes.map(_.toManagement),
       createdAt = t.createdAt,
       updatedAt = t.updatedAt,
+      onboardedAt = t.onboardedAt,
       mails = t.mails.map(_.toManagement)
     )
   }

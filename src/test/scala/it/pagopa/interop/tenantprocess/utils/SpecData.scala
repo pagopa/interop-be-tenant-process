@@ -31,6 +31,7 @@ import it.pagopa.interop.catalogmanagement.model.{
   Rest,
   Deliver
 }
+import it.pagopa.interop.commons.utils.Digester.toSha256
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
@@ -40,7 +41,13 @@ trait SpecData {
   val tenantId                                     = UUID.randomUUID()
   val internalAttributeSeed: InternalAttributeSeed = InternalAttributeSeed("IPA", s"int-attribute-${UUID.randomUUID()}")
   val m2mAttributeSeed: M2MAttributeSeed           = M2MAttributeSeed(s"m2m-attribute-${UUID.randomUUID()}")
-
+  val mailSeed: MailSeed                           = MailSeed(MailKind.DIGITAL_ADDRESS, address = "foo@bar.it", None)
+  val dependencyMailSeed: Dependency.MailSeed      = Dependency.MailSeed(
+    toSha256("foo@bar.it".getBytes()),
+    Dependency.MailKind.DIGITAL_ADDRESS,
+    address = "foo@bar.it",
+    None
+  )
   val internalTenantSeed: InternalTenantSeed       =
     InternalTenantSeed(ExternalId("IPA", s"tenant-${UUID.randomUUID()}"), Seq(internalAttributeSeed), "test_name")
   val internalTenantSeedNotIpa: InternalTenantSeed =
@@ -50,9 +57,21 @@ trait SpecData {
   val m2mTenantSeedNotIpa: M2MTenantSeed           =
     M2MTenantSeed(ExternalId("NOT_IPA", s"tenant-${UUID.randomUUID()}"), Seq(m2mAttributeSeed), "test_name")
   val selfcareTenantSeed: SelfcareTenantSeed       =
-    SelfcareTenantSeed(ExternalId("IPA", s"tenant-${UUID.randomUUID()}"), UUID.randomUUID().toString, "test_name")
+    SelfcareTenantSeed(
+      ExternalId("IPA", s"tenant-${UUID.randomUUID()}"),
+      UUID.randomUUID().toString,
+      "test_name",
+      mailSeed,
+      timestamp
+    )
   val selfcareTenantSeedNotIpa: SelfcareTenantSeed =
-    SelfcareTenantSeed(ExternalId("NOT_IPA", s"tenant-${UUID.randomUUID()}"), UUID.randomUUID().toString, "test_name")
+    SelfcareTenantSeed(
+      ExternalId("NOT_IPA", s"tenant-${UUID.randomUUID()}"),
+      UUID.randomUUID().toString,
+      "test_name",
+      mailSeed,
+      timestamp
+    )
 
   val dependencyTenant: Dependency.Tenant = Dependency.Tenant(
     id = tenantId,
@@ -64,7 +83,8 @@ trait SpecData {
     updatedAt = None,
     mails = Nil,
     name = "test_name",
-    kind = None
+    kind = None,
+    onboardedAt = Some(timestamp)
   )
 
   val persistentAttribute: PersistentAttribute = PersistentAttribute(
@@ -105,7 +125,7 @@ trait SpecData {
     mails = Nil,
     name = "test_name",
     kind = None,
-    onboardedAt = None
+    onboardedAt = Some(timestamp)
   )
 
   val persistentTenantNotIPA: PersistentTenant = PersistentTenant(
@@ -119,7 +139,7 @@ trait SpecData {
     mails = Nil,
     name = "test_name",
     kind = None,
-    onboardedAt = None
+    onboardedAt = Some(timestamp)
   )
 
   val fakeMailSeed = MailSeed(MailKind.CONTACT_EMAIL, address = "fakeAddress", description = None)
