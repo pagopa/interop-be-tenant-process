@@ -346,7 +346,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeById(updatedExistingAttributeId, updatedExistingAttribute)
 
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = None, features = Nil, mails = Nil, kind = TenantKind.PA)
+      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.PA)
 
     mockUpdateTenant(existingTenant.id, expectedTenantUpdate)
 
@@ -455,7 +455,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeById(updatedExistingAttributeId, updatedExistingAttribute)
 
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = None, features = Nil, mails = Nil, kind = TenantKind.GSP)
+      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.GSP)
 
     mockUpdateTenant(existingTenant.id, expectedTenantUpdate)
 
@@ -670,7 +670,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockUpdateTenantAttribute(tenantToModify.id, attributeId, dependencyAttribute)
 
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = None, features = Nil, mails = Nil, kind = TenantKind.PA)
+      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.PA)
 
     mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
 
@@ -856,7 +856,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeById(updatedExistingAttributeId, updatedExistingAttribute)
 
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = None, features = Nil, mails = Nil, kind = TenantKind.PA)
+      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.PA)
 
     mockUpdateTenant(existingTenant.id, expectedTenantUpdate)
 
@@ -901,7 +901,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         kind = TenantKind.PA
       )
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil, mails = Nil, kind = TenantKind.PA)
+      TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil, kind = TenantKind.PA)
 
     mockDateTimeGet()
     mockUuidGet(tenantId)
@@ -932,7 +932,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         kind = TenantKind.PRIVATE
       )
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil, mails = Nil, kind = TenantKind.PRIVATE)
+      TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil, kind = TenantKind.PRIVATE)
 
     mockDateTimeGet()
     mockUuidGet(tenantId)
@@ -962,7 +962,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       TenantDelta(
         selfcareId = Some(seed.selfcareId),
         features = Seq(TenantFeature(certifier = Some(Certifier("something")))),
-        mails = Nil,
         kind = TenantKind.PA
       )
 
@@ -1056,7 +1055,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       TenantDelta(
         selfcareId = Some(seed.selfcareId),
         features = Seq(TenantFeature(certifier = Some(Certifier("something")))),
-        mails = Nil,
         kind = TenantKind.PA
       )
 

@@ -135,4 +135,28 @@ final case class TenantManagementServiceImpl(
     ec: ExecutionContext,
     readModel: ReadModelService
   ): Future[PaginatedResult[PersistentTenant]] = ReadModelTenantQueries.listConsumers(name, producerId, offset, limit)
+
+  override def addTenantMail(tenantId: UUID, mailSeed: MailSeed)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Unit] = withHeaders { (bearerToken, correlationId) =>
+    val request = tenantApi.addTenantMail(xCorrelationId = correlationId, tenantId = tenantId, mailSeed = mailSeed)(
+      BearerToken(bearerToken)
+    )
+    invoker.invoke(request, s"Adding mail ${mailSeed.address} to tenant $tenantId").recoverWith {
+      case err: ApiError[_] if err.code == 404 =>
+        Future.failed(TenantByIdNotFound(tenantId))
+    }
+  }
+
+  override def deleteTenantMail(tenantId: UUID, mailId: String)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Unit] = withHeaders { (bearerToken, correlationId) =>
+    val request = tenantApi.deleteTenantMail(xCorrelationId = correlationId, tenantId = tenantId, mailId = mailId)(
+      BearerToken(bearerToken)
+    )
+    invoker.invoke(request, s"Deleting mail ${mailId} to tenant $tenantId").recoverWith {
+      case err: ApiError[_] if err.code == 404 =>
+        Future.failed(TenantByIdNotFound(tenantId))
+    }
+  }
 }

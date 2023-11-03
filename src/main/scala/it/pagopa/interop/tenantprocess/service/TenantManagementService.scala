@@ -52,4 +52,8 @@ trait TenantManagementService {
     ec: ExecutionContext,
     readModel: ReadModelService
   ): Future[PaginatedResult[PersistentTenant]]
+
+  def addTenantMail(tenantId: UUID, mailSeed: MailSeed)(implicit contexts: Seq[(String, String)]): Future[Unit]
+
+  def deleteTenantMail(tenantId: UUID, mailId: String)(implicit contexts: Seq[(String, String)]): Future[Unit]
 }

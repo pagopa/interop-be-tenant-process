@@ -28,13 +28,12 @@ import it.pagopa.interop.catalogmanagement.model.{
   CatalogDescriptor,
   CatalogItem,
   Published,
-  Rest
+  Rest,
+  Deliver
 }
-
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
-import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
-import it.pagopa.interop.catalogmanagement.model.Deliver
 
 trait SpecData {
   final val timestamp                              = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
@@ -121,7 +120,7 @@ trait SpecData {
     kind = None
   )
 
-  val fakeTenantDelta: TenantDelta = TenantDelta(mails = Nil)
+  val fakeMailSeed = MailSeed(MailKind.CONTACT_EMAIL, address = "fakeAddress", description = None)
 
   val persistentTenantVerifier: PersistentTenantVerifier = PersistentTenantVerifier(
     id = UUID.randomUUID(),

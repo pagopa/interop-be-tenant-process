@@ -410,30 +410,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-    post:
-      tags:
-        - tenant
-      operationId: updateTenant
-      description: Updates the tenant
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TenantDelta'
-      responses:
-        '200':
-          description: Tenant updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Tenant'
-        '404':
-          description: Tenant Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
   /tenants/origin/{origin}/code/{code}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -705,6 +681,72 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /tenants/{tenantId}/mails:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - name: tenantId
+        in: path
+        description: the tenant id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - tenant
+      summary: Add a tenant mail
+      operationId: addTenantMail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MailSeed'
+      responses:
+        '204':
+          description: Tenant Mail Added
+        '400':
+          description: Invalid input
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Tenant not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /tenants/{tenantId}/mails/{mailId}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - name: tenantId
+        in: path
+        description: the tenant id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: mailId
+        in: path
+        description: the mail id
+        required: true
+        schema:
+          type: string
+    delete:
+      tags:
+        - tenant
+      summary: Delete a tenant mail
+      operationId: deleteTenantMail
+      responses:
+        '204':
+          description: Tenant Mail Deleted
+        '404':
+          description: Tenant not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'              
   /status:
     get:
       security: []
@@ -1018,16 +1060,6 @@ components:
         - externalId
         - selfcareId
         - name
-    TenantDelta:
-      description: Tenant Delta model
-      type: object
-      properties:
-        mails:
-          type: array
-          items:
-            $ref: '#/components/schemas/MailSeed'
-      required:
-        - mails
     MailSeed:
       description: A specific kind of mail
       type: object
@@ -1049,6 +1081,8 @@ components:
       description: A specific kind of mail
       type: object
       properties:
+        id:
+          type: string
         kind:
           $ref: '#/components/schemas/MailKind'
         address:
@@ -1061,6 +1095,7 @@ components:
           type: string
           maxLength: 250
       required:
+        - id
         - kind
         - address
         - createdAt

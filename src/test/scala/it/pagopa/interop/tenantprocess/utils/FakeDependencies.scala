@@ -73,6 +73,13 @@ object FakeDependencies extends SpecData {
       contexts: Seq[(String, String)]
     ): Future[Tenant] = Future.successful(fakeTenant)
 
+    override def addTenantMail(tenantId: UUID, seed: MailSeed)(implicit contexts: Seq[(String, String)]): Future[Unit] =
+      Future.successful(())
+
+    override def deleteTenantMail(tenantId: UUID, mailId: String)(implicit
+      contexts: Seq[(String, String)]
+    ): Future[Unit] = Future.successful(())
+
     override def addTenantAttribute(tenantId: UUID, seed: TenantAttribute)(implicit
       contexts: Seq[(String, String)]
     ): Future[Tenant] = Future.successful(fakeTenant)

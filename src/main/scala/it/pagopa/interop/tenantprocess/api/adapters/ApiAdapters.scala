@@ -10,23 +10,18 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   MailKind => DependencyMailKind,
   MailSeed => DependencyMailSeed,
   TenantAttribute => DependencyTenantAttribute,
-  TenantDelta => DependencyTenantDelta,
   TenantFeature => DependencyTenantFeature,
   TenantKind => DependencyTenantKind,
   TenantVerifier => DependencyTenantVerifier,
   VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
 import it.pagopa.interop.tenantprocess.model._
+import it.pagopa.interop.commons.utils.Digester.toSha256
 
 import java.time.OffsetDateTime
 import java.util.UUID
 
 object ApiAdapters {
-
-  implicit class MailWrapper(private val m: Mail) extends AnyVal {
-    def fromAPI: DependencyMailSeed =
-      DependencyMailSeed(kind = m.kind.fromAPI, address = m.address, description = m.description)
-  }
 
   implicit class TenantKindWrapper(private val tk: TenantKind) extends AnyVal {
     def fromAPI: DependencyTenantKind = tk match {
@@ -50,18 +45,14 @@ object ApiAdapters {
     def fromAPI: DependencyCertifier = DependencyCertifier(c.certifierId)
   }
 
-  implicit class TenantDeltaWrapper(private val td: TenantDelta) extends AnyVal {
-    def fromAPI(
-      selfcareId: Option[String],
-      features: Seq[DependencyTenantFeature],
-      kind: DependencyTenantKind
-    ): DependencyTenantDelta =
-      DependencyTenantDelta(selfcareId, features, mails = td.mails.map(_.toDependency), kind)
-  }
-
   implicit class MailSeedWrapper(private val ms: MailSeed) extends AnyVal {
     def toDependency: DependencyMailSeed =
-      DependencyMailSeed(kind = ms.kind.fromAPI, address = ms.address, description = ms.description)
+      DependencyMailSeed(
+        id = toSha256(ms.address.getBytes()),
+        kind = ms.kind.fromAPI,
+        address = ms.address,
+        description = ms.description
+      )
   }
 
   implicit class ExternalIdWrapper(private val id: ExternalId) extends AnyVal {
