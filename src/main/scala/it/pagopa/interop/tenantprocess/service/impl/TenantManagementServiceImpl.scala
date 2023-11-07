@@ -142,7 +142,7 @@ final case class TenantManagementServiceImpl(
     val request = tenantApi.addTenantMail(xCorrelationId = correlationId, tenantId = tenantId, mailSeed = mailSeed)(
       BearerToken(bearerToken)
     )
-    invoker.invoke(request, s"Adding mail ${mailSeed.address} to tenant $tenantId").recoverWith {
+    invoker.invoke(request, s"Adding mail with id ${mailSeed.id} to tenant $tenantId").recoverWith {
       case err: ApiError[_] if err.code == 404 =>
         Future.failed(TenantByIdNotFound(tenantId))
     }

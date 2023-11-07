@@ -853,7 +853,7 @@ final case class TenantApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE, INTERNAL_ROLE) {
-    val operationLabel = s"Adding mail ${mailSeed.address} to Tenant $tenantId"
+    val operationLabel = s"Adding mail of kind ${mailSeed.kind} to Tenant $tenantId"
     logger.info(operationLabel)
 
     val result: Future[Unit] = for {
