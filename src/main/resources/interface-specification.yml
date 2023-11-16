@@ -852,7 +852,9 @@ components:
           $ref: '#/components/schemas/TenantKind'
         onboardedAt:
           type: string
-          format: date-time  
+          format: date-time
+        subUnitType:
+          $ref: '#/components/schemas/TenantUnitType'      
       required:
         - id
         - certifier
@@ -1075,13 +1077,21 @@ components:
           $ref: '#/components/schemas/MailSeed'  
         onboardedAt:
           type: string
-          format: date-time  
+          format: date-time
+        subUnitType:
+          $ref: '#/components/schemas/TenantUnitType'      
       required:
         - externalId
         - selfcareId
         - name
         - digitalAddress
         - onboardedAt
+        - subUnitType
+    TenantUnitType:
+      type: string
+      enum:
+        - AOO
+        - UO
     MailSeed:
       description: A specific kind of mail
       type: object

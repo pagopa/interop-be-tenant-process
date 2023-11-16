@@ -9,7 +9,8 @@ import it.pagopa.interop.tenantmanagement.model.tenant.{
   PersistentTenant,
   PersistentTenantAttribute,
   PersistentTenantFeature,
-  PersistentTenantKind
+  PersistentTenantKind,
+  PersistentTenantUnitType
 }
 import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.{Certified, PersistentAttribute}
 import it.pagopa.interop.catalogmanagement.model.CatalogItem
@@ -197,7 +198,8 @@ object FakeDependencies extends SpecData {
     mails = Nil,
     name = "test_name",
     kind = Some(PersistentTenantKind.PA),
-    onboardedAt = None
+    onboardedAt = None,
+    subUnitType = Some(PersistentTenantUnitType.Aoo)
   )
 
   val fakeAttribute: PersistentCertifiedAttribute =
