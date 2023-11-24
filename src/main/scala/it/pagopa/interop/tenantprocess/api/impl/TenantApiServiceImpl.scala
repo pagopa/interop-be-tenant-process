@@ -38,6 +38,7 @@ import it.pagopa.interop.tenantprocess.api.adapters.TenantManagementAdapters._
 import it.pagopa.interop.tenantprocess.error.ResponseHandlers._
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
+import it.pagopa.interop.tenantprocess.model.{CompactTenant => TenantUUID}
 import it.pagopa.interop.tenantprocess.service._
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
 
@@ -207,7 +208,7 @@ final case class TenantApiServiceImpl(
 
   override def selfcareUpsertTenant(seed: SelfcareTenantSeed)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerTenant: ToEntityMarshaller[CompactTenant],
+    toEntityMarshallerTenant: ToEntityMarshaller[TenantUUID],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, INTERNAL_ROLE) {
     val operationLabel = s"Creating tenant with external id ${seed.externalId} via SelfCare request"
@@ -229,7 +230,7 @@ final case class TenantApiServiceImpl(
       tenant.selfcareId.fold(updateTenant())(verifyConflict)
     }
 
-    val result: Future[CompactTenant] = for {
+    val result: Future[TenantUUID] = for {
       existingTenant <- findTenant(seed.externalId)
       _              <- existingTenant.traverse(t => assertResourceAllowed(t.id))
       tenant         <- existingTenant
@@ -237,10 +238,10 @@ final case class TenantApiServiceImpl(
       tenantKind     <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
       _              <- updateSelfcareId(tenant, tenantKind)
       _              <- tenantManagementService.addTenantMail(tenant.id, seed.digitalAddress.toDependency)
-    } yield CompactTenant(tenant.id, tenant.externalId)
+    } yield TenantUUID(tenant.id, tenant.externalId.toApi)
 
     onComplete(result) {
-      selfcareUpsertTenantResponse[CompactTenant](operationLabel)(selfcareUpsertTenant200)
+      selfcareUpsertTenantResponse[TenantUUID](operationLabel)(selfcareUpsertTenant200)
     }
   }
 
