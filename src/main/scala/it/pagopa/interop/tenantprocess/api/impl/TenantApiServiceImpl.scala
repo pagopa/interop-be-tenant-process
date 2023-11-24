@@ -854,7 +854,7 @@ final case class TenantApiServiceImpl(
   override def addTenantMail(tenantId: String, mailSeed: MailSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE, INTERNAL_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, API_ROLE) {
     val operationLabel = s"Adding mail of kind ${mailSeed.kind} to Tenant $tenantId"
     logger.info(operationLabel)
 
@@ -873,7 +873,7 @@ final case class TenantApiServiceImpl(
   override def deleteTenantMail(tenantId: String, mailId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE, INTERNAL_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, API_ROLE) {
     val operationLabel = s"Deleting mail $mailId to Tenant $tenantId"
     logger.info(operationLabel)
 

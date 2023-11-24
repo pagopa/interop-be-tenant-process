@@ -153,10 +153,7 @@
       "verb": "POST",
       "roles": [
         "admin",
-        "security",
-        "api",
-        "m2m",
-        "internal"
+        "api"
       ]
     },
     {
@@ -164,10 +161,7 @@
       "verb": "DELETE",
       "roles": [
         "admin",
-        "security",
-        "api",
-        "m2m",
-        "internal"
+        "api"
       ]
     }
   ]
