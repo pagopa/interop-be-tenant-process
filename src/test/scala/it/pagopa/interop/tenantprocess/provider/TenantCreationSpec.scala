@@ -913,7 +913,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockCreateTenant(expectedTenantSeed, tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
     mockAddTenantMail(tenantId, dependencyMailSeed)
-    mockGetTenantById(tenantId, persistentTenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -948,7 +947,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockCreateTenant(expectedTenantSeed, tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
     mockAddTenantMail(tenantId, dependencyMailSeed)
-    mockGetTenantById(tenantId, persistentTenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -978,7 +976,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
     mockAddTenantMail(tenantId, dependencyMailSeed)
-    mockGetTenantById(tenantId, persistentTenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -1002,7 +999,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
 
     mockAddTenantMail(tenantId, dependencyMailSeed)
-    mockGetTenantById(tenantId, tenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -1076,7 +1072,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
     mockAddTenantMail(tenantId, dependencyMailSeed)
-    mockGetTenantById(tenantId, tenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
