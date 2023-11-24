@@ -824,8 +824,11 @@ components:
         id:
           type: string
           format: uuid
+        externalId:
+          $ref: '#/components/schemas/ExternalId'  
       required:
-        - id    
+        - id
+        - externalId
     Tenant:
       description: Tenant model
       type: object

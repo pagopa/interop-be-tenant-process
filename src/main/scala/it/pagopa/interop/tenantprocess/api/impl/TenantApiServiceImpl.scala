@@ -238,7 +238,7 @@ final case class TenantApiServiceImpl(
       tenantKind     <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
       _              <- updateSelfcareId(tenant, tenantKind)
       _              <- tenantManagementService.addTenantMail(tenant.id, seed.digitalAddress.toDependency)
-    } yield TenantUUID(tenant.id)
+    } yield TenantUUID(tenant.id, tenant.externalId.toApi)
 
     onComplete(result) {
       selfcareUpsertTenantResponse[TenantUUID](operationLabel)(selfcareUpsertTenant200)
