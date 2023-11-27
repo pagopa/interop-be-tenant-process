@@ -221,7 +221,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CompactTenant'
+                $ref: '#/components/schemas/ResourceId'
         '409':
           description: Selfcare Id is already assigned and is different from the request
           content:
@@ -817,18 +817,15 @@ components:
           maxLength: 64
       required:
         - code
-    CompactTenant:
-      description: Tenant Compact model
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        externalId:
-          $ref: '#/components/schemas/ExternalId'  
-      required:
-        - id
-        - externalId
+    ResourceId:  
+      description: Modified resource id  
+      type: object  
+      properties:  
+        id:  
+          type: string  
+          format: uuid  
+      required:  
+        - id  
     Tenant:
       description: Tenant model
       type: object
