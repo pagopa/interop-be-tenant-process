@@ -62,7 +62,7 @@ trait SpecData {
       ExternalId("IPA", s"tenant-${UUID.randomUUID()}"),
       UUID.randomUUID().toString,
       "test_name",
-      mailSeed,
+      None,
       timestamp,
       TenantUnitType.AOO
     )
@@ -71,7 +71,7 @@ trait SpecData {
       ExternalId("NOT_IPA", s"tenant-${UUID.randomUUID()}"),
       UUID.randomUUID().toString,
       "test_name",
-      mailSeed,
+      None,
       timestamp,
       TenantUnitType.AOO
     )

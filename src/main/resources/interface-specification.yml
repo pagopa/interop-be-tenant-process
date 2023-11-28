@@ -1093,7 +1093,6 @@ components:
         - externalId
         - selfcareId
         - name
-        - digitalAddress
         - onboardedAt
         - subUnitType
     TenantUnitType:
