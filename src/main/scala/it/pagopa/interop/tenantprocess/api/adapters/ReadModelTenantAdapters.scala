@@ -20,7 +20,9 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
       attributes = t.attributes.map(_.toApi),
       createdAt = t.createdAt,
       updatedAt = t.updatedAt,
-      mails = t.mails.map(_.toApi)
+      onboardedAt = t.onboardedAt,
+      mails = t.mails.map(_.toApi),
+      subUnitType = t.subUnitType.map(_.toApi)
     )
     def toManagement: Management.Tenant = Management.Tenant(
       id = t.id,
@@ -32,14 +34,17 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
       attributes = t.attributes.map(_.toManagement),
       createdAt = t.createdAt,
       updatedAt = t.updatedAt,
-      mails = t.mails.map(_.toManagement)
+      onboardedAt = t.onboardedAt,
+      mails = t.mails.map(_.toManagement),
+      subUnitType = t.subUnitType.map(_.toManagement)
     )
   }
 
   implicit class PersistentMailWrapper(private val m: PersistentTenantMail) extends AnyVal {
     def toApi: Mail                   =
-      Mail(kind = m.kind.toApi, address = m.address, createdAt = m.createdAt, description = m.description)
+      Mail(id = m.id, kind = m.kind.toApi, address = m.address, createdAt = m.createdAt, description = m.description)
     def toManagement: Management.Mail = Management.Mail(
+      id = m.id,
       kind = m.kind.toManagement,
       address = m.address,
       createdAt = m.createdAt,
@@ -49,10 +54,23 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
 
   implicit class PersistentMailKindWrapper(private val k: PersistentTenantMailKind) extends AnyVal {
     def toApi: MailKind                   = k match {
-      case PersistentTenantMailKind.ContactEmail => MailKind.CONTACT_EMAIL
+      case PersistentTenantMailKind.ContactEmail   => MailKind.CONTACT_EMAIL
+      case PersistentTenantMailKind.DigitalAddress => MailKind.DIGITAL_ADDRESS
     }
     def toManagement: Management.MailKind = k match {
-      case PersistentTenantMailKind.ContactEmail => Management.MailKind.CONTACT_EMAIL
+      case PersistentTenantMailKind.ContactEmail   => Management.MailKind.CONTACT_EMAIL
+      case PersistentTenantMailKind.DigitalAddress => Management.MailKind.DIGITAL_ADDRESS
+    }
+  }
+
+  implicit class PersistentTenantUnitTypeWrapper(private val u: PersistentTenantUnitType) extends AnyVal {
+    def toApi: TenantUnitType                   = u match {
+      case PersistentTenantUnitType.Aoo => TenantUnitType.AOO
+      case PersistentTenantUnitType.Uo  => TenantUnitType.UO
+    }
+    def toManagement: Management.TenantUnitType = u match {
+      case PersistentTenantUnitType.Aoo => Management.TenantUnitType.AOO
+      case PersistentTenantUnitType.Uo  => Management.TenantUnitType.UO
     }
   }
 

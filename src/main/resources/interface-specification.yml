@@ -221,7 +221,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Tenant'
+                $ref: '#/components/schemas/ResourceId'
         '409':
           description: Selfcare Id is already assigned and is different from the request
           content:
@@ -400,30 +400,6 @@ paths:
       responses:
         '200':
           description: Tenant retrieved
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Tenant'
-        '404':
-          description: Tenant Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-    post:
-      tags:
-        - tenant
-      operationId: updateTenant
-      description: Updates the tenant
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TenantDelta'
-      responses:
-        '200':
-          description: Tenant updated
           content:
             application/json:
               schema:
@@ -705,6 +681,84 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /tenants/{tenantId}/mails:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - name: tenantId
+        in: path
+        description: the tenant id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - tenant
+      summary: Add a tenant mail
+      operationId: addTenantMail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MailSeed'
+      responses:
+        '204':
+          description: Tenant Mail Added
+        '400':
+          description: Invalid input
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Tenant not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /tenants/{tenantId}/mails/{mailId}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - name: tenantId
+        in: path
+        description: the tenant id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: mailId
+        in: path
+        description: the mail id
+        required: true
+        schema:
+          type: string
+    delete:
+      tags:
+        - tenant
+      summary: Delete a tenant mail
+      operationId: deleteTenantMail
+      responses:
+        '204':
+          description: Tenant Mail Deleted
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'  
+        '404':
+          description: Tenant not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'              
   /status:
     get:
       security: []
@@ -763,6 +817,15 @@ components:
           maxLength: 64
       required:
         - code
+    ResourceId:  
+      description: Modified resource id  
+      type: object  
+      properties:  
+        id:  
+          type: string  
+          format: uuid  
+      required:  
+        - id  
     Tenant:
       description: Tenant model
       type: object
@@ -795,7 +858,12 @@ components:
         name:
           type: string
         kind:
-          $ref: '#/components/schemas/TenantKind'  
+          $ref: '#/components/schemas/TenantKind'
+        onboardedAt:
+          type: string
+          format: date-time
+        subUnitType:
+          $ref: '#/components/schemas/TenantUnitType'      
       required:
         - id
         - certifier
@@ -1014,20 +1082,24 @@ components:
           type: string
           minLength: 1
           maxLength: 1000
+        digitalAddress:
+          $ref: '#/components/schemas/MailSeed'  
+        onboardedAt:
+          type: string
+          format: date-time
+        subUnitType:
+          $ref: '#/components/schemas/TenantUnitType'      
       required:
         - externalId
         - selfcareId
         - name
-    TenantDelta:
-      description: Tenant Delta model
-      type: object
-      properties:
-        mails:
-          type: array
-          items:
-            $ref: '#/components/schemas/MailSeed'
-      required:
-        - mails
+        - onboardedAt
+        - subUnitType
+    TenantUnitType:
+      type: string
+      enum:
+        - AOO
+        - UO
     MailSeed:
       description: A specific kind of mail
       type: object
@@ -1049,6 +1121,8 @@ components:
       description: A specific kind of mail
       type: object
       properties:
+        id:
+          type: string
         kind:
           $ref: '#/components/schemas/MailKind'
         address:
@@ -1061,6 +1135,7 @@ components:
           type: string
           maxLength: 250
       required:
+        - id
         - kind
         - address
         - createdAt
@@ -1068,6 +1143,7 @@ components:
       type: string
       enum:
         - CONTACT_EMAIL
+        - DIGITAL_ADDRESS
     Problem:
       properties:
         type:

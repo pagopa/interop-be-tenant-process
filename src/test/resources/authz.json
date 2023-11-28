@@ -147,6 +147,22 @@
       "roles": [
         "admin"
       ]
+    },
+    {
+      "route": "addTenantMail",
+      "verb": "POST",
+      "roles": [
+        "admin",
+        "api"
+      ]
+    },
+    {
+      "route": "deleteTenantMail",
+      "verb": "DELETE",
+      "roles": [
+        "admin",
+        "api"
+      ]
     }
   ]
 }

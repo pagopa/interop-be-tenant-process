@@ -9,7 +9,8 @@ import it.pagopa.interop.tenantmanagement.model.tenant.{
   PersistentTenant,
   PersistentTenantAttribute,
   PersistentTenantFeature,
-  PersistentTenantKind
+  PersistentTenantKind,
+  PersistentTenantUnitType
 }
 import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.{Certified, PersistentAttribute}
 import it.pagopa.interop.catalogmanagement.model.CatalogItem
@@ -72,6 +73,13 @@ object FakeDependencies extends SpecData {
     override def updateTenant(tenantId: UUID, payload: TenantDelta)(implicit
       contexts: Seq[(String, String)]
     ): Future[Tenant] = Future.successful(fakeTenant)
+
+    override def addTenantMail(tenantId: UUID, seed: MailSeed)(implicit contexts: Seq[(String, String)]): Future[Unit] =
+      Future.successful(())
+
+    override def deleteTenantMail(tenantId: UUID, mailId: String)(implicit
+      contexts: Seq[(String, String)]
+    ): Future[Unit] = Future.successful(())
 
     override def addTenantAttribute(tenantId: UUID, seed: TenantAttribute)(implicit
       contexts: Seq[(String, String)]
@@ -189,7 +197,9 @@ object FakeDependencies extends SpecData {
     updatedAt = None,
     mails = Nil,
     name = "test_name",
-    kind = Some(PersistentTenantKind.PA)
+    kind = Some(PersistentTenantKind.PA),
+    onboardedAt = None,
+    subUnitType = Some(PersistentTenantUnitType.Aoo)
   )
 
   val fakeAttribute: PersistentCertifiedAttribute =

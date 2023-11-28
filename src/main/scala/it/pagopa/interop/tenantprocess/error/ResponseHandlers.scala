@@ -36,16 +36,6 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex) => internalServerError(ex, logMessage)
     }
 
-  def updateTenantResponse[T](logMessage: String)(
-    success: T => Route
-  )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
-    result match {
-      case Success(s)                           => success(s)
-      case Failure(ex: OperationForbidden.type) => forbidden(ex, logMessage)
-      case Failure(ex: TenantByIdNotFound)      => notFound(ex, logMessage)
-      case Failure(ex)                          => internalServerError(ex, logMessage)
-    }
-
   def internalUpsertTenantResponse[T](logMessage: String)(
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
@@ -202,5 +192,25 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex: TenantNotFound)                    => notFound(ex, logMessage)
       case Failure(ex: RegistryAttributeNotFound)         => notFound(ex, logMessage)
       case Failure(ex)                                    => internalServerError(ex, logMessage)
+    }
+
+  def addTenantMailResponse[T](logMessage: String)(
+    success: T => Route
+  )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
+    result match {
+      case Success(s)                           => success(s)
+      case Failure(ex: OperationForbidden.type) => forbidden(ex, logMessage)
+      case Failure(ex: TenantByIdNotFound)      => notFound(ex, logMessage)
+      case Failure(ex)                          => internalServerError(ex, logMessage)
+    }
+
+  def deleteTenantMailResponse[T](logMessage: String)(
+    success: T => Route
+  )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
+    result match {
+      case Success(s)                           => success(s)
+      case Failure(ex: OperationForbidden.type) => forbidden(ex, logMessage)
+      case Failure(ex: TenantByIdNotFound)      => notFound(ex, logMessage)
+      case Failure(ex)                          => internalServerError(ex, logMessage)
     }
 }

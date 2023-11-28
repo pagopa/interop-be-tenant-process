@@ -15,7 +15,8 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantKind => DependencyTenantKind,
   TenantRevoker => DependencyTenantRevoker,
   TenantVerifier => DependencyTenantVerifier,
-  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
+  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
+  TenantUnitType => DependencyTenantUnitType
 }
 import it.pagopa.interop.agreementprocess.client.{model => AgreementDependency}
 import it.pagopa.interop.tenantprocess.model._
@@ -34,7 +35,9 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       updatedAt = t.updatedAt,
       mails = t.mails.map(_.toApi),
       name = t.name,
-      kind = t.kind.map(_.toApi)
+      kind = t.kind.map(_.toApi),
+      onboardedAt = t.onboardedAt,
+      subUnitType = t.subUnitType.map(_.toApi)
     )
   }
 
@@ -47,13 +50,21 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
   }
 
   implicit class DependencyMailWrapper(private val m: DependencyMail) extends AnyVal {
-    def toApi: Mail                = Mail(kind = m.kind.toApi, address = m.address, createdAt = m.createdAt)
-    def toSeed: DependencyMailSeed = DependencyMailSeed(m.kind, m.address, m.description)
+    def toApi: Mail                = Mail(id = m.id, kind = m.kind.toApi, address = m.address, createdAt = m.createdAt)
+    def toSeed: DependencyMailSeed = DependencyMailSeed(m.id, m.kind, m.address, m.description)
   }
 
   implicit class DependencyMailKindWrapper(private val k: DependencyMailKind) extends AnyVal {
     def toApi: MailKind = k match {
-      case DependencyMailKind.CONTACT_EMAIL => MailKind.CONTACT_EMAIL
+      case DependencyMailKind.CONTACT_EMAIL   => MailKind.CONTACT_EMAIL
+      case DependencyMailKind.DIGITAL_ADDRESS => MailKind.DIGITAL_ADDRESS
+    }
+  }
+
+  implicit class DependencyTenantUnitTypeWrapper(private val u: DependencyTenantUnitType) extends AnyVal {
+    def toApi: TenantUnitType = u match {
+      case DependencyTenantUnitType.AOO => TenantUnitType.AOO
+      case DependencyTenantUnitType.UO  => TenantUnitType.UO
     }
   }
 

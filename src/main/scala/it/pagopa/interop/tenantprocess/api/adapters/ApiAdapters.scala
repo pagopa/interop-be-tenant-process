@@ -2,7 +2,7 @@ package it.pagopa.interop.tenantprocess.api.adapters
 
 import cats.syntax.all._
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
-import it.pagopa.interop.tenantmanagement.client.model.MailKind.CONTACT_EMAIL
+import it.pagopa.interop.tenantmanagement.client.model.MailKind.{DIGITAL_ADDRESS, CONTACT_EMAIL}
 import it.pagopa.interop.tenantmanagement.client.model.{
   Certifier => DependencyCertifier,
   DeclaredTenantAttribute => DependencyDeclaredTenantAttribute,
@@ -10,23 +10,19 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   MailKind => DependencyMailKind,
   MailSeed => DependencyMailSeed,
   TenantAttribute => DependencyTenantAttribute,
-  TenantDelta => DependencyTenantDelta,
   TenantFeature => DependencyTenantFeature,
   TenantKind => DependencyTenantKind,
   TenantVerifier => DependencyTenantVerifier,
-  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
+  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
+  TenantUnitType => DependencyTenantUnitType
 }
 import it.pagopa.interop.tenantprocess.model._
+import it.pagopa.interop.commons.utils.Digester.toSha256
 
 import java.time.OffsetDateTime
 import java.util.UUID
 
 object ApiAdapters {
-
-  implicit class MailWrapper(private val m: Mail) extends AnyVal {
-    def fromAPI: DependencyMailSeed =
-      DependencyMailSeed(kind = m.kind.fromAPI, address = m.address, description = m.description)
-  }
 
   implicit class TenantKindWrapper(private val tk: TenantKind) extends AnyVal {
     def fromAPI: DependencyTenantKind = tk match {
@@ -38,7 +34,8 @@ object ApiAdapters {
 
   implicit class MailKindWrapper(private val mk: MailKind) extends AnyVal {
     def fromAPI: DependencyMailKind = mk match {
-      case MailKind.CONTACT_EMAIL => CONTACT_EMAIL
+      case MailKind.CONTACT_EMAIL   => CONTACT_EMAIL
+      case MailKind.DIGITAL_ADDRESS => DIGITAL_ADDRESS
     }
   }
 
@@ -50,18 +47,14 @@ object ApiAdapters {
     def fromAPI: DependencyCertifier = DependencyCertifier(c.certifierId)
   }
 
-  implicit class TenantDeltaWrapper(private val td: TenantDelta) extends AnyVal {
-    def fromAPI(
-      selfcareId: Option[String],
-      features: Seq[DependencyTenantFeature],
-      kind: DependencyTenantKind
-    ): DependencyTenantDelta =
-      DependencyTenantDelta(selfcareId, features, mails = td.mails.map(_.toDependency), kind)
-  }
-
   implicit class MailSeedWrapper(private val ms: MailSeed) extends AnyVal {
     def toDependency: DependencyMailSeed =
-      DependencyMailSeed(kind = ms.kind.fromAPI, address = ms.address, description = ms.description)
+      DependencyMailSeed(
+        id = toSha256(ms.address.getBytes()),
+        kind = ms.kind.fromAPI,
+        address = ms.address,
+        description = ms.description
+      )
   }
 
   implicit class ExternalIdWrapper(private val id: ExternalId) extends AnyVal {
@@ -76,6 +69,13 @@ object ApiAdapters {
       certified = None,
       verified = None
     )
+  }
+
+  implicit class TenantUnitTypeWrapper(private val u: TenantUnitType) extends AnyVal {
+    def toDependency: DependencyTenantUnitType = u match {
+      case TenantUnitType.AOO => DependencyTenantUnitType.AOO
+      case TenantUnitType.UO  => DependencyTenantUnitType.UO
+    }
   }
 
   implicit class VerifiedTenantAttributeSeedWrapper(private val seed: VerifiedTenantAttributeSeed) extends AnyVal {

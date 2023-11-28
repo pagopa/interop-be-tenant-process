@@ -118,32 +118,6 @@ final case class TenantApiServiceImpl(
     }
   }
 
-  override def updateTenant(id: String, tenantDelta: TenantDelta)(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
-  ): Route = authorize(ADMIN_ROLE) {
-    val operationLabel = s"Updating Tenant $id"
-    logger.info(operationLabel)
-
-    val result: Future[Tenant] = for {
-      tenantUUID       <- id.toFutureUUID
-      _                <- assertResourceAllowed(tenantUUID)
-      tenantManagement <- tenantManagementService.getTenantById(tenantUUID).map(_.toManagement)
-      tenantKind       <- tenantManagement.kind.fold(
-        getTenantKindLoadingCertifiedAttributes(tenantManagement.attributes, tenantManagement.externalId)
-      )(Future.successful)
-      tenant           <- tenantManagementService.updateTenant(
-        tenantUUID,
-        tenantDelta.fromAPI(tenantManagement.selfcareId, tenantManagement.features, tenantKind)
-      )
-    } yield tenant.toApi
-
-    onComplete(result) {
-      updateTenantResponse[Tenant](operationLabel)(updateTenant200)
-    }
-  }
-
   override def internalUpsertTenant(seed: InternalTenantSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
@@ -233,8 +207,8 @@ final case class TenantApiServiceImpl(
 
   override def selfcareUpsertTenant(seed: SelfcareTenantSeed)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+    toEntityMarshallerTenant: ToEntityMarshaller[ResourceId],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, INTERNAL_ROLE) {
     val operationLabel = s"Creating tenant with external id ${seed.externalId} via SelfCare request"
     logger.info(operationLabel)
@@ -245,12 +219,7 @@ final case class TenantApiServiceImpl(
       def updateTenant(): Future[DependencyTenant]                     = tenantManagementService
         .updateTenant(
           tenant.id,
-          DependencyTenantDelta(
-            selfcareId = seed.selfcareId.some,
-            features = tenant.features,
-            mails = tenant.mails.map(_.toSeed),
-            kind = kind
-          )
+          DependencyTenantDelta(selfcareId = seed.selfcareId.some, features = tenant.features, kind = kind)
         )
       def verifyConflict(selfcareId: String): Future[DependencyTenant] = Future
         .failed(SelfcareIdConflict(tenant.id, selfcareId, seed.selfcareId))
@@ -260,17 +229,20 @@ final case class TenantApiServiceImpl(
       tenant.selfcareId.fold(updateTenant())(verifyConflict)
     }
 
-    val result: Future[Tenant] = for {
+    val result: Future[ResourceId] = for {
       existingTenant <- findTenant(seed.externalId)
       _              <- existingTenant.traverse(t => assertResourceAllowed(t.id))
       tenant         <- existingTenant
         .fold(createTenant(seed, Nil, now, getTenantKind(Nil, seed.externalId).fromAPI))(Future.successful)
       tenantKind     <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
-      updatedTenant  <- updateSelfcareId(tenant, tenantKind)
-    } yield updatedTenant.toApi
+      _              <- updateSelfcareId(tenant, tenantKind)
+      _              <- seed.digitalAddress.traverse(digitaAddress =>
+        tenantManagementService.addTenantMail(tenant.id, digitaAddress.toDependency)
+      )
+    } yield ResourceId(tenant.id)
 
     onComplete(result) {
-      selfcareUpsertTenantResponse[Tenant](operationLabel)(selfcareUpsertTenant200)
+      selfcareUpsertTenantResponse[ResourceId](operationLabel)(selfcareUpsertTenant200)
     }
   }
 
@@ -555,12 +527,7 @@ final case class TenantApiServiceImpl(
       tenantManagementService
         .updateTenant(
           tenant.id,
-          DependencyTenantDelta(
-            selfcareId = tenant.selfcareId,
-            features = tenant.features,
-            mails = tenant.mails.map(_.toSeed),
-            kind = kind
-          )
+          DependencyTenantDelta(selfcareId = tenant.selfcareId, features = tenant.features, kind = kind)
         )
 
     for {
@@ -713,7 +680,6 @@ final case class TenantApiServiceImpl(
           DependencyTenantDelta(
             selfcareId = updatedTenant.selfcareId,
             features = updatedTenant.features,
-            mails = updatedTenant.mails.map(_.toSeed),
             kind = tenantKind
           )
         )
@@ -749,7 +715,6 @@ final case class TenantApiServiceImpl(
           DependencyTenantDelta(
             selfcareId = updatedTenant.selfcareId,
             features = updatedTenant.features,
-            mails = updatedTenant.mails.map(_.toSeed),
             kind = tenantKind
           )
         )
@@ -884,6 +849,44 @@ final case class TenantApiServiceImpl(
 
     onComplete(result) {
       getTenantByExternalIdResponse[Tenant](operationLabel)(getTenantByExternalId200)
+    }
+  }
+
+  override def addTenantMail(tenantId: String, mailSeed: MailSeed)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE, API_ROLE) {
+    val operationLabel = s"Adding mail of kind ${mailSeed.kind} to Tenant $tenantId"
+    logger.info(operationLabel)
+
+    val result: Future[Unit] = for {
+      tenantUuid    <- tenantId.toFutureUUID
+      requesterUuid <- getOrganizationIdFutureUUID(contexts)
+      _             <- assertRequesterAllowed(tenantUuid)(requesterUuid)
+      _             <- tenantManagementService.addTenantMail(tenantUuid, mailSeed.toDependency)
+    } yield ()
+
+    onComplete(result) {
+      addTenantMailResponse[Unit](operationLabel)(_ => addTenantMail204)
+    }
+  }
+
+  override def deleteTenantMail(tenantId: String, mailId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE, API_ROLE) {
+    val operationLabel = s"Deleting mail $mailId to Tenant $tenantId"
+    logger.info(operationLabel)
+
+    val result: Future[Unit] = for {
+      tenantUuid    <- tenantId.toFutureUUID
+      requesterUuid <- getOrganizationIdFutureUUID(contexts)
+      _             <- assertRequesterAllowed(tenantUuid)(requesterUuid)
+      _             <- tenantManagementService.deleteTenantMail(tenantUuid, mailId)
+    } yield ()
+
+    onComplete(result) {
+      deleteTenantMailResponse[Unit](operationLabel)(_ => deleteTenantMail204)
     }
   }
 }

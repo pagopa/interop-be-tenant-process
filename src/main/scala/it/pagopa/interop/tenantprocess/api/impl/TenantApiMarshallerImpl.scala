@@ -9,9 +9,6 @@ import spray.json._
 
 object TenantApiMarshallerImpl extends TenantApiMarshaller with SprayJsonSupport with DefaultJsonProtocol {
 
-  override implicit def fromEntityUnmarshallerTenantDelta: FromEntityUnmarshaller[TenantDelta] =
-    sprayJsonUnmarshaller[TenantDelta]
-
   override implicit def toEntityMarshallerProblem: ToEntityMarshaller[Problem] = entityMarshallerProblem
 
   override implicit def toEntityMarshallerTenant: ToEntityMarshaller[Tenant] = sprayJsonMarshaller[Tenant]
@@ -39,4 +36,9 @@ object TenantApiMarshallerImpl extends TenantApiMarshaller with SprayJsonSupport
     : FromEntityUnmarshaller[UpdateVerifiedTenantAttributeSeed] =
     sprayJsonUnmarshaller[UpdateVerifiedTenantAttributeSeed]
 
+  override implicit def fromEntityUnmarshallerMailSeed: FromEntityUnmarshaller[MailSeed] =
+    sprayJsonUnmarshaller[MailSeed]
+
+  override implicit def toEntityMarshallerResourceId: ToEntityMarshaller[ResourceId] =
+    sprayJsonMarshaller[ResourceId]
 }
