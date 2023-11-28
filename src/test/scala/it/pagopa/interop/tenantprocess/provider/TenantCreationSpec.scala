@@ -899,7 +899,8 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         attributes = Nil,
         name = "test_name",
         kind = TenantKind.PA,
-        onboardedAt = Some(timestamp)
+        onboardedAt = Some(timestamp),
+        subUnitType = Some(TenantUnitType.AOO)
       )
     val expectedTenantUpdate =
       TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil, kind = TenantKind.PA)
@@ -931,7 +932,8 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         attributes = Nil,
         name = "test_name",
         kind = TenantKind.PRIVATE,
-        onboardedAt = Some(timestamp)
+        onboardedAt = Some(timestamp),
+        subUnitType = Some(TenantUnitType.AOO)
       )
     val expectedTenantUpdate =
       TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil, kind = TenantKind.PRIVATE)

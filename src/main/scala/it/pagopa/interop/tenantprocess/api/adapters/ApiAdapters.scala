@@ -13,7 +13,8 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantFeature => DependencyTenantFeature,
   TenantKind => DependencyTenantKind,
   TenantVerifier => DependencyTenantVerifier,
-  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
+  VerifiedTenantAttribute => DependencyVerifiedTenantAttribute,
+  TenantUnitType => DependencyTenantUnitType
 }
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.commons.utils.Digester.toSha256
@@ -68,6 +69,13 @@ object ApiAdapters {
       certified = None,
       verified = None
     )
+  }
+
+  implicit class TenantUnitTypeWrapper(private val u: TenantUnitType) extends AnyVal {
+    def toDependency: DependencyTenantUnitType = u match {
+      case TenantUnitType.AOO => DependencyTenantUnitType.AOO
+      case TenantUnitType.UO  => DependencyTenantUnitType.UO
+    }
   }
 
   implicit class VerifiedTenantAttributeSeedWrapper(private val seed: VerifiedTenantAttributeSeed) extends AnyVal {

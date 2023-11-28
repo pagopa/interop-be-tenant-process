@@ -1,7 +1,7 @@
 package it.pagopa.interop.tenantprocess.api.adapters
 
 import it.pagopa.interop.tenantmanagement.client.model.{TenantAttribute, TenantSeed, TenantKind}
-import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters.ExternalIdWrapper
+import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters._
 import it.pagopa.interop.tenantprocess.model.{InternalTenantSeed, M2MTenantSeed, SelfcareTenantSeed}
 
 import java.util.UUID
@@ -59,7 +59,8 @@ object AdaptableSeed {
         attributes = attributes,
         name = a.name,
         kind = kind,
-        onboardedAt = Some(a.onboardedAt)
+        onboardedAt = Some(a.onboardedAt),
+        subUnitType = Some(a.subUnitType.toDependency)
       )
   }
 }

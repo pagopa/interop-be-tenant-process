@@ -11,7 +11,8 @@ import it.pagopa.interop.tenantmanagement.model.tenant.{
   PersistentTenantAttribute,
   PersistentTenantRevoker,
   PersistentTenantVerifier,
-  PersistentVerifiedAttribute
+  PersistentVerifiedAttribute,
+  PersistentTenantUnitType
 }
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.agreementmanagement.model.agreement.{
@@ -62,7 +63,8 @@ trait SpecData {
       UUID.randomUUID().toString,
       "test_name",
       None,
-      timestamp
+      timestamp,
+      TenantUnitType.AOO
     )
   val selfcareTenantSeedNotIpa: SelfcareTenantSeed =
     SelfcareTenantSeed(
@@ -70,7 +72,8 @@ trait SpecData {
       UUID.randomUUID().toString,
       "test_name",
       None,
-      timestamp
+      timestamp,
+      TenantUnitType.AOO
     )
 
   val dependencyTenant: Dependency.Tenant = Dependency.Tenant(
@@ -84,7 +87,8 @@ trait SpecData {
     mails = Nil,
     name = "test_name",
     kind = None,
-    onboardedAt = Some(timestamp)
+    onboardedAt = Some(timestamp),
+    subUnitType = Some(Dependency.TenantUnitType.AOO)
   )
 
   val persistentAttribute: PersistentAttribute = PersistentAttribute(
@@ -125,7 +129,8 @@ trait SpecData {
     mails = Nil,
     name = "test_name",
     kind = None,
-    onboardedAt = Some(timestamp)
+    onboardedAt = Some(timestamp),
+    subUnitType = Some(PersistentTenantUnitType.Aoo)
   )
 
   val persistentTenantNotIPA: PersistentTenant = PersistentTenant(
@@ -139,7 +144,8 @@ trait SpecData {
     mails = Nil,
     name = "test_name",
     kind = None,
-    onboardedAt = Some(timestamp)
+    onboardedAt = Some(timestamp),
+    subUnitType = Some(PersistentTenantUnitType.Aoo)
   )
 
   val fakeMailSeed = MailSeed(MailKind.CONTACT_EMAIL, address = "fakeAddress", description = None)
