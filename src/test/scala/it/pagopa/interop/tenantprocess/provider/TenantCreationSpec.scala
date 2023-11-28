@@ -911,7 +911,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockCreateTenant(expectedTenantSeed, tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
-    mockAddTenantMail(tenantId, dependencyMailSeed)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -944,14 +943,13 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockCreateTenant(expectedTenantSeed, tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
-    mockAddTenantMail(tenantId, dependencyMailSeed)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
     }
   }
 
-  "SelfCare request - Update of an existing tenant must succeed if SelfCare ID is not set" in {
+  "SelfCare request - Update of an existing tenant must succeed if SelfCare ID is not set without mail seed" in {
     implicit val context: Seq[(String, String)] = selfcareContext
 
     val tenantId = organizationId
@@ -973,6 +971,35 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
+
+    Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
+      assert(status == StatusCodes.OK)
+    }
+  }
+
+  "SelfCare request - Update of an existing tenant must succeed if SelfCare ID is not set but with digitalAddress" in {
+    implicit val context: Seq[(String, String)] = selfcareContext
+
+    val tenantId = organizationId
+    val seed     = selfcareTenantSeed.copy(digitalAddress = Some(mailSeed))
+    val tenant   = persistentTenant.copy(
+      id = tenantId,
+      selfcareId = None,
+      features = List(PersistentTenantFeature.PersistentCertifier("something"))
+    )
+
+    val expectedTenantUpdate =
+      TenantDelta(
+        selfcareId = Some(seed.selfcareId),
+        features = Seq(TenantFeature(certifier = Some(Certifier("something")))),
+        kind = TenantKind.PA
+      )
+
+    mockDateTimeGet()
+
+    mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
+    mockUpdateTenant(tenantId, expectedTenantUpdate)
+
     mockAddTenantMail(tenantId, dependencyMailSeed)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
@@ -995,8 +1022,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockDateTimeGet()
 
     mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
-
-    mockAddTenantMail(tenantId, dependencyMailSeed)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -1069,7 +1094,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
     mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
     mockUpdateTenant(tenantId, expectedTenantUpdate)
-    mockAddTenantMail(tenantId, dependencyMailSeed)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)

@@ -236,7 +236,9 @@ final case class TenantApiServiceImpl(
         .fold(createTenant(seed, Nil, now, getTenantKind(Nil, seed.externalId).fromAPI))(Future.successful)
       tenantKind     <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
       _              <- updateSelfcareId(tenant, tenantKind)
-      _              <- tenantManagementService.addTenantMail(tenant.id, seed.digitalAddress.toDependency)
+      _              <- seed.digitalAddress.traverse(digitaAddress =>
+        tenantManagementService.addTenantMail(tenant.id, digitaAddress.toDependency)
+      )
     } yield ResourceId(tenant.id)
 
     onComplete(result) {

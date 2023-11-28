@@ -1089,7 +1089,6 @@ components:
         - externalId
         - selfcareId
         - name
-        - digitalAddress
         - onboardedAt
     MailSeed:
       description: A specific kind of mail
