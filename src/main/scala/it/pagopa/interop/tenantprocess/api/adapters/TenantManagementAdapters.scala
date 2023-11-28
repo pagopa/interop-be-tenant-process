@@ -34,7 +34,8 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
       updatedAt = t.updatedAt,
       mails = t.mails.map(_.toApi),
       name = t.name,
-      kind = t.kind.map(_.toApi)
+      kind = t.kind.map(_.toApi),
+      onboardedAt = t.onboardedAt
     )
   }
 
@@ -53,7 +54,8 @@ object TenantManagementAdapters extends SprayJsonSupport with DefaultJsonProtoco
 
   implicit class DependencyMailKindWrapper(private val k: DependencyMailKind) extends AnyVal {
     def toApi: MailKind = k match {
-      case DependencyMailKind.CONTACT_EMAIL => MailKind.CONTACT_EMAIL
+      case DependencyMailKind.CONTACT_EMAIL   => MailKind.CONTACT_EMAIL
+      case DependencyMailKind.DIGITAL_ADDRESS => MailKind.DIGITAL_ADDRESS
     }
   }
 

@@ -221,7 +221,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Tenant'
+                $ref: '#/components/schemas/ResourceId'
         '409':
           description: Selfcare Id is already assigned and is different from the request
           content:
@@ -817,6 +817,15 @@ components:
           maxLength: 64
       required:
         - code
+    ResourceId:  
+      description: Modified resource id  
+      type: object  
+      properties:  
+        id:  
+          type: string  
+          format: uuid  
+      required:  
+        - id  
     Tenant:
       description: Tenant model
       type: object
@@ -849,7 +858,10 @@ components:
         name:
           type: string
         kind:
-          $ref: '#/components/schemas/TenantKind'  
+          $ref: '#/components/schemas/TenantKind'
+        onboardedAt:
+          type: string
+          format: date-time  
       required:
         - id
         - certifier
@@ -1068,10 +1080,16 @@ components:
           type: string
           minLength: 1
           maxLength: 1000
+        digitalAddress:
+          $ref: '#/components/schemas/MailSeed'  
+        onboardedAt:
+          type: string
+          format: date-time  
       required:
         - externalId
         - selfcareId
         - name
+        - onboardedAt
     MailSeed:
       description: A specific kind of mail
       type: object
@@ -1115,6 +1133,7 @@ components:
       type: string
       enum:
         - CONTACT_EMAIL
+        - DIGITAL_ADDRESS
     Problem:
       properties:
         type:

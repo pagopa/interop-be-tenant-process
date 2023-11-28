@@ -2,7 +2,7 @@ package it.pagopa.interop.tenantprocess.api.adapters
 
 import cats.syntax.all._
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
-import it.pagopa.interop.tenantmanagement.client.model.MailKind.CONTACT_EMAIL
+import it.pagopa.interop.tenantmanagement.client.model.MailKind.{DIGITAL_ADDRESS, CONTACT_EMAIL}
 import it.pagopa.interop.tenantmanagement.client.model.{
   Certifier => DependencyCertifier,
   DeclaredTenantAttribute => DependencyDeclaredTenantAttribute,
@@ -33,7 +33,8 @@ object ApiAdapters {
 
   implicit class MailKindWrapper(private val mk: MailKind) extends AnyVal {
     def fromAPI: DependencyMailKind = mk match {
-      case MailKind.CONTACT_EMAIL => CONTACT_EMAIL
+      case MailKind.CONTACT_EMAIL   => CONTACT_EMAIL
+      case MailKind.DIGITAL_ADDRESS => DIGITAL_ADDRESS
     }
   }
 

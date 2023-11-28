@@ -196,7 +196,8 @@ object FakeDependencies extends SpecData {
     updatedAt = None,
     mails = Nil,
     name = "test_name",
-    kind = Some(PersistentTenantKind.PA)
+    kind = Some(PersistentTenantKind.PA),
+    onboardedAt = None
   )
 
   val fakeAttribute: PersistentCertifiedAttribute =

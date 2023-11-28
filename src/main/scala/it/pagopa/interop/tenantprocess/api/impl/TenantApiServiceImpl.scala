@@ -207,8 +207,8 @@ final case class TenantApiServiceImpl(
 
   override def selfcareUpsertTenant(seed: SelfcareTenantSeed)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+    toEntityMarshallerTenant: ToEntityMarshaller[ResourceId],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, INTERNAL_ROLE) {
     val operationLabel = s"Creating tenant with external id ${seed.externalId} via SelfCare request"
     logger.info(operationLabel)
@@ -229,17 +229,20 @@ final case class TenantApiServiceImpl(
       tenant.selfcareId.fold(updateTenant())(verifyConflict)
     }
 
-    val result: Future[Tenant] = for {
+    val result: Future[ResourceId] = for {
       existingTenant <- findTenant(seed.externalId)
       _              <- existingTenant.traverse(t => assertResourceAllowed(t.id))
       tenant         <- existingTenant
         .fold(createTenant(seed, Nil, now, getTenantKind(Nil, seed.externalId).fromAPI))(Future.successful)
       tenantKind     <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
-      updatedTenant  <- updateSelfcareId(tenant, tenantKind)
-    } yield updatedTenant.toApi
+      _              <- updateSelfcareId(tenant, tenantKind)
+      _              <- seed.digitalAddress.traverse(digitaAddress =>
+        tenantManagementService.addTenantMail(tenant.id, digitaAddress.toDependency)
+      )
+    } yield ResourceId(tenant.id)
 
     onComplete(result) {
-      selfcareUpsertTenantResponse[Tenant](operationLabel)(selfcareUpsertTenant200)
+      selfcareUpsertTenantResponse[ResourceId](operationLabel)(selfcareUpsertTenant200)
     }
   }
 

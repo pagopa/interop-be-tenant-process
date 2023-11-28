@@ -20,6 +20,7 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
       attributes = t.attributes.map(_.toApi),
       createdAt = t.createdAt,
       updatedAt = t.updatedAt,
+      onboardedAt = t.onboardedAt,
       mails = t.mails.map(_.toApi)
     )
     def toManagement: Management.Tenant = Management.Tenant(
@@ -32,6 +33,7 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
       attributes = t.attributes.map(_.toManagement),
       createdAt = t.createdAt,
       updatedAt = t.updatedAt,
+      onboardedAt = t.onboardedAt,
       mails = t.mails.map(_.toManagement)
     )
   }
@@ -50,10 +52,12 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
 
   implicit class PersistentMailKindWrapper(private val k: PersistentTenantMailKind) extends AnyVal {
     def toApi: MailKind                   = k match {
-      case PersistentTenantMailKind.ContactEmail => MailKind.CONTACT_EMAIL
+      case PersistentTenantMailKind.ContactEmail   => MailKind.CONTACT_EMAIL
+      case PersistentTenantMailKind.DigitalAddress => MailKind.DIGITAL_ADDRESS
     }
     def toManagement: Management.MailKind = k match {
-      case PersistentTenantMailKind.ContactEmail => Management.MailKind.CONTACT_EMAIL
+      case PersistentTenantMailKind.ContactEmail   => Management.MailKind.CONTACT_EMAIL
+      case PersistentTenantMailKind.DigitalAddress => Management.MailKind.DIGITAL_ADDRESS
     }
   }
 
