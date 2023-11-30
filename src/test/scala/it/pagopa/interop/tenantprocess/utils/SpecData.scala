@@ -64,7 +64,7 @@ trait SpecData {
       "test_name",
       None,
       timestamp,
-      TenantUnitType.AOO
+      Some(TenantUnitType.AOO)
     )
   val selfcareTenantSeedNotIpa: SelfcareTenantSeed =
     SelfcareTenantSeed(
@@ -73,7 +73,7 @@ trait SpecData {
       "test_name",
       None,
       timestamp,
-      TenantUnitType.AOO
+      Some(TenantUnitType.AOO)
     )
 
   val dependencyTenant: Dependency.Tenant = Dependency.Tenant(

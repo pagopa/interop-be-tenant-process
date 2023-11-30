@@ -60,7 +60,7 @@ object AdaptableSeed {
         name = a.name,
         kind = kind,
         onboardedAt = Some(a.onboardedAt),
-        subUnitType = Some(a.subUnitType.toDependency)
+        subUnitType = a.subUnitType.map(_.toDependency)
       )
   }
 }
