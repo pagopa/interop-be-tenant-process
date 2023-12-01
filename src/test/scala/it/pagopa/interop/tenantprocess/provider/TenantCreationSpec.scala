@@ -5,16 +5,18 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.agreementprocess.client.model.CompactTenant
 import it.pagopa.interop.commons.utils.USER_ROLES
 import it.pagopa.interop.tenantmanagement.client.model._
-import it.pagopa.interop.tenantprocess.provider.TenantCreationSpec._
-import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
-import it.pagopa.interop.tenantprocess.model.{InternalAttributeSeed, M2MAttributeSeed}
 import it.pagopa.interop.tenantmanagement.model.tenant.{
   PersistentExternalId,
   PersistentTenantFeature,
   PersistentTenantKind
 }
+import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters.TenantUnitTypeWrapper
+import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
+import it.pagopa.interop.tenantprocess.model.{InternalAttributeSeed, M2MAttributeSeed}
+import it.pagopa.interop.tenantprocess.provider.TenantCreationSpec._
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
+
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -891,7 +893,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val seed     = selfcareTenantSeed
     val tenant   = dependencyTenant.copy(id = tenantId)
 
-    val expectedTenantSeed   =
+    val expectedTenantSeed =
       TenantSeed(
         id = Some(tenantId),
         externalId = ExternalId(seed.externalId.origin, seed.externalId.value),
@@ -902,8 +904,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         onboardedAt = Some(timestamp),
         subUnitType = Some(TenantUnitType.AOO)
       )
-    val expectedTenantUpdate =
-      TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil, kind = TenantKind.PA)
 
     mockDateTimeGet()
     mockUuidGet(tenantId)
@@ -911,7 +911,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockCreateTenant(expectedTenantSeed, tenant)
-    mockUpdateTenant(tenantId, expectedTenantUpdate)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -924,7 +923,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     val seed     = selfcareTenantSeedNotIpa
     val tenant   = dependencyTenant.copy(id = tenantId)
 
-    val expectedTenantSeed   =
+    val expectedTenantSeed =
       TenantSeed(
         id = Some(tenantId),
         externalId = ExternalId(seed.externalId.origin, seed.externalId.value),
@@ -935,8 +934,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         onboardedAt = Some(timestamp),
         subUnitType = Some(TenantUnitType.AOO)
       )
-    val expectedTenantUpdate =
-      TenantDelta(selfcareId = Some(seed.selfcareId), features = Nil, kind = TenantKind.PRIVATE)
 
     mockDateTimeGet()
     mockUuidGet(tenantId)
@@ -944,7 +941,6 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockCreateTenant(expectedTenantSeed, tenant)
-    mockUpdateTenant(tenantId, expectedTenantUpdate)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -966,7 +962,9 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       TenantDelta(
         selfcareId = Some(seed.selfcareId),
         features = Seq(TenantFeature(certifier = Some(Certifier("something")))),
-        kind = TenantKind.PA
+        kind = TenantKind.PA,
+        onboardedAt = Some(seed.onboardedAt),
+        subUnitType = seed.subUnitType.map(_.toDependency)
       )
 
     mockDateTimeGet()
@@ -994,7 +992,9 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       TenantDelta(
         selfcareId = Some(seed.selfcareId),
         features = Seq(TenantFeature(certifier = Some(Certifier("something")))),
-        kind = TenantKind.PA
+        kind = TenantKind.PA,
+        onboardedAt = Some(seed.onboardedAt),
+        subUnitType = seed.subUnitType.map(_.toDependency)
       )
 
     mockDateTimeGet()
@@ -1012,12 +1012,13 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
   "SelfCare request - Update should not be performed if existing SelfCare ID is equal to the request" in {
     implicit val context: Seq[(String, String)] = selfcareContext
 
-    val tenantId   = organizationId
-    val selfcareId = UUID.randomUUID().toString
-    val seed       = selfcareTenantSeed.copy(selfcareId = selfcareId)
-    val tenant     = persistentTenant.copy(
+    val tenantId           = organizationId
+    val existingSelfcareId = UUID.randomUUID().toString
+    val newSelfcareId      = UUID.randomUUID().toString
+    val seed               = selfcareTenantSeed.copy(selfcareId = existingSelfcareId)
+    val tenant             = persistentTenant.copy(
       id = tenantId,
-      selfcareId = Some(selfcareId),
+      selfcareId = Some(newSelfcareId),
       features = List(PersistentTenantFeature.PersistentCertifier("something"))
     )
 
@@ -1026,7 +1027,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetTenantByExternalId(PersistentExternalId(seed.externalId.origin, seed.externalId.value), tenant)
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
-      assert(status == StatusCodes.OK)
+      assert(status == StatusCodes.Conflict)
     }
   }
 
@@ -1089,7 +1090,9 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
       TenantDelta(
         selfcareId = Some(seed.selfcareId),
         features = Seq(TenantFeature(certifier = Some(Certifier("something")))),
-        kind = TenantKind.PA
+        kind = TenantKind.PA,
+        onboardedAt = Some(seed.onboardedAt),
+        subUnitType = seed.subUnitType.map(_.toDependency)
       )
 
     mockDateTimeGet()
