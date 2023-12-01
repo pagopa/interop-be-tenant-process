@@ -139,14 +139,12 @@ trait SpecHelper extends MockFactory with SpecData {
       .once()
       .returns(Future.successful(result.copy(externalId = seed.externalId)))
 
-  def mockUpdateTenant(tenantId: UUID, payload: TenantDelta, result: Tenant = dependencyTenant)(implicit
-    contexts: Seq[(String, String)]
-  ) =
+  def mockUpdateTenant(tenantId: UUID, payload: TenantDelta)(implicit contexts: Seq[(String, String)]) =
     (mockTenantManagement
       .updateTenant(_: UUID, _: TenantDelta)(_: Seq[(String, String)]))
       .expects(tenantId, payload, contexts)
       .once()
-      .returns(Future.successful(result))
+      .returns(Future.successful(dependencyTenant.copy(id = tenantId)))
 
   def mockAddTenantMail(tenantId: UUID, payload: MailSeed)(implicit contexts: Seq[(String, String)]) =
     (mockTenantManagement

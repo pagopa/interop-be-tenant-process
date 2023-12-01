@@ -7,6 +7,7 @@ import cats.implicits._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.agreementmanagement.model.{agreement => AgreementPersistentModel}
 import it.pagopa.interop.agreementprocess.client.model.CompactTenant
+import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.jwt._
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
@@ -14,7 +15,6 @@ import it.pagopa.interop.commons.utils.AkkaUtils.{getOrganizationIdFutureUUID, g
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.errors.{ComponentError, GenericComponentErrors}
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute._
 import it.pagopa.interop.tenantmanagement.client.model.{
   CertifiedTenantAttribute => DependencyCertifiedTenantAttribute,
   Certifier => DependencyCertifier,
@@ -28,6 +28,7 @@ import it.pagopa.interop.tenantmanagement.client.model.{
   TenantVerifier => DependencyTenantVerifier,
   VerifiedTenantAttribute => DependencyVerifiedTenantAttribute
 }
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed
 import it.pagopa.interop.tenantprocess.api.adapters.AdaptableSeed._
@@ -39,7 +40,6 @@ import it.pagopa.interop.tenantprocess.error.ResponseHandlers._
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors._
 import it.pagopa.interop.tenantprocess.model._
 import it.pagopa.interop.tenantprocess.service._
-import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
 
 import java.time.{Duration, OffsetDateTime}
 import java.util.UUID
@@ -234,7 +234,6 @@ final case class TenantApiServiceImpl(
               subUnitType = seed.subUnitType.map(_.toDependency)
             )
           )
-
       } yield updated
 
     }
