@@ -215,27 +215,35 @@ final case class TenantApiServiceImpl(
 
     val now: OffsetDateTime = dateTimeSupplier.get()
 
-    def updateSelfcareId(tenant: DependencyTenant, kind: DependencyTenantKind): Future[DependencyTenant] = {
-      def updateTenant(): Future[DependencyTenant]                     = tenantManagementService
-        .updateTenant(
-          tenant.id,
-          DependencyTenantDelta(selfcareId = seed.selfcareId.some, features = tenant.features, kind = kind)
-        )
-      def verifyConflict(selfcareId: String): Future[DependencyTenant] = Future
+    def updateTenant(seed: SelfcareTenantSeed): DependencyTenant => Future[DependencyTenant] = tenant => {
+      def verifyConflict(selfcareId: String): Future[Unit] = Future
         .failed(SelfcareIdConflict(tenant.id, selfcareId, seed.selfcareId))
         .whenA(selfcareId != seed.selfcareId)
-        .as(tenant)
 
-      tenant.selfcareId.fold(updateTenant())(verifyConflict)
+      for {
+        _       <- tenant.selfcareId.fold(Future.unit)(verifyConflict)
+        kind    <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
+        updated <- tenantManagementService
+          .updateTenant(
+            tenant.id,
+            DependencyTenantDelta(
+              selfcareId = seed.selfcareId.some,
+              features = tenant.features,
+              kind = kind,
+              onboardedAt = seed.onboardedAt.some,
+              subUnitType = seed.subUnitType.map(_.toDependency)
+            )
+          )
+
+      } yield updated
+
     }
 
     val result: Future[ResourceId] = for {
       existingTenant <- findTenant(seed.externalId)
       _              <- existingTenant.traverse(t => assertResourceAllowed(t.id))
       tenant         <- existingTenant
-        .fold(createTenant(seed, Nil, now, getTenantKind(Nil, seed.externalId).fromAPI))(Future.successful)
-      tenantKind     <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
-      _              <- updateSelfcareId(tenant, tenantKind)
+        .fold(createTenant(seed, Nil, now, getTenantKind(Nil, seed.externalId).fromAPI))(updateTenant(seed))
       _              <- seed.digitalAddress.traverse(digitaAddress =>
         tenantManagementService.addTenantMail(tenant.id, digitaAddress.toDependency)
       )
