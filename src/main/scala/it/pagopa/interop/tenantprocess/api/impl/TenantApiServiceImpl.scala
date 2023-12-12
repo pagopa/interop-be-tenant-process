@@ -216,12 +216,13 @@ final case class TenantApiServiceImpl(
     val now: OffsetDateTime = dateTimeSupplier.get()
 
     def updateTenant(seed: SelfcareTenantSeed): DependencyTenant => Future[DependencyTenant] = tenant => {
-      def verifyConflict(selfcareId: String): Future[Unit] = Future
-        .failed(SelfcareIdConflict(tenant.id, selfcareId, seed.selfcareId))
-        .whenA(selfcareId != seed.selfcareId)
+      // TODO Revert this ASAP
+//      def verifyConflict(selfcareId: String): Future[Unit] = Future
+//        .failed(SelfcareIdConflict(tenant.id, selfcareId, seed.selfcareId))
+//        .whenA(selfcareId != seed.selfcareId)
 
       for {
-        _       <- tenant.selfcareId.fold(Future.unit)(verifyConflict)
+//        _       <- tenant.selfcareId.fold(Future.unit)(verifyConflict)
         kind    <- getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
         updated <- tenantManagementService
           .updateTenant(

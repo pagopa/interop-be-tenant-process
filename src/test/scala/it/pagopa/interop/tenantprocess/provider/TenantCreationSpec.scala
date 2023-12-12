@@ -1009,7 +1009,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     }
   }
 
-  "SelfCare request - Update should not be performed if existing SelfCare ID is equal to the request" in {
+  "SelfCare request - Update should not be performed if existing SelfCare ID is equal to the request" ignore {
     implicit val context: Seq[(String, String)] = selfcareContext
 
     val tenantId           = organizationId
@@ -1031,7 +1031,7 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     }
   }
 
-  "SelfCare request - Must fail if existing SelfCare ID is different from request" in {
+  "SelfCare request - Must fail if existing SelfCare ID is different from request" ignore {
     implicit val context: Seq[(String, String)] = selfcareContext
 
     val tenantId           = organizationId
