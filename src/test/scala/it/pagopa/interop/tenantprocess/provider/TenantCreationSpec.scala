@@ -73,6 +73,10 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
     mockCreateTenant(expectedTenantSeed, tenant)
+    mockUpdateTenant(
+      tenantId,
+      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.PA, onboardedAt = None, subUnitType = None)
+    )
 
     Get() ~> tenantService.internalUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -129,6 +133,10 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
     mockCreateTenant(expectedTenantSeed, tenant)
+    mockUpdateTenant(
+      tenantId,
+      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.GSP, onboardedAt = None, subUnitType = None)
+    )
 
     Get() ~> tenantService.internalUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -184,6 +192,10 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
     mockCreateTenant(expectedTenantSeed, tenant)
+    mockUpdateTenant(
+      tenantId,
+      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.GSP, onboardedAt = None, subUnitType = None)
+    )
 
     Get() ~> tenantService.internalUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -242,6 +254,10 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeByExternalId(attribute1.origin.get, attribute1.code.get, attribute1)
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
     mockCreateTenant(expectedTenantSeed, tenant)
+    mockUpdateTenant(
+      tenantId,
+      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.PRIVATE, onboardedAt = None, subUnitType = None)
+    )
 
     Get() ~> tenantService.internalUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -516,6 +532,10 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
 
     mockCreateTenant(expectedTenantSeed, newTenant)
+    mockUpdateTenant(
+      newTenantId,
+      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.PA, onboardedAt = None, subUnitType = None)
+    )
 
     Get() ~> tenantService.m2mUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -572,6 +592,10 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
 
     mockCreateTenant(expectedTenantSeed, newTenant)
+    mockUpdateTenant(
+      newTenantId,
+      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.GSP, onboardedAt = None, subUnitType = None)
+    )
 
     Get() ~> tenantService.m2mUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -629,6 +653,10 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeByExternalId(attribute2.origin.get, attribute2.code.get, attribute2)
 
     mockCreateTenant(expectedTenantSeed, newTenant)
+    mockUpdateTenant(
+      newTenantId,
+      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.PRIVATE, onboardedAt = None, subUnitType = None)
+    )
 
     Get() ~> tenantService.m2mUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -911,6 +939,16 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockCreateTenant(expectedTenantSeed, tenant)
+    mockUpdateTenant(
+      tenantId,
+      TenantDelta(
+        selfcareId = Some(selfcareTenantSeed.selfcareId),
+        features = Nil,
+        kind = TenantKind.PA,
+        onboardedAt = Some(timestamp),
+        subUnitType = Some(TenantUnitType.AOO)
+      )
+    )
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
@@ -941,6 +979,16 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetTenantByExternalIdNotFound(PersistentExternalId(seed.externalId.origin, seed.externalId.value))
 
     mockCreateTenant(expectedTenantSeed, tenant)
+    mockUpdateTenant(
+      tenantId,
+      TenantDelta(
+        selfcareId = Some(selfcareTenantSeedNotIpa.selfcareId),
+        features = Nil,
+        kind = TenantKind.PRIVATE,
+        onboardedAt = Some(timestamp),
+        subUnitType = Some(TenantUnitType.AOO)
+      )
+    )
 
     Get() ~> tenantService.selfcareUpsertTenant(seed) ~> check {
       assert(status == StatusCodes.OK)
