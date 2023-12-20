@@ -132,7 +132,7 @@ final case class TenantApiServiceImpl(
       existingTenant <- findTenant(seed.externalId)
       attributesIds = seed.certifiedAttributes.map(a => ExternalId(a.origin, a.code))
       tenant <- existingTenant.fold(
-        createTenant(seed, attributesIds, now, getTenantKind(attributesIds, seed.externalId).fromAPI)
+        createTenant(seed, attributesIds, now, getTenantKind(attributesIds, seed.externalId).fromAPI, None)
       )(updateTenantCertifiedAttributes(attributesIds, now))
     } yield tenant.toApi
 
@@ -165,7 +165,7 @@ final case class TenantApiServiceImpl(
         existingTenant <- findTenant(seed.externalId)
         attributesId = seed.certifiedAttributes.map(a => ExternalId(certifier.certifierId, a.code))
         tenant <- existingTenant.fold(
-          createTenant(seed, attributesId, now, getTenantKind(attributesId, seed.externalId).fromAPI)
+          createTenant(seed, attributesId, now, getTenantKind(attributesId, seed.externalId).fromAPI, None)
         )(updateTenantCertifiedAttributes(attributesId, now))
       } yield tenant.toApi
 
@@ -242,7 +242,9 @@ final case class TenantApiServiceImpl(
       existingTenant <- findTenant(seed.externalId)
       _              <- existingTenant.traverse(t => assertResourceAllowed(t.id))
       tenant         <- existingTenant
-        .fold(createTenant(seed, Nil, now, getTenantKind(Nil, seed.externalId).fromAPI))(updateTenant(seed))
+        .fold(createTenant(seed, Nil, now, getTenantKind(Nil, seed.externalId).fromAPI, seed.selfcareId.some))(
+          updateTenant(seed)
+        )
       _              <- seed.digitalAddress.traverse(digitaAddress =>
         tenantManagementService.addTenantMail(tenant.id, digitaAddress.toDependency)
       )
@@ -510,14 +512,26 @@ final case class TenantApiServiceImpl(
     seed: T,
     attributes: Seq[ExternalId],
     timestamp: OffsetDateTime,
-    kind: DependencyTenantKind
+    kind: DependencyTenantKind,
+    selfcareId: Option[String]
   )(implicit contexts: Seq[(String, String)]): Future[DependencyTenant] =
     for {
       attributes <- getAttributes(attributes)
       dependencyAttributes = attributes.map(_.toCertifiedSeed(timestamp))
       tenantId             = uuidSupplier.get()
-      tenant <- tenantManagementService.createTenant(toDependency(seed, tenantId, dependencyAttributes, kind))
-    } yield tenant
+      tenantSeed           = toDependency(seed, tenantId, dependencyAttributes, kind)
+      tenant  <- tenantManagementService.createTenant(tenantSeed)
+      updated <- tenantManagementService.updateTenant(
+        tenant.id,
+        DependencyTenantDelta(
+          selfcareId = selfcareId,
+          features = tenantSeed.features,
+          kind = tenantSeed.kind,
+          onboardedAt = tenantSeed.onboardedAt,
+          subUnitType = tenantSeed.subUnitType
+        )
+      )
+    } yield updated
 
   private def updateTenantCertifiedAttributes(attributes: Seq[ExternalId], timestamp: OffsetDateTime)(
     tenant: DependencyTenant
