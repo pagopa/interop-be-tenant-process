@@ -720,12 +720,22 @@ final case class TenantApiServiceImpl(
       .getAttributeByExternalCode(attributeOrigin, attributeExternalId)
     maybeAttribute = tenantToModify.attributes
       .flatMap(_.certified)
-      .filter(_.revocationTimestamp.isEmpty)
       .find(_.id == attributeToAssign.id)
-    now            = dateTimeSupplier.get()
+    _ <- maybeAttribute
+      .filter(_.revocationTimestamp.isEmpty)
+      .fold(Future.unit)(_ =>
+        Future.failed(CertifiedAttributeAlreadyInTenant(tenantToModify.id, attributeOrigin, attributeExternalId))
+      )
+    now = dateTimeSupplier.get()
     updatedTenant <- maybeAttribute.fold(
       tenantManagementService.addTenantAttribute(tenantToModify.id, attributeToAssign.toCertifiedSeed(now))
-    )(_ => Future.failed(CertifiedAttributeAlreadyInTenant(tenantToModify.id, attributeOrigin, attributeExternalId)))
+    )(_ =>
+      tenantManagementService.updateTenantAttribute(
+        tenantToModify.id,
+        attributeToAssign.id,
+        attributeToAssign.toCertifiedSeed(now)
+      )
+    )
 
     tenantKind    <- getTenantKindLoadingCertifiedAttributes(updatedTenant.attributes, updatedTenant.externalId)
     updatedTenant <- updatedTenant.kind match {
