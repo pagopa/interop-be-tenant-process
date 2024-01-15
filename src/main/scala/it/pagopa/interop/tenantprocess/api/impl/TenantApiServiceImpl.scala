@@ -387,7 +387,7 @@ final case class TenantApiServiceImpl(
     }
   }
 
-  def addCertifiedAttribute(tenantId: String, seed: CertifiedTenantAttributeSeed)(implicit
+  override def addCertifiedAttribute(tenantId: String, seed: CertifiedTenantAttributeSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
