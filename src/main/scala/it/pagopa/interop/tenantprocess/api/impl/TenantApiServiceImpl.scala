@@ -387,6 +387,45 @@ final case class TenantApiServiceImpl(
     }
   }
 
+  def addCertifiedAttribute(tenantId: String, seed: CertifiedTenantAttributeSeed)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
+  ): Route = authorize(ADMIN_ROLE) {
+    val operationLabel = s"Add certified attribute ${seed.id} to tenant $tenantId"
+    logger.info(operationLabel)
+
+    val now: OffsetDateTime = dateTimeSupplier.get()
+
+    val result: Future[Tenant] = for {
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
+      targetTenantUuid    <- tenantId.toFutureUUID
+      requesterTenant     <- tenantManagementService.getTenantById(requesterTenantUuid).map(_.toManagement)
+      _                   <- requesterTenant.features
+        .collectFirstSome(_.certifier.map(_.certifierId))
+        .toFuture(TenantIsNotACertifier(requesterTenantUuid))
+      attribute           <- attributeRegistryManagementService
+        .getAttributeById(seed.id)
+      _                   <- attribute.kind match {
+        case Certified => Future.unit
+        case _         => Future.failed(RegistryAttributeIdNotFound(attribute.id))
+      }
+      targetTenant        <- tenantManagementService.getTenantById(targetTenantUuid).map(_.toManagement)
+      attribute = targetTenant.attributes.flatMap(_.certified).find(_.id == seed.id)
+      updatedTenant <- attribute.fold(
+        tenantManagementService.addTenantAttribute(targetTenantUuid, seed.toCreateDependency(now))
+      )(_ => Future.failed(CertifiedAttributeAlreadyExists(targetTenantUuid, seed.id)))
+      _             <- agreementProcessService.computeAgreementsByAttribute(
+        seed.id,
+        CompactTenant(updatedTenant.id, updatedTenant.attributes.map(_.toAgreementApi))
+      )
+    } yield updatedTenant.toApi
+
+    onComplete(result) {
+      addCertifiedAttributeResponse[Tenant](operationLabel)(addCertifiedAttribute200)
+    }
+  }
+
   override def verifyVerifiedAttribute(tenantId: String, seed: VerifiedTenantAttributeSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],

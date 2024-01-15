@@ -164,6 +164,13 @@
         "admin",
         "api"
       ]
+    },
+    {
+      "route": "addCertifiedAttribute",
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ]
     }
   ]
 }

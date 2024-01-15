@@ -150,6 +150,8 @@ trait SpecData {
 
   val fakeMailSeed = MailSeed(MailKind.CONTACT_EMAIL, address = "fakeAddress", description = None)
 
+  val fakeCertifiedTenantAttributeSeed = CertifiedTenantAttributeSeed(UUID.randomUUID())
+
   val persistentTenantVerifier: PersistentTenantVerifier = PersistentTenantVerifier(
     id = UUID.randomUUID(),
     verificationDate = timestamp,
