@@ -419,6 +419,19 @@ final case class TenantApiServiceImpl(
         seed.id,
         CompactTenant(updatedTenant.id, updatedTenant.attributes.map(_.toAgreementApi))
       )
+      tenantKind    <- getTenantKindLoadingCertifiedAttributes(updatedTenant.attributes, updatedTenant.externalId)
+      updatedTenant <- updatedTenant.kind match {
+        case Some(x) if (x == tenantKind) => Future.successful(updatedTenant)
+        case _                            =>
+          tenantManagementService.updateTenant(
+            updatedTenant.id,
+            DependencyTenantDelta(
+              selfcareId = updatedTenant.selfcareId,
+              features = updatedTenant.features,
+              kind = tenantKind
+            )
+          )
+      }
     } yield updatedTenant.toApi
 
     onComplete(result) {
