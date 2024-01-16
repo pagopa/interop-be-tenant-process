@@ -210,7 +210,10 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     validateAuthorization(
       endpoints("addCertifiedAttribute"),
       { implicit c: Seq[(String, String)] =>
-        tenantService.addCertifiedAttribute(UUID.randomUUID().toString, fakeCertifiedTenantAttributeSeed)
+        tenantService.addCertifiedAttribute(
+          c.find(_._1 == ORGANIZATION_ID_CLAIM).get.toString,
+          fakeCertifiedTenantAttributeSeed
+        )
       }
     )
   }
