@@ -189,7 +189,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
   }
 
   "Certified attribute revoke" should {
-    "succeed" in {
+    "succeed without sync tenant kind" in {
       implicit val context: Seq[(String, String)] = adminContext
 
       val tenantId    = UUID.randomUUID()
@@ -197,11 +197,64 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
 
       val requester = persistentTenant.copy(
         id = organizationId,
+        kind = Some(PersistentTenantKind.PA),
         features = List(PersistentTenantFeature.PersistentCertifier("certifier"))
       )
 
       val tenant = persistentTenant.copy(
         id = tenantId,
+        kind = Some(PersistentTenantKind.PA),
+        attributes = List(
+          persistentCertifiedAttribute.copy(id = attributeId),
+          persistentDeclaredAttribute,
+          persistentVerifiedAttribute
+        )
+      )
+
+      val managementSeed = Dependency.TenantAttribute(
+        declared = None,
+        certified = Some(
+          Dependency.CertifiedTenantAttribute(
+            attributeId,
+            assignmentTimestamp = timestamp,
+            revocationTimestamp = Some(timestamp)
+          )
+        ),
+        verified = None
+      )
+
+      mockDateTimeGet()
+      mockGetTenantById(organizationId, requester)
+      mockGetTenantById(tenantId, tenant)
+      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId))
+      mockUpdateTenantAttribute(
+        tenantId,
+        attributeId,
+        managementSeed,
+        dependencyTenant.copy(kind = Some(Dependency.TenantKind.PA))
+      )
+
+      mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
+
+      Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
+        assert(status == StatusCodes.NoContent)
+      }
+    }
+    "succeed with sync tenant kind" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val tenantId    = UUID.randomUUID()
+      val attributeId = UUID.randomUUID()
+
+      val requester = persistentTenant.copy(
+        id = organizationId,
+        kind = Some(PersistentTenantKind.PA),
+        features = List(PersistentTenantFeature.PersistentCertifier("certifier"))
+      )
+
+      val tenant = persistentTenant.copy(
+        id = tenantId,
+        kind = Some(PersistentTenantKind.PA),
         attributes = List(
           persistentCertifiedAttribute.copy(id = attributeId),
           persistentDeclaredAttribute,
