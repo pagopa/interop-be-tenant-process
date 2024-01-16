@@ -415,10 +415,6 @@ final case class TenantApiServiceImpl(
       updatedTenant <- attribute.fold(
         tenantManagementService.addTenantAttribute(targetTenantUuid, seed.toCreateDependency(now))
       )(_ => Future.failed(CertifiedAttributeAlreadyExists(targetTenantUuid, seed.id)))
-      _             <- agreementProcessService.computeAgreementsByAttribute(
-        seed.id,
-        CompactTenant(updatedTenant.id, updatedTenant.attributes.map(_.toAgreementApi))
-      )
       tenantKind    <- getTenantKindLoadingCertifiedAttributes(updatedTenant.attributes, updatedTenant.externalId)
       updatedTenant <- updatedTenant.kind match {
         case Some(x) if (x == tenantKind) => Future.successful(updatedTenant)
@@ -432,6 +428,10 @@ final case class TenantApiServiceImpl(
             )
           )
       }
+      _             <- agreementProcessService.computeAgreementsByAttribute(
+        seed.id,
+        CompactTenant(updatedTenant.id, updatedTenant.attributes.map(_.toAgreementApi))
+      )
     } yield updatedTenant.toApi
 
     onComplete(result) {

@@ -19,7 +19,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
     "succeed" in {
       implicit val context: Seq[(String, String)] = adminContext
 
-      val tenantUuid     = UUID.randomUUID()
+      val tenantId       = UUID.randomUUID()
       val attributeId    = UUID.randomUUID()
       val seed           = CertifiedTenantAttributeSeed(attributeId)
       val managementSeed = Dependency.TenantAttribute(
@@ -36,18 +36,28 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       )
 
       val tenant = persistentTenant.copy(
-        id = tenantUuid,
+        id = tenantId,
         attributes = List(persistentCertifiedAttribute, persistentDeclaredAttribute, persistentVerifiedAttribute)
       )
 
       mockDateTimeGet()
       mockGetTenantById(organizationId, requester)
-      mockGetTenantById(tenantUuid, tenant)
+      mockGetTenantById(tenantId, tenant)
       mockGetAttributeById(seed.id, persistentAttribute.copy(id = seed.id))
-      mockAddTenantAttribute(tenantUuid, managementSeed)
-      mockComputeAgreementState(attributeId, CompactTenant(tenantUuid, Nil))
+      mockAddTenantAttribute(tenantId, managementSeed)
+      mockUpdateTenant(
+        tenantId,
+        Dependency.TenantDelta(
+          selfcareId = None,
+          features = Nil,
+          kind = Dependency.TenantKind.PA,
+          onboardedAt = None,
+          subUnitType = None
+        )
+      )
+      mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
 
-      Post() ~> tenantService.addCertifiedAttribute(tenantUuid.toString, seed) ~> check {
+      Post() ~> tenantService.addCertifiedAttribute(tenantId.toString, seed) ~> check {
         assert(status == StatusCodes.OK)
       }
     }
@@ -55,7 +65,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
   "fail if requester is not a certifier" in {
     implicit val context: Seq[(String, String)] = adminContext
 
-    val tenantUuid  = UUID.randomUUID()
+    val tenantId    = UUID.randomUUID()
     val attributeId = UUID.randomUUID()
     val seed        = CertifiedTenantAttributeSeed(attributeId)
 
@@ -64,7 +74,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
     mockDateTimeGet()
     mockGetTenantById(organizationId, requester)
 
-    Post() ~> tenantService.addCertifiedAttribute(tenantUuid.toString, seed) ~> check {
+    Post() ~> tenantService.addCertifiedAttribute(tenantId.toString, seed) ~> check {
       assert(status == StatusCodes.Forbidden)
     }
   }
@@ -72,7 +82,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
   "fail if attribute does not exists" in {
     implicit val context: Seq[(String, String)] = adminContext
 
-    val tenantUuid  = UUID.randomUUID()
+    val tenantId    = UUID.randomUUID()
     val attributeId = UUID.randomUUID()
     val seed        = CertifiedTenantAttributeSeed(attributeId)
 
@@ -85,7 +95,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
     mockGetTenantById(organizationId, requester)
     mockGetAttributeByIdNotFound(seed.id)
 
-    Post() ~> tenantService.addCertifiedAttribute(tenantUuid.toString, seed) ~> check {
+    Post() ~> tenantService.addCertifiedAttribute(tenantId.toString, seed) ~> check {
       assert(status == StatusCodes.InternalServerError)
     }
   }
@@ -93,7 +103,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
   "fail if attribute exists but is not certified" in {
     implicit val context: Seq[(String, String)] = adminContext
 
-    val tenantUuid  = UUID.randomUUID()
+    val tenantId    = UUID.randomUUID()
     val attributeId = UUID.randomUUID()
     val seed        = CertifiedTenantAttributeSeed(attributeId)
 
@@ -106,7 +116,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
     mockGetTenantById(organizationId, requester)
     mockGetAttributeById(seed.id, persistentAttribute.copy(id = seed.id, kind = Declared))
 
-    Post() ~> tenantService.addCertifiedAttribute(tenantUuid.toString, seed) ~> check {
+    Post() ~> tenantService.addCertifiedAttribute(tenantId.toString, seed) ~> check {
       assert(status == StatusCodes.InternalServerError)
     }
   }
@@ -114,7 +124,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
   "fail if certified tenant attribute already exists" in {
     implicit val context: Seq[(String, String)] = adminContext
 
-    val tenantUuid  = UUID.randomUUID()
+    val tenantId    = UUID.randomUUID()
     val attributeId = UUID.randomUUID()
     val seed        = CertifiedTenantAttributeSeed(attributeId)
 
@@ -124,17 +134,17 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
     )
 
     val tenant = persistentTenant.copy(
-      id = tenantUuid,
+      id = tenantId,
       attributes =
         List(persistentCertifiedAttribute.copy(id = seed.id), persistentDeclaredAttribute, persistentVerifiedAttribute)
     )
 
     mockDateTimeGet()
     mockGetTenantById(organizationId, requester)
-    mockGetTenantById(tenantUuid, tenant)
+    mockGetTenantById(tenantId, tenant)
     mockGetAttributeById(seed.id, persistentAttribute.copy(id = seed.id))
 
-    Post() ~> tenantService.addCertifiedAttribute(tenantUuid.toString, seed) ~> check {
+    Post() ~> tenantService.addCertifiedAttribute(tenantId.toString, seed) ~> check {
       assert(status == StatusCodes.Conflict)
     }
   }
