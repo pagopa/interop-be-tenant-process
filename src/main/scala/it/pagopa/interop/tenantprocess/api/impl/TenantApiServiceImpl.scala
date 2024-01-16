@@ -415,6 +415,19 @@ final case class TenantApiServiceImpl(
       updatedTenant <- attribute.fold(
         tenantManagementService.addTenantAttribute(targetTenantUuid, seed.toCreateDependency(now))
       )(_ => Future.failed(CertifiedAttributeAlreadyExists(targetTenantUuid, seed.id)))
+      tenantKind    <- getTenantKindLoadingCertifiedAttributes(updatedTenant.attributes, updatedTenant.externalId)
+      updatedTenant <- updatedTenant.kind match {
+        case Some(x) if (x == tenantKind) => Future.successful(updatedTenant)
+        case _                            =>
+          tenantManagementService.updateTenant(
+            updatedTenant.id,
+            DependencyTenantDelta(
+              selfcareId = updatedTenant.selfcareId,
+              features = updatedTenant.features,
+              kind = tenantKind
+            )
+          )
+      }
       _             <- agreementProcessService.computeAgreementsByAttribute(
         seed.id,
         CompactTenant(updatedTenant.id, updatedTenant.attributes.map(_.toAgreementApi))

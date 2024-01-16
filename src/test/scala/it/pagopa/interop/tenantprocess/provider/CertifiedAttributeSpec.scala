@@ -45,6 +45,16 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       mockGetTenantById(tenantId, tenant)
       mockGetAttributeById(seed.id, persistentAttribute.copy(id = seed.id))
       mockAddTenantAttribute(tenantId, managementSeed)
+      mockUpdateTenant(
+        tenantId,
+        Dependency.TenantDelta(
+          selfcareId = None,
+          features = Nil,
+          kind = Dependency.TenantKind.PA,
+          onboardedAt = None,
+          subUnitType = None
+        )
+      )
       mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
 
       Post() ~> tenantService.addCertifiedAttribute(tenantId.toString, seed) ~> check {
