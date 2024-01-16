@@ -96,7 +96,14 @@ object TenantProcessErrors {
       )
   final case class CertifiedAttributeAlreadyExists(tenantId: UUID, attributeId: UUID)
       extends ComponentError("0023", s"Certified Attribute $attributeId already exists in tenant $tenantId")
-  
-  final case class CertifiedAttributeOriginIsNotComplaintToCertifier(requesterId: UUID, tenantId: UUID, origin: Option[String], certifierId: String)
-      extends ComponentError("0024", s"Organization ${requesterId.toString} not allowed to assign certified attributes to tenant ${tenantId.toString} -> origin $origin , certifier $certifierId")
+
+  final case class CertifiedAttributeOriginIsNotComplaintToCertifier(
+    requesterId: UUID,
+    tenantId: UUID,
+    origin: Option[String],
+    certifierId: String
+  ) extends ComponentError(
+        "0024",
+        s"Organization ${requesterId.toString} not allowed to assign certified attributes to tenant ${tenantId.toString} -> origin $origin , certifier $certifierId"
+      )
 }

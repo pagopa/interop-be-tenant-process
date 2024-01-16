@@ -401,7 +401,7 @@ final case class TenantApiServiceImpl(
       requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
       targetTenantUuid    <- tenantId.toFutureUUID
       requesterTenant     <- tenantManagementService.getTenantById(requesterTenantUuid).map(_.toManagement)
-      certifierId                   <- requesterTenant.features
+      certifierId         <- requesterTenant.features
         .collectFirstSome(_.certifier.map(_.certifierId))
         .toFuture(TenantIsNotACertifier(requesterTenantUuid))
       attribute           <- attributeRegistryManagementService
@@ -410,9 +410,17 @@ final case class TenantApiServiceImpl(
         case Certified => Future.unit
         case _         => Future.failed(RegistryAttributeIdNotFound(attribute.id))
       }
-      _ <- attribute.origin match {
+      _                   <- attribute.origin match {
         case Some(value) if (value == certifierId) => Future.unit
-        case _ => Future.failed(CertifiedAttributeOriginIsNotComplaintToCertifier(requesterTenantUuid, targetTenantUuid, attribute.origin, certifierId)) 
+        case _                                     =>
+          Future.failed(
+            CertifiedAttributeOriginIsNotComplaintToCertifier(
+              requesterTenantUuid,
+              targetTenantUuid,
+              attribute.origin,
+              certifierId
+            )
+          )
       }
       targetTenant        <- tenantManagementService.getTenantById(targetTenantUuid).map(_.toManagement)
       attribute = targetTenant.attributes.flatMap(_.certified).find(_.id == seed.id)

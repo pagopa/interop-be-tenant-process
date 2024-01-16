@@ -112,11 +112,12 @@ object ResponseHandlers extends AkkaResponses {
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
     result match {
-      case Success(s)                                   => success(s)
-      case Failure(ex: TenantIsNotACertifier)           => forbidden(ex, logMessage)
-      case Failure(ex: TenantByIdNotFound)              => notFound(ex, logMessage)
-      case Failure(ex: CertifiedAttributeAlreadyExists) => conflict(ex, logMessage)
-      case Failure(ex)                                  => internalServerError(ex, logMessage)
+      case Success(s)                                                     => success(s)
+      case Failure(ex: CertifiedAttributeOriginIsNotComplaintToCertifier) => forbidden(ex, logMessage)
+      case Failure(ex: TenantIsNotACertifier)                             => forbidden(ex, logMessage)
+      case Failure(ex: TenantByIdNotFound)                                => notFound(ex, logMessage)
+      case Failure(ex: CertifiedAttributeAlreadyExists)                   => conflict(ex, logMessage)
+      case Failure(ex)                                                    => internalServerError(ex, logMessage)
     }
 
   def verifyVerifiedAttributeResponse[T](logMessage: String)(
