@@ -12,11 +12,12 @@ import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 
 class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest {
 
   "Certified attribute addition" should {
-    "succeed" in {
+    "succeed without sync tenant kind" in {
       implicit val context: Seq[(String, String)] = adminContext
 
       val tenantId       = UUID.randomUUID()
@@ -32,11 +33,13 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
 
       val requester = persistentTenant.copy(
         id = organizationId,
+        kind = Some(PersistentTenantKind.PA),
         features = List(PersistentTenantFeature.PersistentCertifier("certifier"))
       )
 
       val tenant = persistentTenant.copy(
         id = tenantId,
+        kind = Some(PersistentTenantKind.PA),
         attributes = List(persistentCertifiedAttribute, persistentDeclaredAttribute, persistentVerifiedAttribute)
       )
 
@@ -44,22 +47,58 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       mockGetTenantById(organizationId, requester)
       mockGetTenantById(tenantId, tenant)
       mockGetAttributeById(seed.id, persistentAttribute.copy(id = seed.id))
-      mockAddTenantAttribute(tenantId, managementSeed)
-      mockUpdateTenant(
-        tenantId,
-        Dependency.TenantDelta(
-          selfcareId = None,
-          features = Nil,
-          kind = Dependency.TenantKind.PA,
-          onboardedAt = None,
-          subUnitType = None
-        )
-      )
+      mockAddTenantAttribute(tenantId, managementSeed, dependencyTenant.copy(kind = Some(Dependency.TenantKind.PA)))
       mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
 
       Post() ~> tenantService.addCertifiedAttribute(tenantId.toString, seed) ~> check {
         assert(status == StatusCodes.OK)
       }
+    }
+  }
+  "succeed with sync tenant kind" in {
+    implicit val context: Seq[(String, String)] = adminContext
+
+    val tenantId       = UUID.randomUUID()
+    val attributeId    = UUID.randomUUID()
+    val seed           = CertifiedTenantAttributeSeed(attributeId)
+    val managementSeed = Dependency.TenantAttribute(
+      declared = None,
+      certified =
+        Some(Dependency.CertifiedTenantAttribute(seed.id, assignmentTimestamp = timestamp, revocationTimestamp = None)),
+      verified = None
+    )
+
+    val requester = persistentTenant.copy(
+      id = organizationId,
+      kind = Some(PersistentTenantKind.PA),
+      features = List(PersistentTenantFeature.PersistentCertifier("certifier"))
+    )
+
+    val tenant = persistentTenant.copy(
+      id = tenantId,
+      kind = Some(PersistentTenantKind.PA),
+      attributes = List(persistentCertifiedAttribute, persistentDeclaredAttribute, persistentVerifiedAttribute)
+    )
+
+    mockDateTimeGet()
+    mockGetTenantById(organizationId, requester)
+    mockGetTenantById(tenantId, tenant)
+    mockGetAttributeById(seed.id, persistentAttribute.copy(id = seed.id))
+    mockAddTenantAttribute(tenantId, managementSeed)
+    mockUpdateTenant(
+      tenantId,
+      Dependency.TenantDelta(
+        selfcareId = None,
+        features = Nil,
+        kind = Dependency.TenantKind.PA,
+        onboardedAt = None,
+        subUnitType = None
+      )
+    )
+    mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
+
+    Post() ~> tenantService.addCertifiedAttribute(tenantId.toString, seed) ~> check {
+      assert(status == StatusCodes.OK)
     }
   }
   "fail if requester is not a certifier" in {
