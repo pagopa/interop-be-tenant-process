@@ -50,10 +50,14 @@ object TenantProcessErrors {
 
   final case class TenantByIdNotFound(tenantId: UUID) extends ComponentError("0011", s"Tenant $tenantId not found")
 
-  final case class CertifiedAttributeNotFoundInTenant(tenantId: UUID, attributeOrigin: String, attributeCode: String)
-      extends ComponentError(
+  final case class CertifiedAttributeNotFoundInTenant(
+    tenantId: UUID,
+    attributeId: UUID,
+    attributeOrigin: String,
+    attributeCode: String
+  ) extends ComponentError(
         "0012",
-        s"Certified Attribute ($attributeOrigin, $attributeCode) not found in tenant $tenantId"
+        s"Certified Attribute $attributeId ($attributeOrigin, $attributeCode) not found in tenant $tenantId"
       )
 
   final case class DeclaredAttributeNotFoundInTenant(tenantId: UUID, attributeId: UUID)

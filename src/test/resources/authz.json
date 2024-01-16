@@ -171,6 +171,13 @@
       "roles": [
         "admin"
       ]
-    }
+    },
+    {
+      "route": "revokeCertifiedAttributeById",
+      "verb": "DELETE",
+      "roles": [
+        "admin"
+      ]
+    }    
   ]
 }

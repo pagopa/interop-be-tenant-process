@@ -214,4 +214,13 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
       }
     )
   }
+
+  test("Tenant api should accept authorized roles for revokeCertifiedAttributeById") {
+    validateAuthorization(
+      endpoints("revokeCertifiedAttributeById"),
+      { implicit c: Seq[(String, String)] =>
+        tenantService.revokeCertifiedAttributeById(UUID.randomUUID().toString, UUID.randomUUID().toString)
+      }
+    )
+  }
 }

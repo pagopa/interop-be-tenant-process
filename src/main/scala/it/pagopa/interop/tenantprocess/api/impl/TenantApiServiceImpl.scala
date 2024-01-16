@@ -426,6 +426,72 @@ final case class TenantApiServiceImpl(
     }
   }
 
+  override def revokeCertifiedAttributeById(tenantId: String, attributeId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE) {
+    val operationLabel = s"Revoke certified attribute ${attributeId} to tenant $tenantId"
+    logger.info(operationLabel)
+
+    val now: OffsetDateTime = dateTimeSupplier.get()
+
+    val result: Future[Unit] = for {
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
+      targetTenantUuid    <- tenantId.toFutureUUID
+      attributeUuid       <- attributeId.toFutureUUID
+      requesterTenant     <- tenantManagementService.getTenantById(requesterTenantUuid).map(_.toManagement)
+      _                   <- requesterTenant.features
+        .collectFirstSome(_.certifier.map(_.certifierId))
+        .toFuture(TenantIsNotACertifier(requesterTenantUuid))
+      attribute           <- attributeRegistryManagementService
+        .getAttributeById(attributeUuid)
+      _                   <- attribute.kind match {
+        case Certified => Future.unit
+        case _         => Future.failed(RegistryAttributeIdNotFound(attribute.id))
+      }
+      targetTenant        <- tenantManagementService.getTenantById(targetTenantUuid).map(_.toManagement)
+      attributeToRevoke   <- targetTenant.attributes
+        .mapFilter(_.certified)
+        .find(_.id == attributeUuid)
+        .toFuture(
+          CertifiedAttributeNotFoundInTenant(
+            targetTenant.id,
+            attribute.id,
+            attribute.origin.getOrElse("none"),
+            attribute.code.getOrElse("none")
+          )
+        )
+      revokedAttribute = attributeToRevoke.copy(revocationTimestamp = now.some)
+      updatedTenant <- tenantManagementService
+        .updateTenantAttribute(
+          targetTenant.id,
+          attributeToRevoke.id,
+          DependencyTenantAttribute(certified = revokedAttribute.some)
+        )
+      tenantKind    <- getTenantKindLoadingCertifiedAttributes(updatedTenant.attributes, updatedTenant.externalId)
+      updatedTenant <- updatedTenant.kind match {
+        case Some(x) if (x == tenantKind) => Future.successful(updatedTenant)
+        case _                            =>
+          tenantManagementService.updateTenant(
+            updatedTenant.id,
+            DependencyTenantDelta(
+              selfcareId = updatedTenant.selfcareId,
+              features = updatedTenant.features,
+              kind = tenantKind
+            )
+          )
+      }
+      _             <- agreementProcessService.computeAgreementsByAttribute(
+        attributeUuid,
+        CompactTenant(updatedTenant.id, updatedTenant.attributes.map(_.toAgreementApi))
+      )
+    } yield ()
+
+    onComplete(result) {
+      revokeCertifiedAttributeByIdResponse[Unit](operationLabel)(_ => revokeCertifiedAttributeById204)
+    }
+  }
+
   override def verifyVerifiedAttribute(tenantId: String, seed: VerifiedTenantAttributeSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
@@ -723,7 +789,9 @@ final case class TenantApiServiceImpl(
     attributeToModify   <- tenantToModify.attributes
       .mapFilter(_.certified)
       .find(_.id == attributeIdToRevoke)
-      .toFuture(CertifiedAttributeNotFoundInTenant(tenantToModify.id, attributeOrigin, attributeExternalId))
+      .toFuture(
+        CertifiedAttributeNotFoundInTenant(tenantToModify.id, attributeIdToRevoke, attributeOrigin, attributeExternalId)
+      )
     modifiedAttribute = attributeToModify.copy(revocationTimestamp = dateTimeSupplier.get().some)
     updatedTenant <- tenantManagementService
       .updateTenantAttribute(
@@ -775,7 +843,6 @@ final case class TenantApiServiceImpl(
         attributeToAssign.toCertifiedSeed(now)
       )
     )
-
     tenantKind    <- getTenantKindLoadingCertifiedAttributes(updatedTenant.attributes, updatedTenant.externalId)
     updatedTenant <- updatedTenant.kind match {
       case Some(x) if (x == tenantKind) => Future.successful(updatedTenant)
