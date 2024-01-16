@@ -222,7 +222,10 @@ class TenantApiServiceAuthzSpec extends ClusteredMUnitRouteTest with SpecData {
     validateAuthorization(
       endpoints("revokeCertifiedAttributeById"),
       { implicit c: Seq[(String, String)] =>
-        tenantService.revokeCertifiedAttributeById(UUID.randomUUID().toString, UUID.randomUUID().toString)
+        tenantService.revokeCertifiedAttributeById(
+          c.find(_._1 == ORGANIZATION_ID_CLAIM).get.toString,
+          UUID.randomUUID().toString
+        )
       }
     )
   }
