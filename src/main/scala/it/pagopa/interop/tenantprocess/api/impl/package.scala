@@ -24,7 +24,9 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def tenantFeatureFormat: RootJsonFormat[TenantFeature]     = jsonFormat1(TenantFeature)
   implicit def tenantAttributeFormat: RootJsonFormat[TenantAttribute] = jsonFormat3(TenantAttribute)
 
-  implicit def declaredTenantAttributeFormat: RootJsonFormat[DeclaredTenantAttribute]   =
+  implicit def certifiedAttributeFormat: RootJsonFormat[CertifiedAttribute]           = jsonFormat4(CertifiedAttribute)
+  implicit def certifiedAttributesFormat: RootJsonFormat[CertifiedAttributes]         = jsonFormat2(CertifiedAttributes)
+  implicit def declaredTenantAttributeFormat: RootJsonFormat[DeclaredTenantAttribute] =
     jsonFormat3(DeclaredTenantAttribute)
   implicit def certifiedTenantAttributeFormat: RootJsonFormat[CertifiedTenantAttribute] =
     jsonFormat3(CertifiedTenantAttribute)

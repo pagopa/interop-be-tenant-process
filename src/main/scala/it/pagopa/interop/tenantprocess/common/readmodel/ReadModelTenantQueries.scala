@@ -13,8 +13,14 @@ import org.mongodb.scala.model.Sorts.ascending
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import it.pagopa.interop.tenantprocess.model.CertifiedAttribute
 
 object ReadModelTenantQueries extends ReadModelQuery {
+
+  def getCertifiedAttributes(certifier: String, offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PaginatedResult[CertifiedAttribute]] = ???
 
   def getTenantBySelfcareId(
     selfcareId: UUID

@@ -26,6 +26,7 @@ import it.pagopa.interop.tenantprocess.service.{
   TenantManagementInvoker,
   TenantManagementService
 }
+import it.pagopa.interop.tenantprocess.model.CertifiedAttribute
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -102,6 +103,12 @@ final case class TenantManagementServiceImpl(
       .find(_.id == attributeId)
       .toFuture(TenantAttributeNotFound(tenantId, attributeId))
   } yield attribute
+
+  override def getCertifiedAttributes(certifier: String, offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PaginatedResult[CertifiedAttribute]] =
+    ReadModelTenantQueries.getCertifiedAttributes(certifier, offset, limit)
 
   override def getTenantBySelfcareId(
     selfcareId: UUID
