@@ -210,7 +210,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       val requester = persistentTenant.copy(
         id = organizationId,
         kind = Some(PersistentTenantKind.PA),
-        features = List(PersistentTenantFeature.PersistentCertifier("certifier"))
+        features = List(PersistentTenantFeature.PersistentCertifier("IPA"))
       )
 
       val tenant = persistentTenant.copy(
@@ -238,7 +238,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       mockDateTimeGet()
       mockGetTenantById(organizationId, requester)
       mockGetTenantById(tenantId, tenant)
-      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId))
+      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId, origin = Some("IPA")))
       mockUpdateTenantAttribute(
         tenantId,
         attributeId,
@@ -261,7 +261,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       val requester = persistentTenant.copy(
         id = organizationId,
         kind = Some(PersistentTenantKind.PA),
-        features = List(PersistentTenantFeature.PersistentCertifier("certifier"))
+        features = List(PersistentTenantFeature.PersistentCertifier("IPA"))
       )
 
       val tenant = persistentTenant.copy(
@@ -289,7 +289,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       mockDateTimeGet()
       mockGetTenantById(organizationId, requester)
       mockGetTenantById(tenantId, tenant)
-      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId))
+      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId, origin = Some("IPA")))
       mockUpdateTenantAttribute(tenantId, attributeId, managementSeed)
       mockUpdateTenant(
         tenantId,
@@ -329,10 +329,8 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       val tenantId    = UUID.randomUUID()
       val attributeId = UUID.randomUUID()
 
-      val requester = persistentTenant.copy(
-        id = organizationId,
-        features = List(PersistentTenantFeature.PersistentCertifier("certifier"))
-      )
+      val requester =
+        persistentTenant.copy(id = organizationId, features = List(PersistentTenantFeature.PersistentCertifier("IPA")))
 
       mockDateTimeGet()
       mockGetTenantById(organizationId, requester)
@@ -348,10 +346,8 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       val tenantId    = UUID.randomUUID()
       val attributeId = UUID.randomUUID()
 
-      val requester = persistentTenant.copy(
-        id = organizationId,
-        features = List(PersistentTenantFeature.PersistentCertifier("certifier"))
-      )
+      val requester =
+        persistentTenant.copy(id = organizationId, features = List(PersistentTenantFeature.PersistentCertifier("IPA")))
 
       mockDateTimeGet()
       mockGetTenantById(organizationId, requester)
@@ -361,16 +357,31 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
         assert(status == StatusCodes.InternalServerError)
       }
     }
+    "fail if certified attribute exists but its origin is not complaint with certifier" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val tenantId    = UUID.randomUUID()
+      val attributeId = UUID.randomUUID()
+
+      val requester =
+        persistentTenant.copy(id = organizationId, features = List(PersistentTenantFeature.PersistentCertifier("IPA")))
+
+      mockDateTimeGet()
+      mockGetTenantById(organizationId, requester)
+      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId, origin = Some("NOT-IPA")))
+
+      Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
+        assert(status == StatusCodes.Forbidden)
+      }
+    }
     "fail if attribute does not exists on tenant" in {
       implicit val context: Seq[(String, String)] = adminContext
 
       val tenantId    = UUID.randomUUID()
       val attributeId = UUID.randomUUID()
 
-      val requester = persistentTenant.copy(
-        id = organizationId,
-        features = List(PersistentTenantFeature.PersistentCertifier("certifier"))
-      )
+      val requester =
+        persistentTenant.copy(id = organizationId, features = List(PersistentTenantFeature.PersistentCertifier("IPA")))
 
       val tenant = persistentTenant.copy(
         id = tenantId,
@@ -380,10 +391,10 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       mockDateTimeGet()
       mockGetTenantById(organizationId, requester)
       mockGetTenantById(tenantId, tenant)
-      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId))
+      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId, origin = Some("IPA")))
 
       Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
-        assert(status == StatusCodes.BadRequest)
+        assert(status == StatusCodes.NotFound)
       }
     }
   }
