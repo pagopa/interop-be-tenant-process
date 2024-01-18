@@ -39,7 +39,7 @@ object ReadModelTenantQueries extends ReadModelQuery {
         computed("name", "$data.name"),
         computed("attributeId", "$attributes.data.id"),
         computed("attributeName", "$attributes.data.name"),
-        computed("lowerName", Document("""{ "$toLower" : "$tenants.data.name" }""")),
+        computed("lowerName", Document("""{ "$toLower" : "$data.name" }""")),
         excludeId()
       )
     )
