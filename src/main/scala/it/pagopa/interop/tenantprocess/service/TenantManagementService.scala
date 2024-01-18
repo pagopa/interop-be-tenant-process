@@ -6,7 +6,7 @@ import it.pagopa.interop.tenantmanagement.model.tenant.{
   PersistentTenantAttribute,
   PersistentExternalId
 }
-import it.pagopa.interop.tenantprocess.model.CertifiedAttribute
+import it.pagopa.interop.tenantprocess.common.readmodel.CertifiedAttribute
 import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 

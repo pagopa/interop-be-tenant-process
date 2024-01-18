@@ -926,7 +926,7 @@ final case class TenantApiServiceImpl(
     toEntityMarshallerCertifiedAttributes: ToEntityMarshaller[CertifiedAttributes],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
-    val operationLabel = s"Retrieving certfied attributes"
+    val operationLabel = s"Retrieving certified attributes"
     logger.info(operationLabel)
 
     val result: Future[CertifiedAttributes] = for {

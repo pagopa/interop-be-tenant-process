@@ -164,6 +164,17 @@
         "admin",
         "api"
       ]
+    },
+    {
+      "route": "getCertifiedAttributes",
+      "verb": "GET",
+      "roles": [
+        "admin",
+        "api",
+        "m2m",
+        "security",
+        "support"
+      ]
     }
   ]
 }

@@ -5,6 +5,7 @@ import cats.syntax.all._
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantFeature.PersistentCertifier
 import it.pagopa.interop.tenantmanagement.model.tenant._
 import it.pagopa.interop.tenantmanagement.client.{model => Management}
+import it.pagopa.interop.tenantprocess.common._
 import it.pagopa.interop.tenantprocess.model._
 import spray.json._
 
@@ -161,6 +162,16 @@ object ReadModelTenantAdapters extends SprayJsonSupport with DefaultJsonProtocol
       verificationDate = t.verificationDate,
       expirationDate = t.expirationDate,
       extensionDate = t.extensionDate
+    )
+  }
+
+  implicit class CertifiedAttributeWrapper(private val attr: readmodel.CertifiedAttribute) extends AnyVal {
+
+    def toApi: CertifiedAttribute = CertifiedAttribute(
+      id = attr.id,
+      name = attr.name,
+      attributeName = attr.attributeName,
+      attributeId = attr.attributeId
     )
   }
 

@@ -32,6 +32,7 @@ import it.pagopa.interop.catalogmanagement.model.{
   Rest,
   Deliver
 }
+import it.pagopa.interop.tenantprocess.common.readmodel.CertifiedAttribute
 import it.pagopa.interop.commons.utils.Digester.toSha256
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -287,6 +288,10 @@ trait SpecData {
       mode = Deliver,
       riskAnalysis = Seq.empty
     )
+
+  val certifiedAttribute = CertifiedAttribute(UUID.randomUUID(), "fake", UUID.randomUUID(), "fake")
+  val paginatedCertifiedAttributeResults: PaginatedResult[CertifiedAttribute] =
+    PaginatedResult(results = Seq(certifiedAttribute), totalCount = 1)
 
   val paginatedResults: PaginatedResult[PersistentTenant] =
     PaginatedResult(results = Seq(persistentTenant), totalCount = 1)

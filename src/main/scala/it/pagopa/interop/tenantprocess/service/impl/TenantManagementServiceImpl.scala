@@ -26,7 +26,7 @@ import it.pagopa.interop.tenantprocess.service.{
   TenantManagementInvoker,
   TenantManagementService
 }
-import it.pagopa.interop.tenantprocess.model.CertifiedAttribute
+import it.pagopa.interop.tenantprocess.common.readmodel.CertifiedAttribute
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
