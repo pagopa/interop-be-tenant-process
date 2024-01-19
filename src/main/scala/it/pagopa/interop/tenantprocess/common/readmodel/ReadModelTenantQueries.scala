@@ -2,6 +2,7 @@ package it.pagopa.interop.tenantprocess.common.readmodel
 
 import it.pagopa.interop.tenantprocess.common.readmodel.CertifiedAttribute
 import it.pagopa.interop.agreementmanagement.model.agreement.{Active, Suspended}
+import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.Certified
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentCertifiedAttribute}
 import it.pagopa.interop.tenantmanagement.model.persistence.JsonFormats._
@@ -22,15 +23,18 @@ object ReadModelTenantQueries extends ReadModelQuery {
     readModel: ReadModelService
   ): Future[PaginatedResult[CertifiedAttribute]] = {
 
-    val query: Bson = Filters.and(
-      Filters.eq("data.externalId.origin", certifier.toString),
-      Filters.eq("data.attributes.type", PersistentCertifiedAttribute.toString)
-    )
+    val query: Bson = Filters.eq("data.attributes.type", PersistentCertifiedAttribute.toString)
 
     val filterPipeline: Seq[Bson] = Seq(
       `match`(query),
       lookup(from = "attributes", localField = "data.id", foreignField = "data.attributes.id", as = "attributes"),
-      unwind("$attributes")
+      unwind("$attributes"),
+      `match`(
+        Filters.and(
+          Filters.eq("attributes.data.kind", Certified.toString),
+          Filters.eq("attributes.data.origin", certifier.toString)
+        )
+      )
     )
 
     val projection: Bson = project(
