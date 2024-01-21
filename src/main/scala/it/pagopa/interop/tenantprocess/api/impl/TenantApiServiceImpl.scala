@@ -391,7 +391,7 @@ final case class TenantApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerTenant: ToEntityMarshaller[Tenant]
-  ): Route = authorize(ADMIN_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, M2M_ROLE) {
     val operationLabel = s"Add certified attribute ${seed.id} to tenant $tenantId"
     logger.info(operationLabel)
 
@@ -414,7 +414,7 @@ final case class TenantApiServiceImpl(
         case Some(value) if (value == certifierId) => Future.unit
         case _                                     =>
           Future.failed(
-            CertifiedAttributeOriginIsNotComplaintToCertifier(
+            CertifiedAttributeOriginIsNotCompliantWithCertifier(
               requesterTenantUuid,
               targetTenantUuid,
               attribute.origin,
@@ -423,10 +423,12 @@ final case class TenantApiServiceImpl(
           )
       }
       targetTenant        <- tenantManagementService.getTenantById(targetTenantUuid).map(_.toManagement)
-      attribute = targetTenant.attributes.flatMap(_.certified).find(_.id == seed.id)
-      updatedTenant <- attribute.fold(
+      certifiedAttribute = targetTenant.attributes.flatMap(_.certified).find(_.id == seed.id)
+      updatedTenant <- certifiedAttribute.fold(
         tenantManagementService.addTenantAttribute(targetTenantUuid, seed.toCreateDependency(now))
-      )(_ => Future.failed(CertifiedAttributeAlreadyExists(targetTenantUuid, seed.id)))
+      )(_ =>
+        tenantManagementService.updateTenantAttribute(targetTenantUuid, attribute.id, attribute.toCertifiedSeed(now))
+      )
       tenantKind    <- getTenantKindLoadingCertifiedAttributes(updatedTenant.attributes, updatedTenant.externalId)
       updatedTenant <- updatedTenant.kind match {
         case Some(x) if (x == tenantKind) => Future.successful(updatedTenant)

@@ -169,7 +169,8 @@
       "route": "addCertifiedAttribute",
       "verb": "POST",
       "roles": [
-        "admin"
+        "admin",
+        "m2m"
       ]
     }
   ]
