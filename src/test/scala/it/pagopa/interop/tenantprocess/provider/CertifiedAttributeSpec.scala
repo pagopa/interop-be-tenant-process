@@ -353,7 +353,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       mockGetAttributeByIdNotFound(attributeId)
 
       Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
-        assert(status == StatusCodes.InternalServerError)
+        assert(status == StatusCodes.NotFound)
       }
     }
     "fail if attribute exists but is not certified" in {
@@ -370,7 +370,7 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId, kind = Declared))
 
       Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
-        assert(status == StatusCodes.InternalServerError)
+        assert(status == StatusCodes.NotFound)
       }
     }
     "fail if certified attribute exists but its origin is not complaint with certifier" in {

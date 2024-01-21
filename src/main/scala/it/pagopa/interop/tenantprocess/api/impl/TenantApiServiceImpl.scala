@@ -456,7 +456,7 @@ final case class TenantApiServiceImpl(
   override def revokeCertifiedAttributeById(tenantId: String, attributeId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, M2M_ROLE) {
     val operationLabel = s"Revoke certified attribute ${attributeId} to tenant $tenantId"
     logger.info(operationLabel)
 
@@ -480,7 +480,7 @@ final case class TenantApiServiceImpl(
         case Some(value) if (value == certifierId) => Future.unit
         case _                                     =>
           Future.failed(
-            CertifiedAttributeOriginIsNotComplaintToCertifier(
+            CertifiedAttributeOriginIsNotCompliantWithCertifier(
               requesterTenantUuid,
               targetTenantUuid,
               attribute.origin,
