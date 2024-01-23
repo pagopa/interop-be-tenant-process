@@ -129,5 +129,18 @@ class TenantRetrieveSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
         assert(status == StatusCodes.OK)
       }
     }
+    "List certified attributes fail if Tenant is not a Certifier" in {
+
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val offset: Int = 0
+      val limit: Int  = 50
+
+      mockGetTenantById(organizationId, persistentTenant.copy(features = Nil))
+
+      Get() ~> tenantService.getCertifiedAttributes(offset, limit) ~> check {
+        assert(status == StatusCodes.Forbidden)
+      }
+    }
   }
 }
