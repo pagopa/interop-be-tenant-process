@@ -242,4 +242,203 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       }
     }
   }
+
+  "Certified attribute revoke" should {
+    "succeed without sync tenant kind" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val tenantId    = UUID.randomUUID()
+      val attributeId = UUID.randomUUID()
+
+      val requester = persistentTenant.copy(
+        id = organizationId,
+        kind = Some(PersistentTenantKind.PA),
+        features = List(PersistentTenantFeature.PersistentCertifier("IPA"))
+      )
+
+      val tenant = persistentTenant.copy(
+        id = tenantId,
+        kind = Some(PersistentTenantKind.PA),
+        attributes = List(
+          persistentCertifiedAttribute.copy(id = attributeId),
+          persistentDeclaredAttribute,
+          persistentVerifiedAttribute
+        )
+      )
+
+      val managementSeed = Dependency.TenantAttribute(
+        declared = None,
+        certified = Some(
+          Dependency.CertifiedTenantAttribute(
+            attributeId,
+            assignmentTimestamp = timestamp,
+            revocationTimestamp = Some(timestamp)
+          )
+        ),
+        verified = None
+      )
+
+      mockDateTimeGet()
+      mockGetTenantById(organizationId, requester)
+      mockGetTenantById(tenantId, tenant)
+      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId, origin = Some("IPA")))
+      mockUpdateTenantAttribute(
+        tenantId,
+        attributeId,
+        managementSeed,
+        dependencyTenant.copy(kind = Some(Dependency.TenantKind.PA))
+      )
+
+      mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
+
+      Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
+        assert(status == StatusCodes.NoContent)
+      }
+    }
+    "succeed with sync tenant kind" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val tenantId    = UUID.randomUUID()
+      val attributeId = UUID.randomUUID()
+
+      val requester = persistentTenant.copy(
+        id = organizationId,
+        kind = Some(PersistentTenantKind.PA),
+        features = List(PersistentTenantFeature.PersistentCertifier("IPA"))
+      )
+
+      val tenant = persistentTenant.copy(
+        id = tenantId,
+        kind = Some(PersistentTenantKind.PA),
+        attributes = List(
+          persistentCertifiedAttribute.copy(id = attributeId),
+          persistentDeclaredAttribute,
+          persistentVerifiedAttribute
+        )
+      )
+
+      val managementSeed = Dependency.TenantAttribute(
+        declared = None,
+        certified = Some(
+          Dependency.CertifiedTenantAttribute(
+            attributeId,
+            assignmentTimestamp = timestamp,
+            revocationTimestamp = Some(timestamp)
+          )
+        ),
+        verified = None
+      )
+
+      mockDateTimeGet()
+      mockGetTenantById(organizationId, requester)
+      mockGetTenantById(tenantId, tenant)
+      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId, origin = Some("IPA")))
+      mockUpdateTenantAttribute(tenantId, attributeId, managementSeed)
+      mockUpdateTenant(
+        tenantId,
+        Dependency.TenantDelta(
+          selfcareId = None,
+          features = Nil,
+          kind = Dependency.TenantKind.PA,
+          onboardedAt = None,
+          subUnitType = None
+        )
+      )
+
+      mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
+
+      Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
+        assert(status == StatusCodes.NoContent)
+      }
+    }
+    "fail if requester is not a certifier" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val tenantId    = UUID.randomUUID()
+      val attributeId = UUID.randomUUID()
+
+      val requester = persistentTenant.copy(id = organizationId)
+
+      mockDateTimeGet()
+      mockGetTenantById(organizationId, requester)
+
+      Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
+        assert(status == StatusCodes.Forbidden)
+      }
+    }
+    "fail if attribute does not exists" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val tenantId    = UUID.randomUUID()
+      val attributeId = UUID.randomUUID()
+
+      val requester =
+        persistentTenant.copy(id = organizationId, features = List(PersistentTenantFeature.PersistentCertifier("IPA")))
+
+      mockDateTimeGet()
+      mockGetTenantById(organizationId, requester)
+      mockGetAttributeByIdNotFound(attributeId)
+
+      Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
+        assert(status == StatusCodes.NotFound)
+      }
+    }
+    "fail if attribute exists but is not certified" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val tenantId    = UUID.randomUUID()
+      val attributeId = UUID.randomUUID()
+
+      val requester =
+        persistentTenant.copy(id = organizationId, features = List(PersistentTenantFeature.PersistentCertifier("IPA")))
+
+      mockDateTimeGet()
+      mockGetTenantById(organizationId, requester)
+      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId, kind = Declared))
+
+      Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
+        assert(status == StatusCodes.NotFound)
+      }
+    }
+    "fail if certified attribute exists but its origin is not complaint with certifier" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val tenantId    = UUID.randomUUID()
+      val attributeId = UUID.randomUUID()
+
+      val requester =
+        persistentTenant.copy(id = organizationId, features = List(PersistentTenantFeature.PersistentCertifier("IPA")))
+
+      mockDateTimeGet()
+      mockGetTenantById(organizationId, requester)
+      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId, origin = Some("NOT-IPA")))
+
+      Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
+        assert(status == StatusCodes.Forbidden)
+      }
+    }
+    "fail if attribute does not exists on tenant" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val tenantId    = UUID.randomUUID()
+      val attributeId = UUID.randomUUID()
+
+      val requester =
+        persistentTenant.copy(id = organizationId, features = List(PersistentTenantFeature.PersistentCertifier("IPA")))
+
+      val tenant = persistentTenant.copy(
+        id = tenantId,
+        attributes = List(persistentCertifiedAttribute, persistentDeclaredAttribute, persistentVerifiedAttribute)
+      )
+
+      mockDateTimeGet()
+      mockGetTenantById(organizationId, requester)
+      mockGetTenantById(tenantId, tenant)
+      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId, origin = Some("IPA")))
+
+      Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
+        assert(status == StatusCodes.NotFound)
+      }
+    }
+  }
 }

@@ -172,6 +172,14 @@
         "admin",
         "m2m"
       ]
-    }
+    },
+    {
+      "route": "revokeCertifiedAttributeById",
+      "verb": "DELETE",
+      "roles": [
+        "admin",
+        "m2m"
+      ]
+    }    
   ]
 }
