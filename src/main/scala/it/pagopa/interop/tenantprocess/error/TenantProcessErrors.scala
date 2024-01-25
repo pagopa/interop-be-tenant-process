@@ -107,4 +107,7 @@ object TenantProcessErrors {
         "0023",
         s"Organization ${requesterId.toString} not allowed to assign certified attributes to tenant ${tenantId.toString} -> origin $origin , certifier $certifierId"
       )
+
+  final case class CertifiedAttributeAlreadyAssigned(tenantId: UUID, attributeId: UUID)
+      extends ComponentError("0024", s"Certified Attribute $attributeId already assigned to tenant $tenantId")
 }

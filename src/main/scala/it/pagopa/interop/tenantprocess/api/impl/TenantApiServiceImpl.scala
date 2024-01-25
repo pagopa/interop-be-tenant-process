@@ -426,8 +426,16 @@ final case class TenantApiServiceImpl(
       certifiedAttribute = targetTenant.attributes.flatMap(_.certified).find(_.id == seed.id)
       updatedTenant <- certifiedAttribute.fold(
         tenantManagementService.addTenantAttribute(targetTenantUuid, seed.toCreateDependency(now))
-      )(_ =>
-        tenantManagementService.updateTenantAttribute(targetTenantUuid, attribute.id, attribute.toCertifiedSeed(now))
+      )(attr =>
+        attr.revocationTimestamp match {
+          case None    => Future.failed(CertifiedAttributeAlreadyAssigned(targetTenantUuid, attribute.id))
+          case Some(_) =>
+            tenantManagementService.updateTenantAttribute(
+              targetTenantUuid,
+              attribute.id,
+              attribute.toCertifiedSeed(now)
+            )
+        }
       )
       tenantKind    <- getTenantKindLoadingCertifiedAttributes(updatedTenant.attributes, updatedTenant.externalId)
       updatedTenant <- updatedTenant.kind match {
