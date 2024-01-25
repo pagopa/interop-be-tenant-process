@@ -105,8 +105,5 @@ object TenantProcessErrors {
       )
 
   final case class CertifiedAttributeNotRevoked(tenantId: UUID, attributeId: UUID)
-      extends ComponentError(
-        "0024",
-        s"Certified Attribute $attributeId not found in tenant $tenantId"
-      )    
+      extends ComponentError("0024", s"Certified Attribute $attributeId already assigned to tenant $tenantId")
 }
