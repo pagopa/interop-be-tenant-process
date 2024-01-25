@@ -114,7 +114,7 @@ object ResponseHandlers extends AkkaResponses {
     result match {
       case Success(s)                                                       => success(s)
       case Failure(ex: RegistryAttributeIdNotFound)                         => badRequest(ex, logMessage)
-      case Failure(ex: CertifiedAttributeNotRevoked)                        => badRequest(ex, logMessage)
+      case Failure(ex: CertifiedAttributeAlreadyAssigned)                   => badRequest(ex, logMessage)
       case Failure(ex: CertifiedAttributeOriginIsNotCompliantWithCertifier) => forbidden(ex, logMessage)
       case Failure(ex: TenantIsNotACertifier)                               => forbidden(ex, logMessage)
       case Failure(ex: TenantByIdNotFound)                                  => notFound(ex, logMessage)

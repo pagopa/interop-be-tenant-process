@@ -428,7 +428,7 @@ final case class TenantApiServiceImpl(
         tenantManagementService.addTenantAttribute(targetTenantUuid, seed.toCreateDependency(now))
       )(attr =>
         attr.revocationTimestamp match {
-          case None    => Future.failed(CertifiedAttributeNotRevoked(targetTenantUuid, attribute.id))
+          case None    => Future.failed(CertifiedAttributeAlreadyAssigned(targetTenantUuid, attribute.id))
           case Some(_) =>
             tenantManagementService.updateTenantAttribute(
               targetTenantUuid,
