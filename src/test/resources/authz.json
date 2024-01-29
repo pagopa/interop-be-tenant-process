@@ -175,6 +175,22 @@
         "security",
         "support"
       ]
+    },
+    {
+      "route": "addCertifiedAttribute",
+      "verb": "POST",
+      "roles": [
+        "admin",
+        "m2m"
+      ]
+    },
+    {
+      "route": "revokeCertifiedAttributeById",
+      "verb": "DELETE",
+      "roles": [
+        "admin",
+        "m2m"
+      ]
     }
   ]
 }

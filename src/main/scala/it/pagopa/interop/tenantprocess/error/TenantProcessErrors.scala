@@ -50,10 +50,14 @@ object TenantProcessErrors {
 
   final case class TenantByIdNotFound(tenantId: UUID) extends ComponentError("0011", s"Tenant $tenantId not found")
 
-  final case class CertifiedAttributeNotFoundInTenant(tenantId: UUID, attributeOrigin: String, attributeCode: String)
-      extends ComponentError(
+  final case class CertifiedAttributeNotFoundInTenant(
+    tenantId: UUID,
+    attributeId: UUID,
+    attributeOrigin: String,
+    attributeCode: String
+  ) extends ComponentError(
         "0012",
-        s"Certified Attribute ($attributeOrigin, $attributeCode) not found in tenant $tenantId"
+        s"Certified Attribute $attributeId ($attributeOrigin, $attributeCode) not found in tenant $tenantId"
       )
 
   final case class DeclaredAttributeNotFoundInTenant(tenantId: UUID, attributeId: UUID)
@@ -94,4 +98,16 @@ object TenantProcessErrors {
         "0022",
         s"Certified Attribute ($attributeOrigin, $attributeCode) already in tenant $tenantId"
       )
+  final case class CertifiedAttributeOriginIsNotCompliantWithCertifier(
+    requesterId: UUID,
+    tenantId: UUID,
+    origin: Option[String],
+    certifierId: String
+  ) extends ComponentError(
+        "0023",
+        s"Organization ${requesterId.toString} not allowed to assign certified attributes to tenant ${tenantId.toString} -> origin $origin , certifier $certifierId"
+      )
+
+  final case class CertifiedAttributeAlreadyAssigned(tenantId: UUID, attributeId: UUID)
+      extends ComponentError("0024", s"Certified Attribute $attributeId already assigned to tenant $tenantId")
 }

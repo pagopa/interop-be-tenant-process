@@ -15,6 +15,7 @@ import it.pagopa.interop.tenantmanagement.model.tenant.{
 import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
   RegistryAttributeNotFound,
   TenantAttributeNotFound,
+  RegistryAttributeIdNotFound,
   TenantNotFound
 }
 import it.pagopa.interop.tenantmanagement.client.model._
@@ -227,6 +228,13 @@ trait SpecHelper extends MockFactory with SpecData {
       .expects(id, *, *)
       .once()
       .returns(Future.successful(result.copy(id = id)))
+
+  def mockGetAttributeByIdNotFound(id: UUID) =
+    (mockAttributeRegistryManagement
+      .getAttributeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+      .expects(id, *, *)
+      .once()
+      .returns(Future.failed(RegistryAttributeIdNotFound(id)))
 
   def mockComputeAgreementState(attributeId: UUID, consumer: CompactTenant)(implicit contexts: Seq[(String, String)]) =
     (mockAgreementProcess

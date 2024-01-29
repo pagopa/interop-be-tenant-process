@@ -485,6 +485,83 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /tenants/{tenantId}/attributes/certified:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - name: tenantId
+        in: path
+        description: Tenant id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - tenant
+      operationId: addCertifiedAttribute
+      description: Add a certified attribute to a Tenant by the requester Tenant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CertifiedTenantAttributeSeed'
+        required: true
+      responses:
+        '200':
+          description: Updated Tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Tenant Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /tenants/{tenantId}/attributes/certified/{attributeId}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - name: tenantId
+        in: path
+        description: Tenant id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: attributeId
+        in: path
+        description: Attribute id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      tags:
+        - tenant
+      operationId: revokeCertifiedAttributeById
+      description: Revoke a certified attribute to a Tenant by the requester Tenant
+      responses:
+        '204':
+          description: Certified Attribute revoked
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Tenant Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /tenants/attributes/declared:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -964,7 +1041,7 @@ components:
           format: int32
       required:
         - results
-        - totalCount    
+        - totalCount
     TenantFeature:
       type: object
       properties:
@@ -1059,6 +1136,14 @@ components:
         expirationDate:
           type: string
           format: date-time
+      required:
+        - id
+    CertifiedTenantAttributeSeed:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
       required:
         - id
     UpdateVerifiedTenantAttributeSeed:
