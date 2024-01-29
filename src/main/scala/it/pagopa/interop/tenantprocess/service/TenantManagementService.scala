@@ -6,6 +6,7 @@ import it.pagopa.interop.tenantmanagement.model.tenant.{
   PersistentTenantAttribute,
   PersistentExternalId
 }
+import it.pagopa.interop.tenantprocess.common.readmodel.CertifiedAttribute
 import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 
@@ -47,6 +48,11 @@ trait TenantManagementService {
     ec: ExecutionContext,
     readModel: ReadModelService
   ): Future[PaginatedResult[PersistentTenant]]
+
+  def getCertifiedAttributes(certifier: String, offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[PaginatedResult[CertifiedAttribute]]
 
   def listConsumers(name: Option[String], producerId: UUID, offset: Int, limit: Int)(implicit
     ec: ExecutionContext,

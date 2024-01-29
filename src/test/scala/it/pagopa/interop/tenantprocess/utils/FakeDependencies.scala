@@ -23,6 +23,7 @@ import spray.json.JsonReader
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import it.pagopa.interop.tenantprocess.common.readmodel.CertifiedAttribute
 
 object FakeDependencies extends SpecData {
   val verifiedAttributeId: UUID = UUID.randomUUID()
@@ -62,6 +63,11 @@ object FakeDependencies extends SpecData {
   }
 
   case class FakeTenantManagement() extends TenantManagementService {
+
+    override def getCertifiedAttributes(certifier: String, offset: Int, limit: Int)(implicit
+      ec: ExecutionContext,
+      readModel: ReadModelService
+    ): Future[PaginatedResult[CertifiedAttribute]] = Future.successful(paginatedCertifiedAttributeResults)
 
     override def updateTenantAttribute(tenantId: UUID, attributeId: UUID, attribute: TenantAttribute)(implicit
       contexts: Seq[(String, String)]

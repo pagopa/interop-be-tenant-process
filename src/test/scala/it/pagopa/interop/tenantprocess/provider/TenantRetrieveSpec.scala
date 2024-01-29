@@ -2,7 +2,7 @@ package it.pagopa.interop.tenantprocess.provider
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.interop.tenantmanagement.model.tenant.PersistentExternalId
+import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenantFeature, PersistentExternalId}
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -110,6 +110,36 @@ class TenantRetrieveSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
 
       Get() ~> tenantService.getTenantByExternalId(origin, code) ~> check {
         assert(status == StatusCodes.NotFound)
+      }
+    }
+    "List certified attributes" in {
+
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val offset: Int = 0
+      val limit: Int  = 50
+
+      mockGetTenantById(
+        organizationId,
+        persistentTenant.copy(features = List(PersistentTenantFeature.PersistentCertifier("IPA")))
+      )
+      mockGetCertifiedAttributes(persistentTenant.externalId.origin, offset, limit)
+
+      Get() ~> tenantService.getCertifiedAttributes(offset, limit) ~> check {
+        assert(status == StatusCodes.OK)
+      }
+    }
+    "List certified attributes fail if Tenant is not a Certifier" in {
+
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val offset: Int = 0
+      val limit: Int  = 50
+
+      mockGetTenantById(organizationId, persistentTenant.copy(features = Nil))
+
+      Get() ~> tenantService.getCertifiedAttributes(offset, limit) ~> check {
+        assert(status == StatusCodes.Forbidden)
       }
     }
   }

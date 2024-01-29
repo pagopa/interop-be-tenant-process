@@ -19,7 +19,7 @@ import it.pagopa.interop.tenantprocess.error.TenantProcessErrors.{
   TenantNotFound
 }
 import it.pagopa.interop.tenantmanagement.client.model._
-import it.pagopa.interop.tenantprocess.common.readmodel.PaginatedResult
+import it.pagopa.interop.tenantprocess.common.readmodel.{CertifiedAttribute, PaginatedResult}
 import it.pagopa.interop.tenantprocess.api.TenantApiService
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiServiceImpl
 import it.pagopa.interop.tenantprocess.service._
@@ -116,6 +116,18 @@ trait SpecHelper extends MockFactory with SpecData {
     (mockTenantManagement
       .getTenants(_: Option[String], _: Int, _: Int)(_: ExecutionContext, _: ReadModelService))
       .expects(name, offset, limit, *, *)
+      .once()
+      .returns(Future.successful(PaginatedResult(results = result, totalCount = result.size)))
+
+  def mockGetCertifiedAttributes(
+    certifier: String,
+    offset: Int,
+    limit: Int,
+    result: Seq[CertifiedAttribute] = Seq(certifiedAttribute)
+  ) =
+    (mockTenantManagement
+      .getCertifiedAttributes(_: String, _: Int, _: Int)(_: ExecutionContext, _: ReadModelService))
+      .expects(certifier, offset, limit, *, *)
       .once()
       .returns(Future.successful(PaginatedResult(results = result, totalCount = result.size)))
 

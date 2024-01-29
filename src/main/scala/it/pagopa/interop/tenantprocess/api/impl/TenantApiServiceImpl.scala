@@ -1073,4 +1073,27 @@ final case class TenantApiServiceImpl(
       deleteTenantMailResponse[Unit](operationLabel)(_ => deleteTenantMail204)
     }
   }
+
+  override def getCertifiedAttributes(offset: Int, limit: Int)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerCertifiedAttributes: ToEntityMarshaller[CertifiedAttributes],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
+    val operationLabel = s"Retrieving certified attributes"
+    logger.info(operationLabel)
+
+    val result: Future[CertifiedAttributes] = for {
+      requesterTenantUuid <- getOrganizationIdFutureUUID(contexts)
+      requesterTenant     <- tenantManagementService.getTenantById(requesterTenantUuid).map(_.toManagement)
+      certifier           <- requesterTenant.features
+        .collectFirstSome(_.certifier.map(_.certifierId))
+        .toFuture(TenantIsNotACertifier(requesterTenantUuid))
+      attributes          <- tenantManagementService
+        .getCertifiedAttributes(certifier, offset, limit)
+    } yield CertifiedAttributes(results = attributes.results.map(_.toApi), totalCount = attributes.totalCount)
+
+    onComplete(result) {
+      getCertifiedAttributesResponse[CertifiedAttributes](operationLabel)(getCertifiedAttributes200)
+    }
+  }
 }
