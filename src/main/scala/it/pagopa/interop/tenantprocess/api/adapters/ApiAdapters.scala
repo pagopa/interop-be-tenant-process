@@ -6,6 +6,7 @@ import it.pagopa.interop.tenantmanagement.client.model.MailKind.{DIGITAL_ADDRESS
 import it.pagopa.interop.tenantmanagement.client.model.{
   Certifier => DependencyCertifier,
   DeclaredTenantAttribute => DependencyDeclaredTenantAttribute,
+  CertifiedTenantAttribute => DependencyCertifiedTenantAttribute,
   ExternalId => DependencyExternalId,
   MailKind => DependencyMailKind,
   MailSeed => DependencyMailSeed,
@@ -71,11 +72,20 @@ object ApiAdapters {
     )
   }
 
-  implicit class TenantUnitTypeWrapper(private val u: TenantUnitType) extends AnyVal {
+  implicit class TenantUnitTypeWrapper(private val u: TenantUnitType)                                extends AnyVal {
     def toDependency: DependencyTenantUnitType = u match {
       case TenantUnitType.AOO => DependencyTenantUnitType.AOO
       case TenantUnitType.UO  => DependencyTenantUnitType.UO
     }
+  }
+  implicit class CertifiedTenantAttributeSeedWrapper(private val seed: CertifiedTenantAttributeSeed) extends AnyVal {
+    def toCreateDependency(now: OffsetDateTime): DependencyTenantAttribute =
+      DependencyTenantAttribute(
+        declared = None,
+        verified = None,
+        certified =
+          DependencyCertifiedTenantAttribute(id = seed.id, assignmentTimestamp = now, revocationTimestamp = None).some
+      )
   }
 
   implicit class VerifiedTenantAttributeSeedWrapper(private val seed: VerifiedTenantAttributeSeed) extends AnyVal {
