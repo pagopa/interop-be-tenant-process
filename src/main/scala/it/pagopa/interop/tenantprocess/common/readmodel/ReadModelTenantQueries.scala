@@ -65,7 +65,8 @@ object ReadModelTenantQueries extends ReadModelQuery {
         filterPipeline ++
           Seq(count("totalCount"), project(computed("data", Document("""{ "totalCount" : "$totalCount" }""")))),
         offset = 0,
-        limit = Int.MaxValue
+        limit = Int.MaxValue,
+        allowDiskUse = true
       )
     } yield PaginatedResult(results = consumers, totalCount = count.headOption.map(_.totalCount).getOrElse(0))
   }
