@@ -56,7 +56,8 @@ object ReadModelTenantQueries extends ReadModelQuery {
         filterPipeline ++
           Seq(projection, sort(ascending("lowerName"))),
         offset = offset,
-        limit = limit
+        limit = limit,
+        allowDiskUse = true
       )
       // Note: This could be obtained using $facet function (avoiding to execute the query twice),
       //   but it is not supported by DocumentDB
