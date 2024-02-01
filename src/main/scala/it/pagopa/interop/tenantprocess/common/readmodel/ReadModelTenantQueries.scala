@@ -4,7 +4,7 @@ import it.pagopa.interop.tenantprocess.common.readmodel.CertifiedAttribute
 import it.pagopa.interop.agreementmanagement.model.agreement.{Active, Suspended}
 import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.Certified
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
-import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentCertifiedAttribute}
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenant
 import it.pagopa.interop.tenantmanagement.model.persistence.JsonFormats._
 import org.mongodb.scala.Document
 import org.mongodb.scala.bson.conversions.Bson
@@ -23,27 +23,22 @@ object ReadModelTenantQueries extends ReadModelQuery {
     readModel: ReadModelService
   ): Future[PaginatedResult[CertifiedAttribute]] = {
 
-    val query: Bson = Filters.eq("data.attributes.type", PersistentCertifiedAttribute.toString)
+    val query: Bson =
+      Filters.and(Filters.eq("data.origin", certifier.toString), Filters.eq("data.kind", Certified.toString))
 
     val filterPipeline: Seq[Bson] = Seq(
       `match`(query),
-      lookup(from = "attributes", localField = "data.id", foreignField = "data.attributes.id", as = "attributes"),
-      unwind("$attributes"),
-      `match`(
-        Filters.and(
-          Filters.eq("attributes.data.kind", Certified.toString),
-          Filters.eq("attributes.data.origin", certifier.toString)
-        )
-      )
+      lookup(from = "tenants", localField = "data.id", foreignField = "data.attributes.id", as = "tenants"),
+      unwind("$tenants")
     )
 
     val projection: Bson = project(
       fields(
-        computed("id", "$data.id"),
-        computed("name", "$data.name"),
-        computed("attributeId", "$attributes.data.id"),
-        computed("attributeName", "$attributes.data.name"),
-        computed("lowerName", Document("""{ "$toLower" : "$data.name" }""")),
+        computed("id", "$tenants.data.id"),
+        computed("name", "$tenants.data.name"),
+        computed("attributeId", "$data.id"),
+        computed("attributeName", "$data.name"),
+        computed("lowerName", Document("""{ "$toLower" : "$tenants.data.name" }""")),
         excludeId()
       )
     )
@@ -52,7 +47,7 @@ object ReadModelTenantQueries extends ReadModelQuery {
       // Using aggregate to perform case insensitive sorting
       //   N.B.: Required because DocumentDB does not support collation
       consumers <- readModel.aggregateRaw[CertifiedAttribute](
-        "tenants",
+        "attributes",
         filterPipeline ++
           Seq(projection, sort(ascending("lowerName"))),
         offset = offset,
@@ -62,7 +57,7 @@ object ReadModelTenantQueries extends ReadModelQuery {
       // Note: This could be obtained using $facet function (avoiding to execute the query twice),
       //   but it is not supported by DocumentDB
       count     <- readModel.aggregate[TotalCountResult](
-        "tenants",
+        "attributes",
         filterPipeline ++
           Seq(count("totalCount"), project(computed("data", Document("""{ "totalCount" : "$totalCount" }""")))),
         offset = 0,
