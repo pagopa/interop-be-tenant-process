@@ -29,7 +29,8 @@ object ReadModelTenantQueries extends ReadModelQuery {
     val filterPipeline: Seq[Bson] = Seq(
       `match`(query),
       lookup(from = "tenants", localField = "data.id", foreignField = "data.attributes.id", as = "tenants"),
-      unwind("$tenants")
+      unwind("$tenants"),
+      `match`(Filters.not(Filters.exists("tenants.data.attributes.revocationTimestamp")))
     )
 
     val projection: Bson = project(
