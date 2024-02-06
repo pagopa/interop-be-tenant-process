@@ -508,6 +508,10 @@ final case class TenantApiServiceImpl(
             attribute.code.getOrElse("none")
           )
         )
+      _                   <- attributeToRevoke.revocationTimestamp
+        .fold(Future.unit)(_ =>
+          Future.failed(AttributeAlreadyRevoked(targetTenantUuid, requesterTenantUuid, attributeUuid))
+        )
       revokedAttribute = attributeToRevoke.copy(revocationTimestamp = now.some)
       updatedTenant <- tenantManagementService
         .updateTenantAttribute(

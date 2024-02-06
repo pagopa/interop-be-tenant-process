@@ -417,6 +417,37 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
         assert(status == StatusCodes.Forbidden)
       }
     }
+    "fail if certified attribute already revoked" in {
+      implicit val context: Seq[(String, String)] = adminContext
+
+      val tenantId    = UUID.randomUUID()
+      val attributeId = UUID.randomUUID()
+
+      val requester = persistentTenant.copy(
+        id = organizationId,
+        kind = Some(PersistentTenantKind.PA),
+        features = List(PersistentTenantFeature.PersistentCertifier("IPA"))
+      )
+
+      val tenant = persistentTenant.copy(
+        id = tenantId,
+        kind = Some(PersistentTenantKind.PA),
+        attributes = List(
+          persistentCertifiedAttribute.copy(id = attributeId, revocationTimestamp = Some(timestamp)),
+          persistentDeclaredAttribute,
+          persistentVerifiedAttribute
+        )
+      )
+
+      mockDateTimeGet()
+      mockGetTenantById(organizationId, requester)
+      mockGetTenantById(tenantId, tenant)
+      mockGetAttributeById(attributeId, persistentAttribute.copy(id = attributeId, origin = Some("IPA")))
+
+      Delete() ~> tenantService.revokeCertifiedAttributeById(tenantId.toString, attributeId.toString) ~> check {
+        assert(status == StatusCodes.Conflict)
+      }
+    }
     "fail if attribute does not exists on tenant" in {
       implicit val context: Seq[(String, String)] = adminContext
 

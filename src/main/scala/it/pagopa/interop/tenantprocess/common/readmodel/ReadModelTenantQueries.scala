@@ -8,8 +8,8 @@ import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenant
 import it.pagopa.interop.tenantmanagement.model.persistence.JsonFormats._
 import org.mongodb.scala.Document
 import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.model.Aggregates.{`match`, count, lookup, project, sort, unwind}
-import org.mongodb.scala.model.Filters
+import org.mongodb.scala.model.Aggregates.{`match`, count, lookup, project, sort, unwind, addFields}
+import org.mongodb.scala.model.{Filters, Field}
 import org.mongodb.scala.model.Projections.{computed, fields, include, excludeId}
 import org.mongodb.scala.model.Sorts.ascending
 
@@ -29,7 +29,26 @@ object ReadModelTenantQueries extends ReadModelQuery {
     val filterPipeline: Seq[Bson] = Seq(
       `match`(query),
       lookup(from = "tenants", localField = "data.id", foreignField = "data.attributes.id", as = "tenants"),
-      unwind("$tenants")
+      unwind("$tenants"),
+      unwind("$tenants.data.attributes"),
+      addFields(
+        Field(
+          "notRevoked",
+          Document(s"""{
+                      |  $$cond: {
+                      |    if: {
+                      |      $$and: [
+                      |        { $$eq: [ "$$tenants.data.attributes.id", "$$data.id" ] },
+                      |        { $$not: [ "$$tenants.data.attributes.revocationTimestamp"] }
+                      |      ],
+                      |    },
+                      |    then: true,
+                      |    else: false,
+                      |  },
+                      |}""".stripMargin)
+        )
+      ),
+      `match`(Filters.eq("notRevoked", true))
     )
 
     val projection: Bson = project(
@@ -46,7 +65,7 @@ object ReadModelTenantQueries extends ReadModelQuery {
     for {
       // Using aggregate to perform case insensitive sorting
       //   N.B.: Required because DocumentDB does not support collation
-      consumers <- readModel.aggregateRaw[CertifiedAttribute](
+      attributes <- readModel.aggregateRaw[CertifiedAttribute](
         "attributes",
         filterPipeline ++
           Seq(projection, sort(ascending("lowerName"))),
@@ -56,7 +75,7 @@ object ReadModelTenantQueries extends ReadModelQuery {
       )
       // Note: This could be obtained using $facet function (avoiding to execute the query twice),
       //   but it is not supported by DocumentDB
-      count     <- readModel.aggregate[TotalCountResult](
+      count      <- readModel.aggregate[TotalCountResult](
         "attributes",
         filterPipeline ++
           Seq(count("totalCount"), project(computed("data", Document("""{ "totalCount" : "$totalCount" }""")))),
@@ -64,7 +83,7 @@ object ReadModelTenantQueries extends ReadModelQuery {
         limit = Int.MaxValue,
         allowDiskUse = true
       )
-    } yield PaginatedResult(results = consumers, totalCount = count.headOption.map(_.totalCount).getOrElse(0))
+    } yield PaginatedResult(results = attributes, totalCount = count.headOption.map(_.totalCount).getOrElse(0))
   }
 
   def getTenantBySelfcareId(

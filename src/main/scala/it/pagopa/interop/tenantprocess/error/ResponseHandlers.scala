@@ -131,6 +131,7 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex: CertifiedAttributeNotFoundInTenant)                  => notFound(ex, logMessage)
       case Failure(ex: TenantByIdNotFound)                                  => notFound(ex, logMessage)
       case Failure(ex: RegistryAttributeIdNotFound)                         => notFound(ex, logMessage)
+      case Failure(ex: AttributeAlreadyRevoked)                             => conflict(ex, logMessage)
       case Failure(ex)                                                      => internalServerError(ex, logMessage)
     }
 
