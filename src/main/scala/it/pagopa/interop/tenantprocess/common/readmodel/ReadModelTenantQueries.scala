@@ -222,7 +222,7 @@ object ReadModelTenantQueries extends ReadModelQuery {
 
   private def listTenantsFilters(name: Option[String]): Bson = {
     val nameFilter           = name match {
-      case Some(n) if n.nonEmpty => List(safeRegex("data.name", n, "i"))
+      case Some(n) if n.nonEmpty => List(Filters.regex("data.name", escape(n), "i"))
       case _                     => Nil
     }
     val withSelfcareIdFilter = Filters.exists("data.selfcareId", true)
