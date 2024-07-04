@@ -445,8 +445,10 @@ final case class TenantApiServiceImpl(
             updatedTenant.id,
             DependencyTenantDelta(
               selfcareId = updatedTenant.selfcareId,
+              onboardedAt = updatedTenant.onboardedAt,
               features = updatedTenant.features,
-              kind = tenantKind
+              kind = tenantKind,
+              subUnitType = updatedTenant.subUnitType
             )
           )
       }
@@ -527,8 +529,10 @@ final case class TenantApiServiceImpl(
             updatedTenant.id,
             DependencyTenantDelta(
               selfcareId = updatedTenant.selfcareId,
+              onboardedAt = updatedTenant.onboardedAt,
               features = updatedTenant.features,
-              kind = tenantKind
+              kind = tenantKind,
+              subUnitType = updatedTenant.subUnitType
             )
           )
       }
@@ -704,7 +708,13 @@ final case class TenantApiServiceImpl(
       tenantManagementService
         .updateTenant(
           tenant.id,
-          DependencyTenantDelta(selfcareId = tenant.selfcareId, features = tenant.features, kind = kind)
+          DependencyTenantDelta(
+            selfcareId = tenant.selfcareId,
+            onboardedAt = tenant.onboardedAt,
+            features = tenant.features,
+            kind = kind,
+            subUnitType = tenant.subUnitType
+          )
         )
 
     for {
@@ -858,8 +868,10 @@ final case class TenantApiServiceImpl(
           updatedTenant.id,
           DependencyTenantDelta(
             selfcareId = updatedTenant.selfcareId,
+            onboardedAt = updatedTenant.onboardedAt,
             features = updatedTenant.features,
-            kind = tenantKind
+            kind = tenantKind,
+            subUnitType = updatedTenant.subUnitType
           )
         )
     }
@@ -902,8 +914,10 @@ final case class TenantApiServiceImpl(
           updatedTenant.id,
           DependencyTenantDelta(
             selfcareId = updatedTenant.selfcareId,
+            onboardedAt = updatedTenant.onboardedAt,
             features = updatedTenant.features,
-            kind = tenantKind
+            kind = tenantKind,
+            subUnitType = updatedTenant.subUnitType
           )
         )
     }

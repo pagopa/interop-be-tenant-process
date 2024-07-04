@@ -25,6 +25,8 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import it.pagopa.interop.tenantprocess.common.readmodel.CertifiedAttribute
 
+import scala.reflect.ClassTag
+
 object FakeDependencies extends SpecData {
   val verifiedAttributeId: UUID = UUID.randomUUID()
   val (agreement, eService)     = matchingAgreementAndEService(verifiedAttributeId)
@@ -179,6 +181,11 @@ object FakeDependencies extends SpecData {
     )(implicit ec: ExecutionContext): Future[Seq[T]] = Future.successful(Nil)
 
     override def close(): Unit = ()
+
+    override def distinct[T](collectionName: String, fieldName: String, filter: Bson)(implicit
+      evidence$6: ClassTag[T],
+      ec: ExecutionContext
+    ): Future[Seq[T]] = Future.successful(Nil)
   }
 
   val fakeTenant: Tenant = Tenant(

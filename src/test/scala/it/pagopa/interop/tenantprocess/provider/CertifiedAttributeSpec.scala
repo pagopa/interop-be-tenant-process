@@ -3,11 +3,12 @@ package it.pagopa.interop.tenantprocess.provider
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.agreementprocess.client.model.CompactTenant
+import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.Declared
 import it.pagopa.interop.tenantmanagement.client.{model => Dependency}
 import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenantFeature, PersistentTenantKind}
-import it.pagopa.interop.attributeregistrymanagement.model.persistence.attribute.Declared
-import it.pagopa.interop.tenantprocess.model.CertifiedTenantAttributeSeed
+import it.pagopa.interop.tenantprocess.api.adapters.ReadModelTenantAdapters.PersistentTenantUnitTypeWrapper
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
+import it.pagopa.interop.tenantprocess.model.CertifiedTenantAttributeSeed
 import it.pagopa.interop.tenantprocess.utils.SpecHelper
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -87,11 +88,11 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       mockUpdateTenant(
         tenantId,
         Dependency.TenantDelta(
-          selfcareId = None,
+          selfcareId = tenant.selfcareId,
           features = Nil,
           kind = Dependency.TenantKind.PA,
-          onboardedAt = None,
-          subUnitType = None
+          onboardedAt = tenant.onboardedAt,
+          subUnitType = tenant.subUnitType.map(_.toManagement)
         )
       )
       mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
@@ -132,11 +133,11 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       mockUpdateTenant(
         tenantId,
         Dependency.TenantDelta(
-          selfcareId = None,
+          selfcareId = tenant.selfcareId,
           features = Nil,
           kind = Dependency.TenantKind.PA,
-          onboardedAt = None,
-          subUnitType = None
+          onboardedAt = tenant.onboardedAt,
+          subUnitType = tenant.subUnitType.map(_.toManagement)
         )
       )
       mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
@@ -337,11 +338,11 @@ class CertifiedAttributeSpec extends AnyWordSpecLike with SpecHelper with Scalat
       mockUpdateTenant(
         tenantId,
         Dependency.TenantDelta(
-          selfcareId = None,
+          selfcareId = tenant.selfcareId,
           features = Nil,
           kind = Dependency.TenantKind.PA,
-          onboardedAt = None,
-          subUnitType = None
+          onboardedAt = tenant.onboardedAt,
+          subUnitType = tenant.subUnitType.map(_.toManagement)
         )
       )
 
