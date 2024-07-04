@@ -11,6 +11,7 @@ import it.pagopa.interop.tenantmanagement.model.tenant.{
   PersistentTenantKind
 }
 import it.pagopa.interop.tenantprocess.api.adapters.ApiAdapters.TenantUnitTypeWrapper
+import it.pagopa.interop.tenantprocess.api.adapters.ReadModelTenantAdapters._
 import it.pagopa.interop.tenantprocess.api.impl.TenantApiMarshallerImpl._
 import it.pagopa.interop.tenantprocess.model.{InternalAttributeSeed, M2MAttributeSeed}
 import it.pagopa.interop.tenantprocess.provider.TenantCreationSpec._
@@ -364,7 +365,13 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeById(updatedExistingAttributeId, updatedExistingAttribute)
 
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.PA)
+      TenantDelta(
+        selfcareId = existingTenant.selfcareId,
+        features = existingTenant.features.map(_.toManagement),
+        kind = TenantKind.PA,
+        onboardedAt = existingTenant.onboardedAt,
+        subUnitType = existingTenant.subUnitType.map(_.toManagement)
+      )
 
     mockUpdateTenant(existingTenant.id, expectedTenantUpdate)
 
@@ -473,7 +480,13 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeById(updatedExistingAttributeId, updatedExistingAttribute)
 
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.GSP)
+      TenantDelta(
+        selfcareId = existingTenant.selfcareId,
+        features = existingTenant.features.map(_.toManagement),
+        kind = TenantKind.GSP,
+        onboardedAt = existingTenant.onboardedAt,
+        subUnitType = existingTenant.subUnitType.map(_.toManagement)
+      )
 
     mockUpdateTenant(existingTenant.id, expectedTenantUpdate)
 
@@ -700,7 +713,13 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockUpdateTenantAttribute(tenantToModify.id, attributeId, dependencyAttribute)
 
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.PA)
+      TenantDelta(
+        selfcareId = tenantToModify.selfcareId,
+        features = tenantToModify.features.map(_.toManagement),
+        kind = TenantKind.PA,
+        onboardedAt = tenantToModify.onboardedAt,
+        subUnitType = tenantToModify.subUnitType.map(_.toManagement)
+      )
 
     mockComputeAgreementState(attributeId, CompactTenant(tenantId, Nil))
 
@@ -886,7 +905,13 @@ class TenantCreationSpec extends AnyWordSpecLike with SpecHelper with ScalatestR
     mockGetAttributeById(updatedExistingAttributeId, updatedExistingAttribute)
 
     val expectedTenantUpdate =
-      TenantDelta(selfcareId = None, features = Nil, kind = TenantKind.PA)
+      TenantDelta(
+        selfcareId = existingTenant.selfcareId,
+        features = existingTenant.features.map(_.toManagement),
+        kind = TenantKind.PA,
+        onboardedAt = existingTenant.onboardedAt,
+        subUnitType = existingTenant.subUnitType.map(_.toManagement)
+      )
 
     mockUpdateTenant(existingTenant.id, expectedTenantUpdate)
 
